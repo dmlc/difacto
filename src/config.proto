@@ -1,22 +1,32 @@
 //  @file   config.proto
-//  @brief  configuration for difacto
+//  @brief  the configuration for difacto
 package difacto;
 
 message Config {
   /// --  basic settings for input & output  --
-  /// The training data, can be either a filename or a directory
-  optional string train_data = 0;
-  /// The validationt data, can be either a filename or a directory
-  optional string val_data = 1;
-  /// data format. supports libsvm ...
-  optional string data_format = 2 [default = "libsvm"];
-  /// model output filename
-  optional string model_out = 3;
-  /// model input filename
-  optional string model_in = 4;
-  /// the filename for prediction output. if specified, then run
-  /// prediction. otherwise run training
-  optional string predict_out = 5;
+  /// the task, which could be
+  /// - train: the training task, which the default
+  /// - predict: the prediction task
+  /// - dist_train: distributed training
+  optional string task = 0 [default = "train"];
+  /// The input data, can be either a filename or a directory.
+  optional string data_in = 1;
+  /// The optional validation data set for a training task, it can be either a
+  /// filename or a directory
+  optional string val_data = 2;
+  /// data format. default is libsvm
+  optional string data_format = 3 [default = "libsvm"];
+  /// the model output for a training task
+  optional string model_out = 4;
+  /// model input, should be specified if it is a prediction task, or a training
+  /// task started from a previous model
+  optional string model_in = 5;
+  /// the filename for prediction output. should be specified for a prediction
+  /// task.
+  optional string predict_out = 6;
+
+
+  optional uint64 feature_size = 7;
 
   /// -- basic settings for the linear model :math:`w`  --
   /// l1 regularizer for :math:`w`: :math:`\lambda_1 |w|_1`
