@@ -16,19 +16,6 @@ struct SGDEntry {
   }
   ~SGDEntry() { delete [] V; }
 
-  // /** \brief resize len to n */
-  // inline void Resize(int n) {
-  //   if (n > 1) CHECK_LE(len_, 1);
-  //   if (n < len_) { len_ = n; return; }
-  //   int old_size = size();
-  //   T* old_val = val_;
-  //   len_ = n;
-  //   val_ = new T[size()];
-  //   memset(val_, 0, sizeof(T) * size());
-  //   memcpy(val_, old_val, sizeof(T) * old_size);
-  //   delete [] old_val;
-  // }
-
   /** \brief load from disk */
   void Load(Stream* fi) {
   }
@@ -37,8 +24,9 @@ struct SGDEntry {
   void Save(Stream *fo) const {
   }
 
-  void ResizeV(int len, T init_scale) {
-    CHECK_EQ(V_len, 0) << "only support to resize from empty";
+  /** \brief init V */
+  void InitV(int len, T init_scale) {
+    CHECK_EQ(V_len, 0) << "already inited";
     V_len = len;
     V = new T[len * 2];
     for (int i = 0; i < len; ++i) {
@@ -49,13 +37,10 @@ struct SGDEntry {
 
   /** \brief the number of appearence of this feature in the data so far */
   uint32_t fea_cnt;
-
   /** \brief the lenght of V */
   int V_len;
-
   /** \brief w and its aux data */
   T w[3];
-
   /** \brief V and its aux data */
   T *V;
 };
@@ -72,7 +57,7 @@ class SGDModel {
    * @param start_id the minimal feature id
    * @param end_id the maximal feature id
    */
-  SGDModel(FeaID start_id, FeaID end_id) {
+  SGDModel(feaid_t start_id, feaid_t end_id) {
     CHECK_GT(end_id, start_id);
     start_id_ = start_id;
     end_id_ = end_id;
@@ -88,8 +73,8 @@ class SGDModel {
    * \brief get the weight entry for a feature id
    * \param id the feature id
    */
-  // inline SGDEntry& get(FeaID id) {
-  inline SGDEntry& operator[] (FeaID id) {
+  // inline SGDEntry& get(feaid_t id) {
+  inline SGDEntry& operator[] (feaid_t id) {
     CHECK_GE(id, start_id_);
     return dense_ ? model_vec_[id - start_id_] : model_map_[id - start_id_];
   }
@@ -99,7 +84,7 @@ class SGDModel {
    * \param fi input stream
    */
   void Load(dmlc::Stream* fi) override {
-    FeaID id;
+    feaid_t id;
     while (fi->Read(&id, sizeof(id))) {
       CHECK_GE(id, start_id_);
       if (dense_) {
@@ -116,7 +101,7 @@ class SGDModel {
    */
   void Save(dmlc::Stream *fo) const override {
     if (dense_) {
-      for (FeaID id = 0; id < (FeaID)model_vec_.size(); ++i) {
+      for (feaid_t id = 0; id < (feaid_t)model_vec_.size(); ++i) {
         const auto& e = model_vec_[id];
         if (e.w[0] == 0 && e.V_len == 0) continue;
         fo->Write(&id, sizeof(id));
@@ -134,7 +119,7 @@ class SGDModel {
 
  private:
   bool dense_;
-  FeaID start_id_;
+  feaid_t start_id_;
   std::vector<SGDEntry<T>> model_vec_;
   std::unordered_map<SGDEntry<T>> model_map_;
 };
@@ -149,7 +134,7 @@ class SGDModel {
 template <typename T>
 class SGDOptimizer : public Model<T> {
  public:
-  SGD(const Config& conf, FeaID start_id, FeaID end_id)
+  SGD(const Config& conf, feaid_t start_id, feaid_t end_id)
       : model_(start_id, end_id) { }
   virtual ~SGD() { }
 
@@ -174,7 +159,7 @@ class SGDOptimizer : public Model<T> {
    * @param weight_lens the i-th element stores len([w_i, V_i]), could be empty
    * if there is only w
    */
-  void Get(const std::vector<FeaID>& fea_ids,
+  void Get(const std::vector<feaid_t>& fea_ids,
            std::vector<T>* weights,
            std::vector<int>* weight_lens) override {
     size_t size = fea_ids.size();
@@ -199,14 +184,14 @@ class SGDOptimizer : public Model<T> {
    * @param fea_ids the list of feature ids
    * @param fea_cnts the according counts
    */
-  void AddCount(const std::vector<FeaID>& fea_ids,
+  void AddCount(const std::vector<feaid_t>& fea_ids,
                 const std::vector<uint32_t>& fea_cnts) override {
     CHECK_EQ(fea_ids.size(), fea_cnts.size());
     for (size_t i = 0; i < fea_ids.size(); ++i) {
       auto& e = model_[fea_ids[i]];
       e.fea_cnt += fea_cnts[i];
       if (e.V_len == 0 && e.w[0] != 0 && e.fea_cnt > V_threshold_) {
-        e.ResizeV(V_dim_, V_init_scale_);
+        e.InitV(V_dim_, V_init_scale_);
       }
     }
   }
@@ -263,7 +248,7 @@ class SGDOptimizer : public Model<T> {
     if (w == 0 && e->w[0] != 0) {
       ++ new_w_;
       if (e.V_len == 0 && e.fea_cnt > V_threshold_) {
-        e.ResizeV(V_dim_, V_init_scale_);
+        e.InitV(V_dim_, V_init_scale_);
       }
     } else if (w != 0 && e->w[0] == 0) {
       -- new_w_;

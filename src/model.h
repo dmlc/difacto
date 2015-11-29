@@ -2,10 +2,10 @@
 #include "ps/base.h"
 namespace difacto {
 
-using FeadID = ps::Key;
+using feaid_t = ps::Key;
 
 /**
- * \brief the base class of a model
+ * \brief the base class of a model updater
  * \tparam T the gradient/weight data type
  */
 template <typename T>
@@ -29,8 +29,8 @@ class Model {
    * @param fea_ids the list of feature ids
    * @param fea_cnts the according counts
    */
-  virtual void AddCount(const std::vector<FeaID>& fea_ids,
-                        const std::vector<uint32_t>& fea_cnts) virtual = 0;
+  virtual void AddCount(const std::vector<feaid_t>& fea_ids,
+                        const std::vector<int>& fea_cnts) virtual = 0;
 
   /**
    * \brief get the weights on the given features
@@ -41,7 +41,7 @@ class Model {
    * @param weight_lens the i-th element stores len([w_i, V_i]), could be empty
    * if there is only w
    */
-  virtual void Get(const std::vector<FeaID>& fea_ids,
+  virtual void Get(const std::vector<feaid_t>& fea_ids,
                    std::vector<T>* weights,
                    std::vector<int>* weight_lens) = 0;
 
@@ -54,11 +54,11 @@ class Model {
    * @param gradient_lens the i-th element stores len([gw_i, gV_i]), could be empty
    * if there is only w
    */
-  virtual void Update(const std::vector<FeaID>& fea_ids,
+  virtual void Update(const std::vector<feaid_t>& fea_ids,
                       const std::vector<T>& gradients,
                       const std::vector<int>& gradient_lens) = 0;
 
-  static Model<T>* Create(const Config& conf);
+  static ModelUpdater<T>* Create(const Config& conf);
 };
 
 }  // namespace difacto
