@@ -15,13 +15,8 @@ typedef float real_t;
 typedef ps::Key feaid_t;
 
 /**
- * \brief a keyword argument used for initializaiton
- */
-typedef std::par<std::string, std::string> KWArg;
-
-/**
  * \brief a list of keyword arguments
  */
-typedef std::vector<KVArg> KWArgs;
+typedef std::vector<std::pair<std::string, std::string>> KWArgs;
 
 }  // namespace difacto

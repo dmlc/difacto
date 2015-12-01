@@ -1,0 +1,3 @@
+namespace difacto {
+
+}  // namespace difacto

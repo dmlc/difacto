@@ -1,11 +1,12 @@
 CXX = g++
 DEPS_PATH = $(shell pwd)/deps
 
-INCPATH = -I./src -I./dmlc-core/include -I./ps-lite/include -I./dmlc-core/src -I$(DEPS_PATH)/include
+INCPATH = -I./src -I./include -I./dmlc-core/include -I./ps-lite/include -I./dmlc-core/src -I$(DEPS_PATH)/include
 PROTOC = ${DEPS_PATH}/bin/protoc
 CFLAGS = -std=c++11 -fPIC -O3 -ggdb -Wall -finline-functions $(INCPATH)
-LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
-OBJS = $(addprefix build/, config.pb.o)
+# LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
+
+OBJS = $(addprefix build/, job.o difacto.o loss.o model.o model_sync.o)
 
 all: build/difacto
 
@@ -27,4 +28,4 @@ build/difacto.a: $(OBJS)
 	ar crv $@ $(filter %.o, $?)
 
 build/difacto: build/main.o build/difacto.a
-	$(CXX) $(CFLAGS) -o $< $(LDFLAGS)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)

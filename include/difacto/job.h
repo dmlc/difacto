@@ -6,20 +6,29 @@
 #include <string>
 #include <sstream>
 #include "dmlc/io.h"
+#include "dmlc/parameter.h"
 namespace difacto {
 
 /**
  * \brief a job
  */
-struct Job {
+struct Job : public dmlc::Parameter<Job> {
+  static const int kLoadModel = 0;
+  static const int kSaveModel = 1;
+  static const int kTraining = 2;
+  static const int kValidation = 3;
+  static const int kPrediction = 4;
   /** \brief the job type  */
-  enum Type {
-    TRAINING,
-    VALIDATION,
-    PREDICTION,
-    SAVE_MODEL,
-    LOAD_MODEL
-  } type;
+
+  // enum Type {
+  //   TRAINING,
+  //   VALIDATION,
+  //   PREDICTION,
+  //   SAVE_MODEL,
+  //   LOAD_MODEL
+  // } type;
+  /** \brief job type */
+  int type;
   /** \brief filename  */
   std::string filename;
   /** \brief number of partitions of this file */
@@ -29,31 +38,12 @@ struct Job {
   /** \brief the current epoch */
   int epoch;
 
-  /** \brief returns a readable string */
-  std::string ShortDebugString() const {
-    std::stringstream ss;
-    ss << "epoch = " << epoch << ", "
-       << (type == TRAINING ? "training," : "validation,")
-       << filename << " " << part_idx << " / " << num_parts;
-    return ss.str();
-  }
-
-  /** \brief load from stream */
-  void Load(dmlc::Stream* fi) {
-    fi->Read(&type, sizeof(type));
-    fi->Read(&epoch, sizeof(epoch));
-    fi->Read(&filename);
-    fi->Read(&num_parts, sizeof(num_parts));
-    fi->Read(&part_idx, sizeof(part_idx));
-  }
-
-  /** \brief save to stream */
-  void Save(dmlc::Stream* fo) const {
-    fo->Write(&type, sizeof(type));
-    fo->Write(&epoch, sizeof(epoch));
-    fo->Write(filename);
-    fo->Write(&num_parts, sizeof(num_parts));
-    fo->Write(&part_idx, sizeof(part_idx));
+  DMLC_DECLARE_PARAMETER(Job) {
+    DMLC_DECLARE_FIELD(num_parts).set_range(0, 100000).set_default(0);
+    DMLC_DECLARE_FIELD(part_idx).set_range(0,  100000).set_default(0);
+    DMLC_DECLARE_FIELD(epoch).set_range(0, 10000).set_default(0);
+    DMLC_DECLARE_FIELD(filename);
+    DMLC_DECLARE_FIELD(type).set_range(0, 5);
   }
 };
 
@@ -87,7 +77,6 @@ class JobTracker {
    */
   virtual void Clear() = 0;
 
-
   /**
    * \brief stop the tracker
    *
@@ -107,6 +96,11 @@ class JobTracker {
   void SetConsumer(const Consumer& consumer) {
     consumer_ = consumer;
   }
+
+  /**
+   * \brief block until the producer called \ref Stop
+   */
+  virtual void Wait() = 0;
 
   /**
    * \brief factory function

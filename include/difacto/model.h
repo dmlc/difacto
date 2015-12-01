@@ -1,24 +1,31 @@
 #pragma once
-#include "ps/base.h"
+#include "./base.h"
 namespace difacto {
 
-using feaid_t = ps::Key;
-
 /**
- * \brief the base class of a model updater
- * \tparam T the gradient/weight data type
+ * \brief the base class of a model
  */
-template <typename T>
 class Model {
  public:
+  Model() { }
+  virtual ~Model() { }
+
   /**
-   * \brief load model
+   * \brief init the model
+   *
+   * @param kwargs keyword arguments
+   * @return the unknown kwargs
+   */
+  virtual KWArgs Init(const KWArgs& kwargs) = 0;
+
+  /**
+   * \brief load the model
    * \param fi input stream
    */
   virtual void Load(dmlc::Stream* fi) = 0;
 
   /**
-   * \brief save model
+   * \brief save the model
    * \param fo output stream
    */
   virtual void Save(dmlc::Stream *fo) const = 0;
@@ -42,7 +49,7 @@ class Model {
    * if there is only w
    */
   virtual void Get(const std::vector<feaid_t>& fea_ids,
-                   std::vector<T>* weights,
+                   std::vector<real_t>* weights,
                    std::vector<int>* weight_lens) = 0;
 
   /**
@@ -55,10 +62,14 @@ class Model {
    * if there is only w
    */
   virtual void Update(const std::vector<feaid_t>& fea_ids,
-                      const std::vector<T>& gradients,
-                      const std::vector<int>& gradient_lens) = 0;
+                      const std::vector<real_t>& grads,
+                      const std::vector<int>& grad_lens) = 0;
 
-  static Model<T>* Create(const Config& conf);
+  /**
+   * \brief the factory function
+   * \param type the model type such as "fm"
+   */
+  Model* Create(const std::string& type);
 };
 
 }  // namespace difacto
