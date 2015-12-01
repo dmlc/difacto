@@ -8,22 +8,22 @@ message Config {
   /// - train: the training task, which the default
   /// - predict: the prediction task
   /// - dist_train: distributed training
-  optional string task = 0 [default = "train"];
+  optional string task = 1 [default = "train"];
   /// The input data, can be either a filename or a directory.
-  optional string data_in = 1;
-  /// The optional validation data set for a training task, it can be either a
+  optional string data_in = 2;
+  /// The optional validation dataset for a training task, it can be either a
   /// filename or a directory
-  optional string val_data = 2;
-  /// data format. default is libsvm
-  optional string data_format = 3 [default = "libsvm"];
+  optional string val_data = 3;
+  /// the data format. default is libsvm
+  optional string data_format = 4 [default = "libsvm"];
   /// the model output for a training task
-  optional string model_out = 4;
-  /// model input, should be specified if it is a prediction task, or a training
+  optional string model_out = 6;
+  /// the model input, should be specified if it is a prediction task, or a training
   /// task started from a previous model
   optional string model_in = 5;
   /// the filename for prediction output. should be specified for a prediction
   /// task.
-  optional string predict_out = 6;
+  optional string predict_out = 8;
 
 
   optional uint64 feature_size = 7;
@@ -82,23 +82,23 @@ message Config {
   /// use or not use the contraint :math:`V_i = 0` if :math:`w_i = 0`. yes in default
   optional bool l1_shrk = 114 [default = true];
   /// features with occurence < threshold (:math:`k`) will have no embedding
-  optional int32 V_threshold = 2 [default = 10];
+  optional int32 V_threshold = 62 [default = 10];
 
   /// learning rate :math:`\eta` for :math:`V`. if not specified, then share the
   /// same with :math:`w`
-  optional float V_lr = 4 [default = .01];
+  optional float V_lr = 64 [default = .01];
   /// leanring rate :math:`\beta` for :math:`V`.
-  optional float V_lr_beta = 5 [default = 1];
+  optional float V_lr_beta = 65 [default = 1];
   /// apply dropout on the gradient of :math:`V`. no in default
-  optional float V_dropout = 7 [default = 0];
+  optional float V_dropout = 67 [default = 0];
   /// project the gradient of :math:`V` into :math:`[-c c]`. no in default
-  optional float V_grad_clipping = 8 [default = 0];
+  optional float V_grad_clipping = 68 [default = 0];
   /// normalized the l2-norm of gradient of :math:`V`. no in default
   /// V is initialized by uniformly random weight in
   ///   [-init_scale, +init_scale]
-  optional float V_init_scale = 6 [default = .01];
+  optional float V_init_scale = 66 [default = .01];
 
-  optional float V_grad_normalization = 9 [default = 0];
+  optional float V_grad_normalization = 69 [default = 0];
 
   /// -- advanced settings for the learning algorithm --
   /// print the progress every n sec during training. 1 sec in default

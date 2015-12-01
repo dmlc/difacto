@@ -1,17 +1,17 @@
 #pragma once
-
+#include "base.h"
 namespace difacto {
 
 /**
- * \brief the commnunication interface of a model storage, which is used by
+ * \brief the commnunication interface of a model, which is used by
  * workers to get / set the model
  * \tparam T the gradient/weight data type
  */
 template <typename T>
 class ModelSync {
  public:
-  ModelStore() { }
-  virtual ~ModelStore() { }
+  ModelSync() { }
+  virtual ~ModelSync() { }
 
   /**
    * \brief use shared pointer for communication
@@ -31,7 +31,7 @@ class ModelSync {
                     std::vector<int>* lens) = 0;
 
 
-  static ModelStore<T>* Create(const std::string& type);
+  static ModelSync<T>* Create(const std::string& type);
 };
 
 }  // namespace difacto

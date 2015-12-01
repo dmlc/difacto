@@ -42,9 +42,9 @@ struct Job {
   void Load(dmlc::Stream* fi) {
     fi->Read(&type, sizeof(type));
     fi->Read(&epoch, sizeof(epoch));
-    fi->Read(filename);
+    fi->Read(&filename);
     fi->Read(&num_parts, sizeof(num_parts));
-    fi->Read(&part_idx sizeof(part_idx));
+    fi->Read(&part_idx, sizeof(part_idx));
   }
 
   /** \brief save to stream */
@@ -53,7 +53,7 @@ struct Job {
     fo->Write(&epoch, sizeof(epoch));
     fo->Write(filename);
     fo->Write(&num_parts, sizeof(num_parts));
-    fo->Write(&part_idx sizeof(part_idx));
+    fo->Write(&part_idx, sizeof(part_idx));
   }
 };
 
@@ -105,22 +105,6 @@ class JobTracker {
    * \brief set the consumer function
    */
   void SetConsumer(const Consumer& consumer) {
-    consumer_ = [consumer](const Job& job, Callback, cb) {
-      consumer(job); cb();
-    };
-  }
-
-  /**
-   * \brief the callback to tell the tracker the job is done
-   */
-  typedef std::function<void()> Callback;
-
-  /**
-   * \brief the asynchronous version of the consumer function
-   */
-  typedef std::function<void(const Job&, Callback)> AsyncConsumer;
-
-  void SetAsyncConsumer(const AsyncConsumer& consumer) {
     consumer_ = consumer;
   }
 
@@ -131,7 +115,7 @@ class JobTracker {
   static JobTracker* Create(const std::string& type);
 
  protected:
-  AsyncConsumer consumer_;
+  Consumer consumer_;
 };
 
 

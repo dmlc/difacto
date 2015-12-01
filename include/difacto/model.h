@@ -30,7 +30,7 @@ class Model {
    * @param fea_cnts the according counts
    */
   virtual void AddCount(const std::vector<feaid_t>& fea_ids,
-                        const std::vector<int>& fea_cnts) virtual = 0;
+                        const std::vector<int>& fea_cnts) = 0;
 
   /**
    * \brief get the weights on the given features
@@ -58,7 +58,7 @@ class Model {
                       const std::vector<T>& gradients,
                       const std::vector<int>& gradient_lens) = 0;
 
-  static ModelUpdater<T>* Create(const Config& conf);
+  static Model<T>* Create(const Config& conf);
 };
 
 }  // namespace difacto

@@ -1,14 +1,17 @@
 #pragma once
 #include <stdlib.h>
 #include <chrono>
-// #include "model-inl.h"
-// #include "loss.h"
+#include <string>
+#include <functional>
+#include <memory>
+#include "job.h"
+#include "dmlc/data.h"
+#include "config.pb.h"
+#include "base.h"
+#include "model.h"
+#include "model_sync.h"
 namespace difacto {
 
-/*!
- * \brief use float as the weight and gradient type
- */
-typedef float real_t;
 
 class DiFacto {
  public:
@@ -212,7 +215,8 @@ class DiFacto {
   bool local_;
   std::string role_;
 
-
+  Model<real_t>* model_;
+  ModelSync<real_t>* model_sync_;
 };
 
 }  // namespace difacto
