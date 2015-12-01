@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "./base.h"
 namespace difacto {
 

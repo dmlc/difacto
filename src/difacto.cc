@@ -1,26 +1,39 @@
 #include "difacto/difacto.h"
+#include <string.h>
+#include <stdlib.h>
+#include <chrono>
 namespace difacto {
 
+DMLC_REGISTER_PARAMETER(DiFactoParam);
+
 KWArgs DiFacto::Init(const KWArgs& kwargs) {
-  // // init config
-  // CHECK(conf_.ParseFromString(config));
-  // local_ = conf_.task() != "dist_train";
+  auto remain = param_.InitAllowUnknown(kwargs);
+  local_ = param_.task.find("dist_") == std::string::npos;
 
-  // // init job tracker
-  // tracker_ = JobTracker::Create(local_ ? "local" : "dist");
-  // using namespace std::placeholders;
-  // tracker_->SetConsumer(std::bind(&DiFacto::Process, this, _1));
+  // init job tracker
+  tracker_ = JobTracker::Create(local_ ? "local" : "dist");
+  remain = tracker_->Init(remain);
+  using namespace std::placeholders;
+  tracker_->SetConsumer(std::bind(&DiFacto::Process, this, _1));
 
-  // // init model and model_sync
-  // char* role_c = getenv("DMLC_ROLE");
-  // role_ = std::string(role_c, strlen(role_c));
-  // if (local_ || role_ == "server") {
-  //   model_ = Model<real_t>::Create("sgd");
-  // }
-  // if (local_ || role_ == "worker") {
-  //   model_sync_ = ModelSync<real_t>::Create(local_ ? "local" : "dist");
-  // }
+  // init model
+  char* role_c = getenv("DMLC_ROLE");
+  role_ = std::string(role_c, strlen(role_c));
+  if (local_ || role_ == "server") {
+    model_ = Model::Create(param_.algo);
+    remain = model_->Init(remain);
+  }
 
+  // init model_sync
+  if (local_ || role_ == "worker") {
+    model_sync_ = ModelSync::Create(local_ ? "local" : "dist");
+    remain = model_sync_->Init(remain);
+  }
+
+  if (local_ && !remain.empty()) {
+    LOG(WARNING) << "unrecognized keyword argument:";
+    for (auto kw : remain) LOG(WARNING) << "  " << kw.first << " : " << kw.second;
+  }
   return kwargs;
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "./base.h"
+#include "dmlc/io.h"
 namespace difacto {
 
 /**
@@ -69,7 +70,7 @@ class Model {
    * \brief the factory function
    * \param type the model type such as "fm"
    */
-  Model* Create(const std::string& type);
+  static Model* Create(const std::string& type);
 };
 
 }  // namespace difacto

@@ -7,6 +7,7 @@
 #include <sstream>
 #include "dmlc/io.h"
 #include "dmlc/parameter.h"
+#include "./base.h"
 namespace difacto {
 
 /**
@@ -57,6 +58,14 @@ class JobTracker {
  public:
   JobTracker() { }
   virtual ~JobTracker() { }
+
+  /**
+   * \brief init
+   *
+   * @param kwargs keyword arguments
+   * @return the unknown kwargs
+   */
+  virtual KWArgs Init(const KWArgs& kwargs) = 0;
 
   /**
    * \brief add a list of jobs to the tracker

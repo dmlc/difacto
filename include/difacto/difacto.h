@@ -6,11 +6,62 @@
 #include <memory>
 #include "dmlc/data.h"
 #include "dmlc/io.h"
+#include "dmlc/parameter.h"
 #include "./job.h"
 #include "./base.h"
 #include "./model.h"
 #include "./model_sync.h"
 namespace difacto {
+
+/**
+ * \brief parameters for difacto
+ */
+struct DiFactoParam : public dmlc::Parameter<DiFactoParam> {
+  /**
+   * \brief type of task,
+   * - train: the training task, which the default
+   * - predict: the prediction task
+   * - dist_train: distributed training
+   */
+  std::string task;
+  /** \brief The input data, either a filename or a directory. */
+  std::string data_in;
+  /**
+   * \brief The optional validation dataset for a training task, either a
+   *  filename or a directory
+   */
+  std::string val_data;
+  /** \brief the data format. default is libsvm */
+  std::string data_format;
+  /** \brief the model output for a training task */
+  std::string model_out;
+  /**
+   * \brief the model input
+   * should be specified if it is a prediction task, or a training
+   */
+  std::string model_in;
+  /**
+   * \brief the filename for prediction output.
+   *  should be specified for a prediction task.
+   */
+  std::string pred_out;
+  /** \brief type of learning algorithm, default is sgd */
+  std::string algo;
+  /** \brief type of loss, defaut is fm*/
+  std::string loss;
+
+  DMLC_DECLARE_PARAMETER(DiFactoParam) {
+    DMLC_DECLARE_FIELD(task).set_default("train");
+    DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
+    DMLC_DECLARE_FIELD(data_in);
+    DMLC_DECLARE_FIELD(val_data);
+    DMLC_DECLARE_FIELD(model_out);
+    DMLC_DECLARE_FIELD(model_in);
+    DMLC_DECLARE_FIELD(pred_out);
+    DMLC_DECLARE_FIELD(algo).set_default("sgd");
+    DMLC_DECLARE_FIELD(loss).set_default("fm");
+  }
+};
 
 class DiFacto {
  public:
@@ -89,7 +140,8 @@ class DiFacto {
                     const std::shared_ptr<std::vector<feaid_t> >& feaids,
                     dmlc::Stream* pred_out,
                     Callback on_complete);
-
+  /** \brief paramters */
+  DiFactoParam param_;
   /** \brief whether or not inited */
   bool inited_;
   /** \brief the job tracker */
