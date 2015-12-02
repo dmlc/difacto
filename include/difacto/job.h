@@ -1,9 +1,12 @@
 /**
+ * Copyright (c) 2015 by Contributors
  * @file   job.h
  * @brief  job and job tracker
  */
-#pragma once
+#ifndef DIFACTO_JOB_H_
+#define DIFACTO_JOB_H_
 #include <string>
+#include <vector>
 #include <sstream>
 #include "dmlc/io.h"
 #include "dmlc/parameter.h"
@@ -107,3 +110,4 @@ class JobTracker {
 
 
 }  // namespace difacto
+#endif  // DIFACTO_JOB_H_

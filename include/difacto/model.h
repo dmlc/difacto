@@ -1,4 +1,11 @@
+/*!
+ * Copyright (c) 2015 by Contributors
+ */
 #pragma once
+#ifndef DIFACTO_MODEL_H_
+#define DIFACTO_MODEL_H_
+#include <vector>
+#include <string>
 #include "./base.h"
 #include "dmlc/io.h"
 namespace difacto {
@@ -74,3 +81,5 @@ class Model {
 };
 
 }  // namespace difacto
+
+#endif  // DIFACTO_MODEL_H_

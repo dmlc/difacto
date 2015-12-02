@@ -1,5 +1,11 @@
-#pragma once
+/*!
+ * Copyright (c) 2015 by Contributors
+ */
+#ifndef DIFACTO_MODEL_SYNC_H_
+#define DIFACTO_MODEL_SYNC_H_
 #include <memory>
+#include <vector>
+#include <string>
 #include "./base.h"
 namespace difacto {
 
@@ -50,3 +56,5 @@ class ModelSync {
 };
 
 }  // namespace difacto
+
+#endif  // DIFACTO_MODEL_SYNC_H_

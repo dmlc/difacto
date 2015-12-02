@@ -1,4 +1,12 @@
-#pragma once
+/**
+ * Copyright (c) 2015 by Contributors
+ * @file   loss.h
+ * @brief  the basic class of a loss function
+ */
+#ifndef DIFACTO_LOSS_H_
+#define DIFACTO_LOSS_H_
+#include <string>
+#include <vector>
 #include "./base.h"
 #include "dmlc/data.h"
 namespace difacto {
@@ -62,3 +70,5 @@ class Loss {
 };
 
 }  // namespace difacto
+
+#endif  // DIFACTO_LOSS_Hc

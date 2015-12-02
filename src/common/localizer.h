@@ -1,5 +1,9 @@
-#pragma once
+#ifndef DIFACTO_LOCALIZER_H_
+#define DIFACTO_LOCALIZER_H_
+#include <vector>
 #include "difacto/base.h"
+#include "dmlc/io.h"
+#include "data/row_block.h"
 namespace difacto {
 
 /**
@@ -7,19 +11,28 @@ namespace difacto {
  */
 class Localizer {
  public:
-  Localizer(int nthreads = 2) : nt_(nthreads) { }
+  /**
+   * \brief constructor
+   *
+   * \param max_index feature index will be projected into [0, max_index) by mod
+   * \param nthreads number of threads
+   */
+
+  Localizer(feaid_t max_index = std::numeric_limits<feaid_t>::max(),
+            int nthreads = 2)
+      : max_index_(max_index), nt_(nthreads) { }
   ~Localizer() { }
 
   /**
    * \brief compact blk's feature indices
    *
- Mapping a RowBlock from arbitrary feature index into continuous
- * feature indices starting from 0
+   * This function maps a RowBlock from arbitrary feature index into continuous
+   * feature indices starting from 0
    *
-   * @param blk
-   * @param compacted
-   * @param uniq_idx
-   * @param idx_frq
+   * @param blk the data block
+   * @param compacted the new block with feature index remapped
+   * @param uniq_idx if not null, then return the original unique feature indices
+   * @param idx_frq if not null, then return the according feature occurance
    */
   void Compact(const dmlc::RowBlock<feaid_t>& blk,
                dmlc::data::RowBlockContainer<unsigned> *compacted,
@@ -36,7 +49,7 @@ class Localizer {
   /**
    * @brief find the unique indices and count the occurance
    *
-   * temporal results will be stored to accelerate \ref RemapIndex.
+   * This function stores temporal results to accelerate \ref RemapIndex.
    *
    * @param idx the item list in any order
    * @param uniq_idx returns the sorted unique items
@@ -64,8 +77,10 @@ class Localizer {
   void Clear() { pair_.clear(); }
 
  private:
+  feaid_t max_index_;
   /** \brief number of threads */
   int nt_;
+
 #pragma pack(push)
 #pragma pack(4)
   struct Pair {
@@ -75,3 +90,5 @@ class Localizer {
   std::vector<Pair> pair_;
 };
 }  // namespace difacto
+
+#endif  // DIFACTO_LOCALIZER_H_

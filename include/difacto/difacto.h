@@ -1,10 +1,15 @@
-#pragma once
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
+#ifndef DIFACTO_DIFACTO_H_
+#define DIFACTO_DIFACTO_H_
 #include <stdlib.h>
 #include <chrono>
 #include <string>
 #include <functional>
 #include <memory>
 #include <thread>
+#include <vector>
 #include "dmlc/data.h"
 #include "dmlc/io.h"
 #include "dmlc/parameter.h"
@@ -187,3 +192,4 @@ class DiFacto {
 };
 
 }  // namespace difacto
+#endif  // DIFACTO_DIFACTO_H_
