@@ -6,6 +6,7 @@
 #include "data/row_block.h"
 #include "common/localizer.h"
 #include "dmlc/timer.h"
+#include "common/tracker.h"
 namespace difacto {
 
 DMLC_REGISTER_PARAMETER(DiFactoParam);
@@ -121,6 +122,12 @@ void DiFacto::Process(const Job& job) {
   }
 }
 
+struct BatchJob {
+  int type;
+  dmlc::data::RowBlockContainer<unsigned>* data;
+  std::shared_ptr<std::vector<feaid_t>> feaids;
+};
+
 void DiFacto::ProcessFile(const Job& job) {
   int batch_size = 100;
   int shuffle = 0;
@@ -128,74 +135,73 @@ void DiFacto::ProcessFile(const Job& job) {
   BatchIter reader(
       job.filename, job.part_idx, job.num_parts, param_.data_format,
       batch_size, shuffle, neg_sampling);
+
+  Tracker<BatchJob> tracker;
+  tracker.SetConsumer([this](const BatchJob& batch, const Callback& on_complete) {
+      auto val = new std::vector<real_t>();
+      auto val_siz = new std::vector<int>();
+
+      auto pull_callback = [this, batch, val, val_siz, on_complete]() {
+        // eval the objective,
+        CHECK_NOTNULL(loss_)->InitData(batch.data->GetBlock(), *val, *val_siz);
+        std::vector<real_t> prog;
+        loss_->Evaluate(&prog);
+
+        // TODO merge into prog
+
+        if (batch.type == Job::kTraining) {
+          // calculate the gradients
+          loss_->CalcGrad(val);
+
+          // push the gradient, let the system delete val, val_siz. this task is
+          // done only if the push is complete
+          model_sync_->Push(batch.feaids,
+                            std::shared_ptr<std::vector<real_t>>(val),
+                            std::shared_ptr<std::vector<int>>(val_siz),
+                            [on_complete]() { on_complete(); });
+        } else {
+          // save the prediction results
+          if (batch.type == Job::kPrediction) {
+            std::vector<real_t> pred;
+            loss_->Predict(&pred);
+            // for (real_t p : pred) CHECK_NOTNULL(pred_out) << p << "\n";
+          }
+
+          on_complete();
+          delete val;
+          delete val_siz;
+        }
+        delete batch.data;
+      };
+      model_sync_->Pull(batch.feaids, val, val_siz, pull_callback);
+    });
+
   while (reader.Next()) {
     // map feature id into continous index
-    auto batch = new dmlc::data::RowBlockContainer<unsigned>();
-    auto feaids = std::make_shared<std::vector<feaid_t>>();
+    BatchJob batch;
+    batch.type = job.type;
+    batch.data = new dmlc::data::RowBlockContainer<unsigned>();
+    batch.feaids = std::make_shared<std::vector<feaid_t>>();
     auto feacnt = std::make_shared<std::vector<real_t>>();
 
     bool push_cnt =
         job.type == Job::kTraining && job.epoch == 0;
 
     Localizer lc(param_.num_threads);
-    lc.Compact(reader.Value(), batch, feaids.get(),
+    lc.Compact(reader.Value(), batch.data, batch.feaids.get(),
                push_cnt ? feacnt.get() : nullptr);
 
     if (push_cnt) {
       auto empty = std::make_shared<std::vector<int>>();
-      model_sync_->Wait(model_sync_->Push(feaids, feacnt, empty));
+      model_sync_->Wait(model_sync_->Push(batch.feaids, feacnt, empty));
     }
 
-    // TODO
-    // WaitBatch(10);
-    // ProcessBatch(job.type, batch->GetBlock(), feaids, nullptr, on_complete);
+    while (tracker.NumRemains() > 10) Sleep(10);
+
+    tracker.Add({batch});
   }
-  // WaitBatch(1);
-}
 
-
-void DiFacto::ProcessBatch(
-    int job_type, const dmlc::RowBlock<unsigned>& batch,
-    const std::shared_ptr<std::vector<feaid_t> >& feaids,
-    dmlc::Stream* pred_out, Callback on_complete) {
-  auto val = new std::vector<real_t>();
-  auto val_siz = new std::vector<int>();
-
-  auto pull_callback = [this, batch, feaids, val, val_siz, on_complete,
-    pred_out, job_type]() {
-    double start = dmlc::GetTime();
-    // eval the objective,
-    CHECK_NOTNULL(loss_)->InitData(batch, *val, *val_siz);
-    std::vector<real_t> prog;
-    loss_->Evaluate(&prog);
-
-    // merge into prog
-
-    if (job_type == Job::kTraining) {
-      // calculate the gradients
-      loss_->CalcGrad(val);
-
-      // push the gradient, let the system delete val, val_siz. this task is
-      // done only if the push is complete
-      model_sync_->Push(feaids,
-                        std::shared_ptr<std::vector<real_t>>(val),
-                        std::shared_ptr<std::vector<int>>(val_siz),
-                        [on_complete]() { on_complete(); });
-    } else {
-      // save the prediction results
-      if (job_type == Job::kPrediction) {
-        std::vector<real_t> pred;
-        loss_->Predict(&pred);
-        // for (real_t p : pred) CHECK_NOTNULL(pred_out) << p << "\n";
-      }
-
-      on_complete();
-      delete val;
-      delete val_siz;
-    }
-    worktime_ += dmlc::GetTime() - start;
-  };
-  model_sync_->Pull(feaids, val, val_siz, pull_callback);
+  while (tracker.NumRemains() > 0) Sleep(10);
 }
 
 }  // namespace difacto

@@ -147,23 +147,14 @@ class DiFacto {
    * \brief process a training/prediction job
    */
   void ProcessFile(const Job& job);
-  /**
-   * \brief process a data batch
-   *
-   * @param type job type
-   * @param batch data batch, whose feature has been mapped into continous index
-   * @param feaids the according global feature ids
-   * @param pred_out data stream for saving prediction results
-   * @param on_complete call the callback when this workload is finished
-   */
-  void ProcessBatch(int job_type,
-                    const dmlc::RowBlock<unsigned>& batch,
-                    const std::shared_ptr<std::vector<feaid_t> >& feaids,
-                    dmlc::Stream* pred_out,
-                    Callback on_complete);
 
-  /** \brief sleep for a moment */
-  inline void Sleep() { std::this_thread::sleep_for(std::chrono::seconds(1)); }
+  /**
+   * \brief sleep for a moment
+   * \param ms the milliseconds (1e-3 sec) for sleeping
+   */
+  inline void Sleep(int ms = 1000) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+  }
 
   /** \brief paramters */
   DiFactoParam param_;
@@ -191,6 +182,8 @@ class DiFacto {
   std::vector<real_t> progress_;
 
   double worktime_;
+
+  // dmlc::Stream pred_out_;
 };
 
 }  // namespace difacto

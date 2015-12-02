@@ -20,15 +20,6 @@ struct Job : public dmlc::Parameter<Job> {
   static const int kValidation = 3;
   static const int kPrediction = 4;
   /** \brief the job type  */
-
-  // enum Type {
-  //   TRAINING,
-  //   VALIDATION,
-  //   PREDICTION,
-  //   SAVE_MODEL,
-  //   LOAD_MODEL
-  // } type;
-  /** \brief job type */
   int type;
   /** \brief filename  */
   std::string filename;
@@ -58,7 +49,6 @@ class JobTracker {
  public:
   JobTracker() { }
   virtual ~JobTracker() { }
-
   /**
    * \brief init
    *
@@ -66,18 +56,15 @@ class JobTracker {
    * @return the unknown kwargs
    */
   virtual KWArgs Init(const KWArgs& kwargs) = 0;
-
   /**
    * \brief add a list of jobs to the tracker
    * \param jobs the jobs to add
    */
   virtual void Add(const std::vector<Job>& jobs) = 0;
-
   /**
    * \brief return the number of unfinished job
    */
   virtual int NumRemains() = 0;
-
   /**
    * \brief clear all unfinished jobs
    *
@@ -85,7 +72,6 @@ class JobTracker {
    * that are running now.
    */
   virtual void Clear() = 0;
-
   /**
    * \brief stop the tracker
    *
@@ -98,14 +84,12 @@ class JobTracker {
    * \brief the consumer function
    */
   typedef std::function<void(const Job&)> Consumer;
-
   /**
    * \brief set the consumer function
    */
   void SetConsumer(const Consumer& consumer) {
-    consumer_ = consumer;
+    consumer_ =  consumer;
   }
-
   /**
    * \brief block until the producer called \ref Stop
    */
