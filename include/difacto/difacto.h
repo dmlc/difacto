@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include <thread>
 #include "dmlc/data.h"
 #include "dmlc/io.h"
 #include "dmlc/parameter.h"
@@ -11,6 +12,7 @@
 #include "./base.h"
 #include "./model.h"
 #include "./model_sync.h"
+#include "./loss.h"
 namespace difacto {
 
 /**
@@ -50,6 +52,24 @@ struct DiFactoParam : public dmlc::Parameter<DiFactoParam> {
   /** \brief type of loss, defaut is fm*/
   std::string loss;
 
+  /** \brief the maximal number of data passes */
+  int max_num_epochs;
+
+  /** \brief  */
+  int num_threads;
+
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
+  /** \brief  */
   DMLC_DECLARE_PARAMETER(DiFactoParam) {
     DMLC_DECLARE_FIELD(task).set_default("train");
     DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
@@ -65,9 +85,10 @@ struct DiFactoParam : public dmlc::Parameter<DiFactoParam> {
 
 class DiFacto {
  public:
-  DiFacto() { }
-  ~DiFacto() { }
-
+  /** \brief construct */
+  DiFacto();
+  /** \brief deconstruct */
+  ~DiFacto();
   /**
    * \brief init difacto
    *
@@ -140,6 +161,10 @@ class DiFacto {
                     const std::shared_ptr<std::vector<feaid_t> >& feaids,
                     dmlc::Stream* pred_out,
                     Callback on_complete);
+
+  /** \brief sleep for a moment */
+  inline void Sleep() { std::this_thread::sleep_for(std::chrono::seconds(1)); }
+
   /** \brief paramters */
   DiFactoParam param_;
   /** \brief whether or not inited */
@@ -161,6 +186,11 @@ class DiFacto {
 
   /** \brief the model communicator, availabe if in the local model or this is a worker */
   ModelSync* model_sync_;
+
+  Loss* loss_;
+  std::vector<real_t> progress_;
+
+  double worktime_;
 };
 
 }  // namespace difacto

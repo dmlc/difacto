@@ -26,13 +26,18 @@ class ModelSync {
   template <typename V>
   using SharedVector = std::shared_ptr<std::vector<V>>;
 
+  /** \brief the callback function type */
+  typedef std::function<void()> Callback;
+
   virtual int Push(const SharedVector<feaid_t>& fea_ids,
-                    const SharedVector<real_t>& vals,
-                    const SharedVector<int>& lens) = 0;
+                   const SharedVector<real_t>& vals,
+                   const SharedVector<int>& lens,
+                   const Callback& on_complete = Callback()) = 0;
 
   virtual int Pull(const SharedVector<feaid_t>& fea_ids,
-                    std::vector<real_t>* vals,
-                    std::vector<int>* lens) = 0;
+                   std::vector<real_t>* vals,
+                   std::vector<int>* lens,
+                   const Callback& on_complete = Callback()) = 0;
 
 
   virtual void Wait(int time) = 0;
