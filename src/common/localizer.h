@@ -1,6 +1,10 @@
-#ifndef DIFACTO_LOCALIZER_H_
-#define DIFACTO_LOCALIZER_H_
+/**
+ * Copyright (c) 2015 by Contributors
+ */
+#ifndef DIFACTO_COMMON_LOCALIZER_H_
+#define DIFACTO_COMMON_LOCALIZER_H_
 #include <vector>
+#include <limits>
 #include "difacto/base.h"
 #include "dmlc/io.h"
 #include "data/row_block.h"
@@ -91,4 +95,4 @@ class Localizer {
 };
 }  // namespace difacto
 
-#endif  // DIFACTO_LOCALIZER_H_
+#endif  // DIFACTO_COMMON_LOCALIZER_H_

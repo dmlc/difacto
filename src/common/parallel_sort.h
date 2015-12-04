@@ -1,5 +1,8 @@
-#ifndef DIFACTO_PARALLEL_SORT_H_
-#define DIFACTO_PARALLEL_SORT_H_
+/**
+ * Copyright (c) 2015 by Contributors
+ */
+#ifndef DIFACTO_COMMON_PARALLEL_SORT_H_
+#define DIFACTO_COMMON_PARALLEL_SORT_H_
 #include <thread>
 #include <vector>
 #include <algorithm>
@@ -36,4 +39,4 @@ void ParallelSort(std::vector<T>* arr, int num_threads, const Fn& cmp) {
 }
 
 }  // namespace difacto
-#endif  // DIFACTO_PARALLEL_SORT_H_
+#endif  // DIFACTO_COMMON_PARALLEL_SORT_H_

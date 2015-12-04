@@ -71,4 +71,4 @@ class Loss {
 
 }  // namespace difacto
 
-#endif  // DIFACTO_LOSS_Hc
+#endif  // DIFACTO_LOSS_H_

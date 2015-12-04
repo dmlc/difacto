@@ -1,6 +1,10 @@
-#ifndef DIFACTO_TRACKER_H_
-#define DIFACTO_TRACKER_H_
+/**
+ * Copyright (c) 2015 by Contributors
+ */
+#ifndef DIFACTO_COMMON_TRACKER_H_
+#define DIFACTO_COMMON_TRACKER_H_
 #include <vector>
+#include <utility>
 #include <list>
 #include <queue>
 #include <functional>
@@ -112,4 +116,4 @@ class Tracker {
 
 
 }  // namespace difacto
-#endif  // DIFACTO_TRACKER_H_
+#endif  // DIFACTO_COMMON_TRACKER_H_

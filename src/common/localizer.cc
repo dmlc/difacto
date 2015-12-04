@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #include "./localizer.h"
 #include "dmlc/omp.h"
 #include "dmlc/logging.h"
@@ -39,7 +42,7 @@ void Localizer::CountUniqIndex(
       if (idx_frq) idx_frq->push_back(cnt);
       cnt = 0;
     }
-    ++ cnt;
+    ++cnt;
   }
   uniq_idx->push_back(curr);
   if (idx_frq) idx_frq->push_back(cnt);
@@ -62,14 +65,14 @@ void Localizer::RemapIndex(
   auto cur_pair = pair_.cbegin();
   while (cur_dict != idx_dict.cend() && cur_pair != pair_.cend()) {
     if (*cur_dict < cur_pair->k) {
-      ++ cur_dict;
+      ++cur_dict;
     } else {
       if (*cur_dict == cur_pair->k) {
         remapped_idx[cur_pair->i]
             = static_cast<unsigned>((cur_dict-idx_dict.cbegin()) + 1);
         ++ matched;
       }
-      ++ cur_pair;
+      ++cur_pair;
     }
   }
 
@@ -85,7 +88,7 @@ void Localizer::RemapIndex(
     size_t n = 0;
     for (size_t j = blk.offset[i]; j < blk.offset[i+1]; ++j) {
       if (remapped_idx[j] == 0) continue;
-      ++ n;
+      ++n;
       if (blk.value) o->value[k] = blk.value[j];
       o->index[k++] = remapped_idx[j] - 1;
     }
