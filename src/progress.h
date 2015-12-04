@@ -1,15 +1,14 @@
-#pragma once
+#ifndef DIFACTO_PROGRESS_H_
+#define DIFACTO_PROGRESS_H_
 #include <vector>
 #include <string>
 namespace difacto {
 
 /**
- * \brief the progress of difactor
+ * \brief the learning progress
  */
-
-struct Progress {
+public Progress {
   Progress() : data(8) { }
-
   /**
    * \brief return the head messsage
    */
@@ -20,7 +19,6 @@ struct Progress {
       return "  ttl #ex   inc #ex |  |w|_0  logloss    logloss    AUC";
     }
   }
-
   /**
    * \brief return a readable message
    */
@@ -28,9 +26,7 @@ struct Progress {
     ttl_ex += new_ex();
     nnz_w += new_w();
     nnz_V += new_V();
-
     if (new_ex() == 0) return "";
-
     char buf[256];
     if (has_V) {
       snprintf(buf, 256, "%9.4g  %7.2g | %9.4g  %6.4lf | %9.4g  %7.5lf  %7.5lf ",
@@ -45,21 +41,23 @@ struct Progress {
   }
 
   /// accessors & mutators
-  double& objv() { return data[0]; }
-  double& auc() { return data[1]; }
-  double& objv_w() { return data[2]; }
-  double& copc() { return data[3]; }
+  real_t& objv() { return data[0]; }
+  real_t& auc() { return data[1]; }
+  real_t& objv_w() { return data[2]; }
+  real_t& copc() { return data[3]; }
 
-  double& count() { return data[4]; }
-  double& new_ex() { return data[5]; }
-  double& new_w() { return data[6]; }
-  double& new_V() { return data[7]; }
+  real_t& count() { return data[4]; }
+  real_t& new_ex() { return data[5]; }
+  real_t& new_w() { return data[6]; }
+  real_t& new_V() { return data[7]; }
 
-  double objv() const { return data[0]; }
-  double new_ex() const { return data[5]; }
+  real_t objv() const { return data[0]; }
+  real_t new_ex() const { return data[5]; }
 
-  std::vector<double> data;
-  double ttl_ex = 0, nnz_w = 0, nnz_V;
+  std::vector<real_t> data;
+  real_t ttl_ex = 0, nnz_w = 0, nnz_V;
 };
 
 }  // namespace difacto
+
+#endif /* DIFACTO_PROGRESS_H_ */

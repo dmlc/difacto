@@ -1,46 +1,65 @@
-#pragma once
-#include "base/spmm.h"
-#include "base/binary_class_evaluation.h"
-#include "config.pb.h"
+#ifndef DIFACTO_LOSS_FM_H_
+#define DIFACTO_LOSS_FM_H_
 #include "dmlc/data.h"
 #include "dmlc/io.h"
+#include "difacto/loss.h"
+#include "common/spmm.h"
+#include "./bin_class_eval.h"
 namespace difacto {
 
 /**
- * \brief the FM loss, which is able to calculate the objective and gradient
- * given model and data.
- * \tparam T the gradient type
+ * \brief parameters for FM
  */
-template <typename T>
-class Loss {
- public:
+struct FMParam : public dmlc::Parameter<FMParam> {
+  /** \brief the embedding dimension */
+  int V_dim;
   /**
-   * \brief create and init the loss function
-   *
-   * @param data X and Y
-   * @param model w and V, the format is [w0, V0, w1, V1, ...]
-   * @param model_siz the i-th element contains len([wi, Vi]), could be empty if
-   * conf.V_dim()==0
-   * @param conf the difacto conf
+   * \brief the probability to set gradient of :math:`V` to 0
+   * 0 in default
    */
-  Loss(const RowBlock<unsigned>& data,
-       const std::vector<T>& model,
-       const std::vector<int>& model_siz,
-       const Config& conf) {
-    nt_ = conf.num_threads();
+  float V_dropout;
+  /**
+   * \brief project the gradient of :math:`V` into :math:`[-c c]`.
+   * No in default
+   */
+  float V_grad_clipping;
+  /** \brief number of threads */
+  int nthreads;
+  DMLC_DECLARE_PARAMETER(FMParam) {
+    DMLC_DECLARE_FIELD(V_dim).set_range(0, 10000).set_default(0);
+    DMLC_DECLARE_FIELD(V_dropout).set_range(0, 1).set_default(0);
+    DMLC_DECLARE_FIELD(V_grad_clipping).set_range(0, 1000.0).set_default(0);
+    DMLC_DECLARE_FIELD(nthreads).set_range(1, 20).set_default(2);
+  }
+};
 
-    // init w
-    w.Load(0, data, model, model_siz);
+/**
+ * \brief the FM loss
+ */
+class FMLoss : public Loss {
+ public:
+  FMLoss() {}
+  virtual ~FMLoss() {}
 
-    // init V
-    if (conf.V_dim() == 0) return;
-    V.Load(conf.V_dim(), data, model, model_siz);
-    V.dropout            = conf.V_dropout();
-    V.grad_clipping      = conf.V_grad_clipping();
-    V.grad_normalization = conf.V_grad_normalization();
+  KWArgs Init(const KWArgs& kwargs) override {
+    return param_.InitAllowUnknown(kwargs);
   }
 
-  ~Loss() { }
+  /**
+   * note: do not clear \ref data before call Evaluate or CalcGrad
+   *
+   */
+
+  void InitData(const dmlc::RowBlock<unsigned>& data,
+                const std::vector<real_t>& weights,
+                const std::vector<int>& weight_lens) override {
+    w.Load(data, weights, weight_lens);
+    V.Load(param_.V_dim, data, weights, weight_lens);
+  }
+
+  void Clear() override {
+    w.Clear(); V.Clear();
+  }
 
   /**
    * \brief evaluate the progress
@@ -51,46 +70,52 @@ class Loss {
    * - sum(A, 2) : sum the rows of A
    * - .* : elemenetal-wise times
    */
-  void Evaluate(Progress* prog) {
+  void Evaluate(std::vector<real_t>* progress) {
+    int nt = param_.nthreads;
+    int V_dim = param_.V_dim;
+    py_.resize(w.X.size);
+    Progress prog;
+    BinClassEval<T> eval(w.X.label, py_.data(), py_.size(), nt);
 
     // py = X * w
-    py_.resize(w.X.size);
-    SpMV::Times(w.X, w.weight, &py_, nt_);
-
-    BinClassEval<T> eval(w.X.label, py_.data(), py_.size(), nt_);
+    SpMV::Times(w.X, w.weight, &py_, nt);
 
     // py += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
     if (!V.weight.empty()) {
-      prog->objv_w() = eval.LogitObjv();
+      prog.objv_w() = eval.LogitObjv();
 
       // tmp = (X.*X)*(V.*V)
       std::vector<T> vv = V.weight;
       for (auto& v : vv) v *= v;
-      CHECK_EQ(vv.size(), V.pos.size() * V.dim);
-      std::vector<T> xxvv(V.X.size * V.dim);
-      SpMM::Times(V.XX, vv, &xxvv, nt_);
+      CHECK_EQ(vv.size(), V.pos.size() * V_dim);
+      std::vector<T> xxvv(V.X.size * V_dim);
+      SpMM::Times(V.XX, vv, &xxvv, nt);
 
       // V.XV = X*V
       V.XV.resize(xxvv.size());
-      SpMM::Times(V.X, V.weight, &V.XV, nt_);
+      SpMM::Times(V.X, V.weight, &V.XV, nt);
 
       // py += .5 * sum((V.XV).^2 - xxvv)
-#pragma omp parallel for num_threads(nt_)
+#pragma omp parallel for num_threads(nt)
       for (size_t i = 0; i < py_.size(); ++i) {
-        T* t = V.XV.data() + i * V.dim;
-        T* tt = xxvv.data() + i * V.dim;
+        T* t = V.XV.data() + i * V_dim;
+        T* tt = xxvv.data() + i * V_dim;
         T s = 0;
-        for (int j = 0; j < V.dim; ++j) s += t[j] * t[j] - tt[j];
+        for (int j = 0; j < V_dim; ++j) s += t[j] * t[j] - tt[j];
         py_[i] += .5 * s;
       }
     }
 
     // auc, acc, logloss, copc
-    prog->objv()   = eval.LogitObjv();
-    prog->auc()    = eval.AUC();
-    prog->new_ex() = w.X.size;
-    prog->count()  = 1;
-    // prog->copc()   = eval.Copc();
+    prog.objv()   = eval.LogitObjv();
+    prog.auc()    = eval.AUC();
+    prog.new_ex() = w.X.size;
+    prog.count()  = 1;
+    // prog.copc()   = eval.Copc();
+
+    if (progress) {
+      *progress = prog.data;
+    }
   }
 
   /*!
@@ -99,100 +124,87 @@ class Loss {
    * grad_w = X' * p;
    * grad_u = X' * diag(p) * X * V  - diag((X.*X)'*p) * V
    */
-  void CalcGrad(std::vector<T>* grad) {
+  void CalcGrad(std::vector<real_t>* grad) {
+    int nt = param_.nthreads;
     // p = ... (reuse py_)
     CHECK_EQ(py_.size(), w.X.size) << "call *evaluate* first";
-#pragma omp parallel for num_threads(nt_)
+#pragma omp parallel for num_threads(nt)
     for (size_t i = 0; i < py_.size(); ++i) {
-      T y = w.X.label[i] > 0 ? 1 : -1;
+      real_t y = w.X.label[i] > 0 ? 1 : -1;
       py_[i] = - y / ( 1 + exp ( y * py_[i] ));
     }
 
     // grad_w = ...
-    SpMV::TransTimes(w.X, py_, &w.weight, nt_);
+    SpMV::TransTimes(w.X, py_, &w.weight, nt);
     w.Save(grad);
 
     // grad_u = ...
     if (!V.weight.empty()) {
-      int dim = V.dim;
+      int dim = param_.V_dim;
 
       // xxp = (X.*X)'*p
       size_t m = V.pos.size();
-      std::vector<T> xxp(m);
-      SpMM::TransTimes(V.XX, py_, &xxp, nt_);
+      std::vector<real_t> xxp(m);
+      SpMM::TransTimes(V.XX, py_, &xxp, nt);
 
       // V = - diag(xxp) * V
       CHECK_EQ(V.weight.size(), dim * m);
-#pragma omp parallel for num_threads(nt_)
+#pragma omp parallel for num_threads(nt)
       for (size_t i = 0; i < m; ++i) {
-        T* v = V.weight.data() + i * dim;
+        real_t* v = V.weight.data() + i * dim;
         for (int j = 0; j < dim; ++j) v[j] *= - xxp[i];
       }
 
       // V.XV = diag(p) * X * V
       size_t n = py_.size();
       CHECK_EQ(V.XV.size(), n * dim);
-#pragma omp parallel for num_threads(nt_)
+#pragma omp parallel for num_threads(nt)
       for (size_t i = 0; i < n; ++i) {
-        T* y = V.XV.data() + i * dim;
+        real_t* y = V.XV.data() + i * dim;
         for (int j = 0; j < dim; ++j) y[j] *= py_[i];
       }
 
       // V += X' * V.XV
-      SpMM::TransTimes(V.X, V.XV, (T)1, V.weight, &V.weight, nt_);
+      SpMM::TransTimes(V.X, V.XV, 1.0, V.weight, &V.weight, nt);
 
       // some preprocessing
-      if (V.grad_clipping > 0) {
-        T gc = V.grad_clipping;
-        for (T& g : V.weight) g = g > gc ? gc : ( g < -gc ? -gc : g);
+      real_t gc = param_.V_grad_clipping;
+      if (gc > 0) {
+        for (real_t& g : V.weight) g = g > gc ? gc : ( g < -gc ? -gc : g);
       }
 
-      if (V.dropout > 0) {
-        for (T& g : V.weight) {
-          if ((T)rand() / RAND_MAX > 1 - V.dropout) g = 0;
+      real_t dp = param_.V_dropout;
+      if (dp > 0) {
+        for (real_t& g : V.weight) {
+          if ((real_t)rand() / RAND_MAX > 1 - dp) g = 0;
         }
       }
+
       if (V.grad_normalization) {
-        T norm = 0;
-        for (T g : V.weight) norm += g * g;
+        real_t norm = 0;
+        for (real_t g : V.weight) norm += g * g;
         if (norm < 1e-10) return;
         norm = sqrt(norm);
-        for (T& g : V.weight) g = g / norm;
+        for (real_t& g : V.weight) g = g / norm;
       }
     }
     V.Save(grad);
   }
 
-  /**
-   * \brief predict and save the results into fo
-   *
-   * @param fo output stream
-   * @param prob_out whether of not use probability output
-   */
-  void Predict(Stream* fo, bool prob_out) {
-    if (py_.empty()) {
-      py_.resize(w.X.size);
-      SpMV::Times(w.X, w.weight, &py_, nt_);
-    }
-    ostream os(fo);
-    if (prob_out) {
-      for (auto p : py_) os << 1.0 / (1.0 + exp( - p )) << "\n";
-    } else {
-      for (auto p : py_) os << p << "\n";
-    }
+  void Predict(std::vector<real_t>* pred) override {
+    Evaluate(nullptr);
+    *CHECK_NOTNULL(pred) = py_;
   }
 
  private:
-  /// \brief store data and model w (dim==0) and V (dim >= 1)
-  struct Data {
-    /// \brief get data and model
-    void Load(int d, const RowBlock<unsigned>& data,
-              const std::vector<T>& model,
+  struct W {
+    void Load(const RowBlock<unsigned>& data,
+              const std::vector<real_t>& model,
               const std::vector<int>& model_siz) {
-      // init pos and w
-      std::vector<unsigned> col_map;
-      dim = d;
-      if (dim == 0) {  // w
+      X = data;
+      if (model_siz.empty()) {
+        weight = model;
+      } else {
         pos.resize(model_siz.size());
         weight.resize(model_siz.size());
         unsigned p = 0;
@@ -204,48 +216,68 @@ class Loss {
           }
         }
         CHECK_EQ((size_t)p, model.size());
-      } else {  // V
-        col_map.resize(model_siz.size());
-        unsigned k = 0, p = 0;
-        for (size_t i = 0; i < model_siz.size(); ++i) {
-          if (model_siz[i] == dim + 1) {
-            pos.push_back(p+1);  // skip the first dim
-            col_map[i] = ++ k;
-          }
-          p += model_siz[i];
-        }
-        CHECK_EQ((size_t)p, model.size());
-        weight.resize(pos.size() * dim);
+      }
+    }
+
+    void Save(std::vector<real_t>* grad) const {
+      if (pos.empty()) {
+        *CHECK_NOTNULL(grad) = weight;
+      } else {
         for (size_t i = 0; i < pos.size(); ++i) {
-          memcpy(weight.data()+i*dim, model.data()+pos[i], dim*sizeof(T));
+          if (pos[i] == (unsigned)-1) continue;
+          grad->at(pos[i]) = weight[i];
         }
       }
-      if (weight.empty()) return;
+    }
 
-      // init X
-      if (dim == 0) {  // w
-        X = data;
-      } else {  // V
-        // pick the columns with model_siz = dim + 1
-        os.push_back(0);
-        for (size_t i = 0; i < data.size; ++i) {
-          for (size_t j = data.offset[i]; j < data.offset[i+1]; ++j) {
-            unsigned d = data.index[j];
-            unsigned k = col_map[d];
-            if (k > 0) {
-              idx.push_back(k-1);
-              if (data.value) val_.push_back(data.value[j]);
-            }
+    void Clear() { weight.clear(); pos.clear(); }
+    std::vector<real_t> weight;
+    std::vector<unsigned> pos;
+    dmlc::RowBlock<unsigned> X;
+  } w;
+
+
+  struct Embedding {
+    void Load(int d,
+              const RowBlock<unsigned>& data,
+              const std::vector<real_t>& model,
+              const std::vector<int>& model_siz) {
+      dim = d;
+      if (dim == 0) return;
+      std::vector<unsigned> col_map(model_siz.size());
+      unsigned k = 0, p = 0;
+      for (size_t i = 0; i < model_siz.size(); ++i) {
+        if (model_siz[i] == dim + 1) {
+          pos.push_back(p+1);  // skip the first dim
+          col_map[i] = ++ k;
+        }
+        p += model_siz[i];
+      }
+      CHECK_EQ((size_t)p, model.size());
+
+      weight.resize(pos.size() * dim);
+      for (size_t i = 0; i < pos.size(); ++i) {
+        memcpy(weight.data()+i*dim, model.data()+pos[i], dim*sizeof(real_t));
+      }
+
+      // pick the columns of data with model_siz = dim + 1
+      os_.push_back(0);
+      for (size_t i = 0; i < data.size; ++i) {
+        for (size_t j = data.offset[i]; j < data.offset[i+1]; ++j) {
+          unsigned d = data.index[j];
+          unsigned k = col_map[d];
+          if (k > 0) {
+            idx_.push_back(k-1);
+            if (data.value) val_.push_back(data.value[j]);
           }
-          os.push_back(idx.size());
         }
-        X.size = data.size;
-        X.offset = BeginPtr(os);
-        X.value = BeginPtr(val_);
-        X.index = BeginPtr(idx);
+        os_.push_back(idx_.size());
       }
+      X.size = data.size;
+      X.offset = BeginPtr(os_);
+      X.value = BeginPtr(val_);
+      X.index = BeginPtr(idx_);
 
-      // init XX
       XX = X;
       if (X.value) {
         val2_.resize(X.offset[X.size]);
@@ -256,36 +288,38 @@ class Loss {
       }
     }
 
-    /// \brief set the gradient
-    void Save(std::vector<T>* grad) const {
-      if (weight.empty()) return;
-      int d = dim == 0 ? 1 : dim;
-      CHECK_EQ(weight.size(), pos.size()*d);
+    void Save(std::vector<real_t>* grad) const {
+      if (dim == 0) return;
+      CHECK_EQ(weight.size(), pos.size()*dim);
       for (size_t i = 0; i < pos.size(); ++i) {
-        if (pos[i] == (unsigned)-1) continue;
-        memcpy(grad->data()+pos[i], weight.data()+i*d, d*sizeof(T));
+        memcpy(grad->data()+pos[i], weight.data()+i*dim, dim*sizeof(real_t));
       }
     }
 
-    int dim;
-    RowBlock<unsigned> X, XX;  // XX = X.*X
-    std::vector<T> weight;
+    void Clear() {
+      weight.clear(); pos.clear();
+      val_.clear(); idx_.clear(); os_.clear(); val2_.clear();
+    }
+    std::vector<real_t> weight;
     std::vector<unsigned> pos;
+    dmlc::RowBlock<unsigned> X, XX;
+    int dim;
 
-    std::vector<T> XV;
-    T dropout = 0;
-    T grad_clipping = 0;
-    T grad_normalization = 0;
    private:
-    std::vector<T> val_, val2_;
-    std::vector<size_t> os;
-    std::vector<unsigned> idx;
-  };
-  Data w, V;
+    template <typename T>
+    T* BeginPtr(std::vector<T>& vec) {
+      return vec.empty() ? nullptr : vec.data();
+    }
+    std::vector<real_t> val_, val2_;
+    std::vector<size_t> os_;
+    std::vector<unsigned> idx_;
+  } V;
 
   // predict_y
   std::vector<T> py_;
-  int nt_;  // number of threads
+
+  FMParam param_;
 };
 
 }  // namespace difacto
+#endif  // DIFACTO_LOSS_FM_H_
