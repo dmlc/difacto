@@ -15,7 +15,7 @@ namespace difacto {
 class SpMM {
  public:
   static const int kDefaultNT = 2;
-  using SpMat = RowBlock<unsigned>;
+  using SpMat = dmlc::RowBlock<unsigned>;
 
   /** \brief y = D * x */
   template<typename V>

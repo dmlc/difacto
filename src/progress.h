@@ -7,7 +7,7 @@ namespace difacto {
 /**
  * \brief the learning progress
  */
-public Progress {
+struct Progress {
   Progress() : data(8) { }
   /**
    * \brief return the head messsage

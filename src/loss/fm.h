@@ -1,10 +1,14 @@
 #ifndef DIFACTO_LOSS_FM_H_
 #define DIFACTO_LOSS_FM_H_
+#include <vector>
+#include "difacto/base.h"
 #include "dmlc/data.h"
 #include "dmlc/io.h"
 #include "difacto/loss.h"
+#include "common/spmv.h"
 #include "common/spmm.h"
 #include "./bin_class_eval.h"
+#include "progress.h"
 namespace difacto {
 
 /**
@@ -23,12 +27,18 @@ struct FMParam : public dmlc::Parameter<FMParam> {
    * No in default
    */
   float V_grad_clipping;
+  /**
+   * \brief normalize the gradient of :math:`V`
+   * No in default
+   */
+  float V_grad_normalization;
   /** \brief number of threads */
   int nthreads;
   DMLC_DECLARE_PARAMETER(FMParam) {
     DMLC_DECLARE_FIELD(V_dim).set_range(0, 10000).set_default(0);
     DMLC_DECLARE_FIELD(V_dropout).set_range(0, 1).set_default(0);
     DMLC_DECLARE_FIELD(V_grad_clipping).set_range(0, 1000.0).set_default(0);
+    DMLC_DECLARE_FIELD(V_grad_normalization).set_range(0, 1000.0).set_default(0);
     DMLC_DECLARE_FIELD(nthreads).set_range(1, 20).set_default(2);
   }
 };
@@ -46,10 +56,8 @@ class FMLoss : public Loss {
   }
 
   /**
-   * note: do not clear \ref data before call Evaluate or CalcGrad
-   *
+   * note: do not clear \ref data before call \ref Evaluate or \ref CalcGrad
    */
-
   void InitData(const dmlc::RowBlock<unsigned>& data,
                 const std::vector<real_t>& weights,
                 const std::vector<int>& weight_lens) override {
@@ -75,20 +83,20 @@ class FMLoss : public Loss {
     int V_dim = param_.V_dim;
     py_.resize(w.X.size);
     Progress prog;
-    BinClassEval<T> eval(w.X.label, py_.data(), py_.size(), nt);
+    BinClassEval eval(w.X.label, py_.data(), py_.size(), nt);
 
     // py = X * w
     SpMV::Times(w.X, w.weight, &py_, nt);
 
     // py += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
     if (!V.weight.empty()) {
-      prog.objv_w() = eval.LogitObjv();
+      if (progress) prog.objv_w() = eval.LogitObjv();
 
       // tmp = (X.*X)*(V.*V)
-      std::vector<T> vv = V.weight;
+      std::vector<real_t> vv = V.weight;
       for (auto& v : vv) v *= v;
       CHECK_EQ(vv.size(), V.pos.size() * V_dim);
-      std::vector<T> xxvv(V.X.size * V_dim);
+      std::vector<real_t> xxvv(V.X.size * V_dim);
       SpMM::Times(V.XX, vv, &xxvv, nt);
 
       // V.XV = X*V
@@ -98,22 +106,21 @@ class FMLoss : public Loss {
       // py += .5 * sum((V.XV).^2 - xxvv)
 #pragma omp parallel for num_threads(nt)
       for (size_t i = 0; i < py_.size(); ++i) {
-        T* t = V.XV.data() + i * V_dim;
-        T* tt = xxvv.data() + i * V_dim;
-        T s = 0;
+        real_t* t = V.XV.data() + i * V_dim;
+        real_t* tt = xxvv.data() + i * V_dim;
+        real_t s = 0;
         for (int j = 0; j < V_dim; ++j) s += t[j] * t[j] - tt[j];
         py_[i] += .5 * s;
       }
     }
 
     // auc, acc, logloss, copc
-    prog.objv()   = eval.LogitObjv();
-    prog.auc()    = eval.AUC();
-    prog.new_ex() = w.X.size;
-    prog.count()  = 1;
-    // prog.copc()   = eval.Copc();
-
     if (progress) {
+      prog.objv()   = eval.LogitObjv();
+      prog.auc()    = eval.AUC();
+      prog.new_ex() = w.X.size;
+      prog.count()  = 1;
+      // prog.copc()   = eval.Copc();
       *progress = prog.data;
     }
   }
@@ -165,7 +172,7 @@ class FMLoss : public Loss {
       }
 
       // V += X' * V.XV
-      SpMM::TransTimes(V.X, V.XV, 1.0, V.weight, &V.weight, nt);
+      SpMM::TransTimes(V.X, V.XV, (real_t)1.0, V.weight, &V.weight, nt);
 
       // some preprocessing
       real_t gc = param_.V_grad_clipping;
@@ -180,7 +187,7 @@ class FMLoss : public Loss {
         }
       }
 
-      if (V.grad_normalization) {
+      if (param_.V_grad_normalization) {
         real_t norm = 0;
         for (real_t g : V.weight) norm += g * g;
         if (norm < 1e-10) return;
@@ -198,7 +205,7 @@ class FMLoss : public Loss {
 
  private:
   struct W {
-    void Load(const RowBlock<unsigned>& data,
+    void Load(const dmlc::RowBlock<unsigned>& data,
               const std::vector<real_t>& model,
               const std::vector<int>& model_siz) {
       X = data;
@@ -239,7 +246,7 @@ class FMLoss : public Loss {
 
   struct Embedding {
     void Load(int d,
-              const RowBlock<unsigned>& data,
+              const dmlc::RowBlock<unsigned>& data,
               const std::vector<real_t>& model,
               const std::vector<int>& model_siz) {
       dim = d;
@@ -297,10 +304,10 @@ class FMLoss : public Loss {
     }
 
     void Clear() {
-      weight.clear(); pos.clear();
+      weight.clear(); pos.clear(); XV.clear();
       val_.clear(); idx_.clear(); os_.clear(); val2_.clear();
     }
-    std::vector<real_t> weight;
+    std::vector<real_t> weight, XV;
     std::vector<unsigned> pos;
     dmlc::RowBlock<unsigned> X, XX;
     int dim;
@@ -316,8 +323,8 @@ class FMLoss : public Loss {
   } V;
 
   // predict_y
-  std::vector<T> py_;
-
+  std::vector<real_t> py_;
+  // parameters
   FMParam param_;
 };
 

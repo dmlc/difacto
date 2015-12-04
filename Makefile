@@ -6,7 +6,7 @@ PROTOC = ${DEPS_PATH}/bin/protoc
 CFLAGS = -std=c++11 -fopenmp -fPIC -O3 -ggdb -Wall -finline-functions $(INCPATH)
 # LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
 
-OBJS = $(addprefix build/, job.o difacto.o loss.o model.o model_sync.o \
+OBJS = $(addprefix build/, job.o difacto.o loss/loss.o model.o model_sync.o \
 	common/localizer.o data/batch_iter.o)
 
 all: build/difacto
