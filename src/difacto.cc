@@ -6,7 +6,7 @@
 #include "data/row_block.h"
 #include "common/localizer.h"
 #include "dmlc/timer.h"
-#include "common/tracker.h"
+#include "tracker/tracker.h"
 namespace difacto {
 
 DMLC_REGISTER_PARAMETER(DiFactoParam);

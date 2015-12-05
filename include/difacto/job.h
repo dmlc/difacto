@@ -90,9 +90,7 @@ class JobTracker {
   /**
    * \brief set the consumer function
    */
-  void SetConsumer(const Consumer& consumer) {
-    consumer_ =  consumer;
-  }
+  virtual void SetConsumer(const Consumer& consumer) = 0;
   /**
    * \brief block until the producer called \ref Stop
    */
@@ -103,9 +101,6 @@ class JobTracker {
    * \param type can be "local" or "dist"
    */
   static JobTracker* Create(const std::string& type);
-
- protected:
-  Consumer consumer_;
 };
 
 

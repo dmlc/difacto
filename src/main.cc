@@ -18,14 +18,8 @@ int main(int argc, char *argv[]) {
     parser.AddArg(argv[i]);
   }
 
-  // SGDOptimizerParam param_;
-  // param_.Init(parser.GetKWArgs());
-
-  // LOG(ERROR) << param_.l2;
-  // LOG(ERROR) << param_.l1;
-
-  // DiFacto df;
-  // df.Init({});
-  // df.Run();
+  DiFacto df;
+  df.Init(parser.GetKWArgs());
+  df.Run();
   return 0;
 }

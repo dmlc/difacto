@@ -1,16 +1,18 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_COMMON_TRACKER_H_
-#define DIFACTO_COMMON_TRACKER_H_
+#ifndef DIFACTO_TRACKER_TRACKER_H_
+#define DIFACTO_TRACKER_TRACKER_H_
 #include <vector>
 #include <utility>
 #include <list>
 #include <queue>
 #include <functional>
+#include <thread>
 #include <mutex>
 #include <condition_variable>
 namespace difacto {
+
 /**
  * \brief a thread-safe workload tracker
  *
@@ -47,6 +49,14 @@ class Tracker {
     mu_.unlock();
   }
 
+  /**
+   * \brief clear all works that have not been assigned yet
+   */
+  void Clear() {
+    mu_.lock();
+    while (pending_.size()) pending_.pop();
+    mu_.unlock();
+  }
   /**
    * \brief return the number of unfinished job
    */
@@ -116,4 +126,4 @@ class Tracker {
 
 
 }  // namespace difacto
-#endif  // DIFACTO_COMMON_TRACKER_H_
+#endif  // DIFACTO_TRACKER_TRACKER_H_
