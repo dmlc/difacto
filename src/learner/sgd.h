@@ -1,18 +1,19 @@
 /**
+ * Copyright (c) 2015 by Contributors
  * @file   sgd.h
  * @brief  the stochastic gradient descent solver
  */
-#ifndef DIFACTO_MODEL_SGD_H_
-#define DIFACTO_MODEL_SGD_H_
+#ifndef DIFACTO_LEARNER_SGD_H_
+#define DIFACTO_LEARNER_SGD_H_
 #include <string>
 #include <vector>
 #include <limits>
-#include "difacto/model.h"
+#include "difacto/learner.h"
 #include "dmlc/parameter.h"
 #include "dmlc/io.h"
 namespace difacto {
 
-struct SGDOptimizerParam : public dmlc::Parameter<SGDOptimizerParam> {
+struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
   /** \brief the l1 regularizer for :math:`w`: :math:`\lambda_1 |w|_1` */
   float l1;
   /** \brief the l2 regularizer for :math:`w`: :math:`\lambda_2 \|w\|_2^2` */
@@ -38,8 +39,9 @@ struct SGDOptimizerParam : public dmlc::Parameter<SGDOptimizerParam> {
   int V_dim;
   /** \brief the minimal feature count for allocating V */
   int V_threshold;
-
-  DMLC_DECLARE_PARAMETER(SGDOptimizerParam) {
+  /** \brief random seed */
+  unsigned int seed;
+  DMLC_DECLARE_PARAMETER(SGDLearnerParam) {
     DMLC_DECLARE_FIELD(l1).set_range(0, 1e10).set_default(1);
     DMLC_DECLARE_FIELD(l2).set_range(0, 1e10).set_default(0);
     DMLC_DECLARE_FIELD(V_l2).set_range(0, 1e10).set_default(.01);
@@ -50,6 +52,7 @@ struct SGDOptimizerParam : public dmlc::Parameter<SGDOptimizerParam> {
     DMLC_DECLARE_FIELD(V_init_scale).set_range(0, 10).set_default(.01);
     DMLC_DECLARE_FIELD(V_threshold).set_default(10);
     DMLC_DECLARE_FIELD(V_dim);
+    DMLC_DECLARE_FIELD(seed).set_default(0);
   }
 };
 
@@ -120,16 +123,16 @@ class SGDModel {
 };
 
 /**
- * \brief sgd optimizer
+ * \brief sgd learner
  *
  * - w is updated by FTRL, which is a smooth version of adagrad works well with
  *   the l1 regularizer
  * - V is updated by adagrad
  */
-class SGDOptimizer : public Model {
+class SGDLearner : public Learner {
  public:
-  SGDOptimizer() : new_w_(0), has_aux_(true) { }
-  virtual ~SGDOptimizer() { }
+  SGDLearner() : new_w_(0), has_aux_(true) { }
+  virtual ~SGDLearner() { }
 
   KWArgs Init(const KWArgs& kwargs) override;
 
@@ -166,7 +169,7 @@ class SGDOptimizer : public Model {
   void InitV(SGDEntry* e);
 
   SGDModel model_;
-  SGDOptimizerParam param_;
+  SGDLearnerParam param_;
 
   int64_t new_w_;
   bool has_aux_;
@@ -174,4 +177,4 @@ class SGDOptimizer : public Model {
 
 
 }  // namespace difacto
-#endif  // DIFACTO_MODEL_SGD_H_
+#endif  // DIFACTO_LEARNER_SGD_H_

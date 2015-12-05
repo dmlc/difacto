@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_LOSS_FM_H_
 #define DIFACTO_LOSS_FM_H_
 #include <vector>
@@ -7,8 +10,8 @@
 #include "difacto/loss.h"
 #include "common/spmv.h"
 #include "common/spmm.h"
+#include "common/progress.h"
 #include "./bin_class_eval.h"
-#include "progress.h"
 namespace difacto {
 
 /**

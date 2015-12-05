@@ -1,8 +1,8 @@
 /*!
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_MODEL_SYNC_H_
-#define DIFACTO_MODEL_SYNC_H_
+#ifndef DIFACTO_STORE_H_
+#define DIFACTO_STORE_H_
 #include <memory>
 #include <vector>
 #include <string>
@@ -10,13 +10,12 @@
 namespace difacto {
 
 /**
- * \brief the commnunication interface of a model, which is used by
- * workers to get / set the model
+ * \brief the store allows workers to get and set and model
  */
-class ModelSync {
+class Store {
  public:
-  ModelSync() { }
-  virtual ~ModelSync() { }
+  Store() { }
+  virtual ~Store() { }
 
   /**
    * \brief init
@@ -45,16 +44,15 @@ class ModelSync {
                    std::vector<int>* lens,
                    const Callback& on_complete = Callback()) = 0;
 
-
   virtual void Wait(int time) = 0;
 
   /**
    * \brief the factory function
    * \param type the type such as "local" or "dist"
    */
-  static ModelSync* Create(const std::string& type);
+  static Store* Create(const std::string& type);
 };
 
 }  // namespace difacto
 
-#endif  // DIFACTO_MODEL_SYNC_H_
+#endif  // DIFACTO_STORE_H_

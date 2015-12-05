@@ -23,7 +23,7 @@ class SpMM {
                     std::vector<V>* y, int nt = kDefaultNT) {
     if (x.empty()) return;
     CHECK_NOTNULL(y);
-    int dim = (int)(y->size() / D.size);
+    int dim = static_cast<int>(y->size() / D.size);
     Times<V>(D, x.data(), y->data(), dim, nt);
   }
 
@@ -42,7 +42,7 @@ class SpMM {
                          V p, const std::vector<V>& z,
                          std::vector<V>* y, int nt = kDefaultNT) {
     if (x.empty()) return;
-    int dim = (int)(x.size() / D.size);
+    int dim = x.size() / D.size;
     if (z.size() == y->size() && p != 0) {
       TransTimes<V>(D, x.data(), z.data(), p, y->data(), y->size(), dim, nt);
     } else {

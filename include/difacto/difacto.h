@@ -15,8 +15,8 @@
 #include "dmlc/parameter.h"
 #include "./job.h"
 #include "./base.h"
-#include "./model.h"
-#include "./model_sync.h"
+#include "./store.h"
+#include "./learner.h"
 #include "./loss.h"
 namespace difacto {
 
@@ -52,8 +52,6 @@ struct DiFactoParam : public dmlc::Parameter<DiFactoParam> {
    *  should be specified for a prediction task.
    */
   std::string pred_out;
-  /** \brief type of learning algorithm, default is sgd */
-  std::string algo;
   /** \brief type of loss, defaut is fm*/
   std::string loss;
 
@@ -83,7 +81,6 @@ struct DiFactoParam : public dmlc::Parameter<DiFactoParam> {
     DMLC_DECLARE_FIELD(model_out);
     DMLC_DECLARE_FIELD(model_in);
     DMLC_DECLARE_FIELD(pred_out);
-    DMLC_DECLARE_FIELD(algo).set_default("sgd");
     DMLC_DECLARE_FIELD(loss).set_default("fm");
   }
 };
@@ -177,11 +174,11 @@ class DiFacto {
   /** \brief callbacks for every epoch*/
   std::vector<Callback> epoch_callbacks_;
 
-  /** \brief the model, availabe if in the local model or this is a server */
-  Model* model_;
+  /** \brief the learner, availabe if in the local learner or this is a server */
+  Learner* learner_;
 
-  /** \brief the model communicator, availabe if in the local model or this is a worker */
-  ModelSync* model_sync_;
+  /** \brief the learner communicator, availabe if in the local learner or this is a worker */
+  Store* store_;
 
   Loss* loss_;
   std::vector<real_t> progress_;

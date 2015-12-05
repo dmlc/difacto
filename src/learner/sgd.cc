@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #include "./sgd.h"
 #include <string.h>
 namespace difacto {
@@ -100,14 +103,14 @@ void SGDModel::Save(bool save_aux, feaid_t id,
   if (V_len) fo->Write(entry.V, V_len);
 }
 
-KWArgs SGDOptimizer::Init(const KWArgs& kwargs) {
+KWArgs SGDLearner::Init(const KWArgs& kwargs) {
   auto remain = param_.InitAllowUnknown(kwargs);
   model_.Init(param_.V_dim, 0, std::numeric_limits<feaid_t>::max());
   return remain;
 }
 
 
-void SGDOptimizer::Get(const std::vector<feaid_t>& fea_ids,
+void SGDLearner::Get(const std::vector<feaid_t>& fea_ids,
                        std::vector<real_t>* weights,
                        std::vector<int>* weight_lens) {
   int V_dim = param_.V_dim;
@@ -128,7 +131,7 @@ void SGDOptimizer::Get(const std::vector<feaid_t>& fea_ids,
   }
 }
 
-void SGDOptimizer::AddCount(const std::vector<feaid_t>& fea_ids,
+void SGDLearner::AddCount(const std::vector<feaid_t>& fea_ids,
                             const std::vector<real_t>& fea_cnts) {
   CHECK_EQ(fea_ids.size(), fea_cnts.size());
   for (size_t i = 0; i < fea_ids.size(); ++i) {
@@ -140,7 +143,7 @@ void SGDOptimizer::AddCount(const std::vector<feaid_t>& fea_ids,
   }
 }
 
-void SGDOptimizer::Update(const std::vector<feaid_t>& fea_ids,
+void SGDLearner::Update(const std::vector<feaid_t>& fea_ids,
                           const std::vector<real_t>& grads,
                           const std::vector<int>& grad_lens) {
   CHECK(has_aux_) << "no aux data";
@@ -163,7 +166,7 @@ void SGDOptimizer::Update(const std::vector<feaid_t>& fea_ids,
 }
 
 
-void SGDOptimizer::UpdateW(real_t gw, SGDEntry* e) {
+void SGDLearner::UpdateW(real_t gw, SGDEntry* e) {
   real_t sg = e->sqrt_g;
   real_t w = e->w;
   // update sqrt_g
@@ -182,31 +185,31 @@ void SGDOptimizer::UpdateW(real_t gw, SGDEntry* e) {
   }
   // update statistics
   if (w == 0 && e->w != 0) {
-    ++ new_w_;
+    ++new_w_;
     if (e->V == nullptr && e->fea_cnt > param_.V_threshold) {
       InitV(e);
     }
   } else if (w != 0 && e->w == 0) {
-    -- new_w_;
+    --new_w_;
   }
 }
 
-void SGDOptimizer::UpdateV(real_t const* gV, SGDEntry* e) {
+void SGDLearner::UpdateV(real_t const* gV, SGDEntry* e) {
   int n = param_.V_dim;
   for (int i = 0; i < n; ++i) {
     real_t g = gV[i] + param_.V_l2 * e->V[i];
     real_t cg = e->V[i+n];
     e->V[i+n] = sqrt(cg * cg + g * g);
-    float eta = param_.V_lr / ( e->V[i+n] + param_.V_lr_beta);
+    float eta = param_.V_lr / (e->V[i+n] + param_.V_lr_beta);
     e->V[i] -= eta * g;
   }
 }
 
-void SGDOptimizer::InitV(SGDEntry* e) {
+void SGDLearner::InitV(SGDEntry* e) {
   int n = param_.V_dim;
   e->V = new real_t[n*2];
   for (int i = 0; i < n; ++i) {
-    e->V[i] = (rand() / (real_t)RAND_MAX - 0.5) * param_.V_init_scale;
+    e->V[i] = (rand_r(&param_.seed) / (real_t)RAND_MAX - 0.5) * param_.V_init_scale;
   }
   memset(e->V+n, 0, n*sizeof(real_t));
 }

@@ -1,5 +1,5 @@
 #include "difacto/difacto.h"
-#include "model/sgd.h"
+#include "learner/sgd.h"
 #include "common/arg_parser.h"
 
 int main(int argc, char *argv[]) {
@@ -18,11 +18,11 @@ int main(int argc, char *argv[]) {
     parser.AddArg(argv[i]);
   }
 
-  SGDModelParam param_;
-  param_.Init(parser.GetKWArgs());
+  // SGDOptimizerParam param_;
+  // param_.Init(parser.GetKWArgs());
 
-  LOG(ERROR) << param_.l2;
-  LOG(ERROR) << param_.l1;
+  // LOG(ERROR) << param_.l2;
+  // LOG(ERROR) << param_.l1;
 
   // DiFacto df;
   // df.Init({});

@@ -6,8 +6,11 @@ PROTOC = ${DEPS_PATH}/bin/protoc
 CFLAGS = -std=c++11 -fopenmp -fPIC -O3 -ggdb -Wall -finline-functions $(INCPATH)
 # LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
 
-OBJS = $(addprefix build/, job.o difacto.o loss/loss.o model/model.o model_sync.o \
-	common/localizer.o data/batch_iter.o model/sgd.o)
+OBJS = $(addprefix build/, job.o difacto.o loss/loss.o \
+learner/learner.o learner/sgd.o \
+model/model.o \
+store/store.o \
+common/localizer.o data/batch_iter.o )
 
 DMLC_DEPS = dmlc-core/libdmlc.a
 
@@ -34,3 +37,6 @@ build/difacto: build/main.o build/difacto.a $(DMLC_DEPS)
 
 dmlc-core/libdmlc.a:
 	$(MAKE) -C dmlc-core libdmlc.a DEPS_PATH=$(DEPS_PATH) CXX=$(CXX)
+
+include build/*.d
+include build/*/*.d

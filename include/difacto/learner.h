@@ -1,25 +1,23 @@
 /*!
  * Copyright (c) 2015 by Contributors
  */
-#pragma once
-#ifndef DIFACTO_MODEL_H_
-#define DIFACTO_MODEL_H_
+#ifndef DIFACTO_LEARNER_H_
+#define DIFACTO_LEARNER_H_
 #include <vector>
 #include <string>
 #include "./base.h"
 #include "dmlc/io.h"
 namespace difacto {
-
 /**
- * \brief the base class of a model
+ * \brief the base class of a learnerer.
  */
-class Model {
+class Learner {
  public:
-  Model() { }
-  virtual ~Model() { }
+  Learner() { }
+  virtual ~Learner() { }
 
   /**
-   * \brief init the model
+   * \brief init the learner
    *
    * @param kwargs keyword arguments
    * @return the unknown kwargs
@@ -27,14 +25,14 @@ class Model {
   virtual KWArgs Init(const KWArgs& kwargs) = 0;
 
   /**
-   * \brief load the model
+   * \brief load the learner
    * \param fi input stream
-   * \param has_aux whether the loaded model has aux data
+   * \param has_aux whether the loaded learner has aux data
    */
   virtual void Load(dmlc::Stream* fi, bool* has_aux) = 0;
 
   /**
-   * \brief save the model
+   * \brief save the learner
    * \param save_aux whether or not save aux data
    * \param fo output stream
    */
@@ -77,11 +75,11 @@ class Model {
 
   /**
    * \brief the factory function
-   * \param type the model type such as "fm"
+   * \param type the learner type such as "fm"
    */
-  static Model* Create(const std::string& type);
+  static Learner* Create(const std::string& type);
 };
 
 }  // namespace difacto
 
-#endif  // DIFACTO_MODEL_H_
+#endif  // DIFACTO_LEARNER_H_

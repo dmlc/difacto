@@ -13,13 +13,13 @@ DMLC_REGISTER_PARAMETER(DiFactoParam);
 
 DiFacto::DiFacto() {
   inited_= false;
-  model_ = nullptr;
-  model_sync_ = nullptr;
+  learner_ = nullptr;
+  store_ = nullptr;
 }
 
 DiFacto::~DiFacto() {
-  delete model_;
-  delete model_sync_;
+  delete learner_;
+  delete store_;
 }
 
 KWArgs DiFacto::Init(const KWArgs& kwargs) {
@@ -32,19 +32,15 @@ KWArgs DiFacto::Init(const KWArgs& kwargs) {
   using namespace std::placeholders;
   tracker_->SetConsumer(std::bind(&DiFacto::Process, this, _1));
 
-  // init model
-  char* role_c = getenv("DMLC_ROLE");
-  role_ = std::string(role_c, strlen(role_c));
-  if (local_ || role_ == "server") {
-    model_ = Model::Create(param_.algo);
-    remain = model_->Init(remain);
-  }
+  // init learner
 
-  // init model_sync
-  if (local_ || role_ == "worker") {
-    model_sync_ = ModelSync::Create(local_ ? "local" : "dist");
-    remain = model_sync_->Init(remain);
-  }
+  // char* role_c = getenv("DMLC_ROLE");
+  // role_ = std::string(role_c, strlen(role_c));
+  // init store
+  // if (local_ || role_ == "worker") {
+  store_ = Store::Create(local_ ? "local" : "dist");
+  remain = store_->Init(remain);
+  // }
 
   // init loss
   loss_ = Loss::Create(param_.loss);
@@ -66,7 +62,7 @@ void DiFacto::RunScheduler() {
 
   int cur_epoch = 0;
 
-  // load model
+  // load learner
   if (param_.model_in.size()) {
     Job job;
     job.type = Job::kLoadModel;
@@ -113,10 +109,10 @@ void DiFacto::RunEpoch(int epoch, int job_type) {
 void DiFacto::Process(const Job& job) {
   if (job.type == Job::kSaveModel) {
     dmlc::Stream* fo;
-    // CHECK_NOTNULL(model_)->Save(fo);
+    // CHECK_NOTNULL(learner_)->Save(fo);
   } else if (job.type == Job::kLoadModel) {
     dmlc::Stream* fi;
-    // CHECK_NOTNULL(model_)->Load(fi);
+    // CHECK_NOTNULL(learner_)->Load(fi);
   } else {
     ProcessFile(job);
   }
@@ -155,7 +151,7 @@ void DiFacto::ProcessFile(const Job& job) {
 
           // push the gradient, let the system delete val, val_siz. this task is
           // done only if the push is complete
-          model_sync_->Push(batch.feaids,
+          store_->Push(batch.feaids,
                             std::shared_ptr<std::vector<real_t>>(val),
                             std::shared_ptr<std::vector<int>>(val_siz),
                             [on_complete]() { on_complete(); });
@@ -173,7 +169,7 @@ void DiFacto::ProcessFile(const Job& job) {
         }
         delete batch.data;
       };
-      model_sync_->Pull(batch.feaids, val, val_siz, pull_callback);
+      store_->Pull(batch.feaids, val, val_siz, pull_callback);
     });
 
   while (reader.Next()) {
@@ -193,7 +189,7 @@ void DiFacto::ProcessFile(const Job& job) {
 
     if (push_cnt) {
       auto empty = std::make_shared<std::vector<int>>();
-      model_sync_->Wait(model_sync_->Push(batch.feaids, feacnt, empty));
+      store_->Wait(store_->Push(batch.feaids, feacnt, empty));
     }
 
     while (tracker.NumRemains() > 10) Sleep(10);
