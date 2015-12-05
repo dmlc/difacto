@@ -42,18 +42,12 @@ KWArgs DiFacto::Init(const KWArgs& kwargs) {
     LOG(WARNING) << "unrecognized keyword argument:";
     for (auto kw : remain) LOG(WARNING) << "  " << kw.first << " : " << kw.second;
   }
+  inited_ = true;
   return remain;
 }
 
 void DiFacto::RunScheduler() {
-
-  // if (!local_) {
-  //   printf("Connected %d servers and %d workers\n",
-  //          ps::NodeInfo::NumServers(), ps::NodeInfo::NumWorkers());
-  // }
-
   int cur_epoch = 0;
-
   // load learner
   if (param_.model_in.size()) {
     Job job;

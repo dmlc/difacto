@@ -106,6 +106,7 @@ void SGDModel::Save(bool save_aux, feaid_t id,
 KWArgs SGDLearner::Init(const KWArgs& kwargs) {
   auto remain = param_.InitAllowUnknown(kwargs);
   model_.Init(param_.V_dim, 0, std::numeric_limits<feaid_t>::max());
+  remain.push_back(std::make_pair("V_dim", std::to_string(param_.V_dim)));
   return remain;
 }
 
