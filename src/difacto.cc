@@ -151,10 +151,11 @@ void DiFacto::ProcessFile(const Job& job) {
 
           // push the gradient, let the system delete val, val_siz. this task is
           // done only if the push is complete
-          store_->Push(batch.feaids,
-                            std::shared_ptr<std::vector<real_t>>(val),
-                            std::shared_ptr<std::vector<int>>(val_siz),
-                            [on_complete]() { on_complete(); });
+          store_->Push(Store::kGradient,
+                       batch.feaids,
+                       std::shared_ptr<std::vector<real_t>>(val),
+                       std::shared_ptr<std::vector<int>>(val_siz),
+                       [on_complete]() { on_complete(); });
         } else {
           // save the prediction results
           if (batch.type == Job::kPrediction) {
@@ -169,7 +170,7 @@ void DiFacto::ProcessFile(const Job& job) {
         }
         delete batch.data;
       };
-      store_->Pull(batch.feaids, val, val_siz, pull_callback);
+      store_->Pull(Store::kWeight, batch.feaids, val, val_siz, pull_callback);
     });
 
   while (reader.Next()) {
@@ -189,7 +190,7 @@ void DiFacto::ProcessFile(const Job& job) {
 
     if (push_cnt) {
       auto empty = std::make_shared<std::vector<int>>();
-      store_->Wait(store_->Push(batch.feaids, feacnt, empty));
+      store_->Wait(store_->Push(Store::kFeaCount, batch.feaids, feacnt, empty));
     }
 
     while (tracker.NumRemains() > 10) Sleep(10);

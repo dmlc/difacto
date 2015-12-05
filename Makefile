@@ -8,7 +8,7 @@ CFLAGS = -std=c++11 -fopenmp -fPIC -O3 -ggdb -Wall -finline-functions $(INCPATH)
 
 OBJS = $(addprefix build/, job.o difacto.o loss/loss.o \
 learner/learner.o learner/sgd.o \
-model/model.o \
+learner/learner.o \
 store/store.o \
 common/localizer.o data/batch_iter.o )
 
@@ -38,5 +38,5 @@ build/difacto: build/main.o build/difacto.a $(DMLC_DEPS)
 dmlc-core/libdmlc.a:
 	$(MAKE) -C dmlc-core libdmlc.a DEPS_PATH=$(DEPS_PATH) CXX=$(CXX)
 
-include build/*.d
-include build/*/*.d
+-include build/*.d
+-include build/*/*.d

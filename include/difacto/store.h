@@ -7,7 +7,9 @@
 #include <vector>
 #include <string>
 #include "./base.h"
+#include "dmlc/io.h"
 namespace difacto {
+
 
 /**
  * \brief the store allows workers to get and set and model
@@ -16,6 +18,10 @@ class Store {
  public:
   Store() { }
   virtual ~Store() { }
+
+  const static int kFeaCount = 1;
+  const static int kWeight = 2;
+  const static int kGradient = 3;
 
   /**
    * \brief init
@@ -26,23 +32,30 @@ class Store {
   virtual KWArgs Init(const KWArgs& kwargs) = 0;
 
   /**
-   * \brief use shared pointer for communication
+   * \brief load the model
+   * \param fi input stream
+   * \param has_aux whether the loaded learner has aux data
    */
-  template <typename V>
-  using SharedVector = std::shared_ptr<std::vector<V>>;
+  virtual void Load(dmlc::Stream* fi, bool* has_aux) = 0;
 
-  /** \brief the callback function type */
-  typedef std::function<void()> Callback;
+  /**
+   * \brief save the model
+   * \param save_aux whether or not save aux data
+   * \param fo output stream
+   */
+  virtual void Save(bool save_aux, dmlc::Stream *fo) const = 0;
 
-  virtual int Push(const SharedVector<feaid_t>& fea_ids,
-                   const SharedVector<real_t>& vals,
-                   const SharedVector<int>& lens,
-                   const Callback& on_complete = Callback()) = 0;
+  virtual int Push(int sync_type,
+                   const std::shared_ptr<std::vector<feaid_t>>& fea_ids,
+                   const std::shared_ptr<std::vector<real_t>>& vals,
+                   const std::shared_ptr<std::vector<int>>& lens,
+                   const std::function<void()>& on_complete = nullptr) = 0;
 
-  virtual int Pull(const SharedVector<feaid_t>& fea_ids,
+  virtual int Pull(int sync_type,
+                   const std::shared_ptr<std::vector<feaid_t>>& fea_ids,
                    std::vector<real_t>* vals,
                    std::vector<int>* lens,
-                   const Callback& on_complete = Callback()) = 0;
+                   const std::function<void()>& on_complete = nullptr) = 0;
 
   virtual void Wait(int time) = 0;
 
