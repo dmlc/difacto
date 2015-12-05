@@ -25,6 +25,7 @@ class StoreLocal : public Store {
   KWArgs Init(const KWArgs& kwargs) {
     auto remain = param_.InitAllowUnknown(kwargs);
     learner_ = Learner::Create(param_.learner);
+    remain = learner_->Init(remain);
     return remain;
   }
 

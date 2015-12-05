@@ -4,6 +4,7 @@
 #ifndef DIFACTO_DIFACTO_H_
 #define DIFACTO_DIFACTO_H_
 #include <stdlib.h>
+#include <string.h>
 #include <chrono>
 #include <string>
 #include <functional>
@@ -54,34 +55,22 @@ struct DiFactoParam : public dmlc::Parameter<DiFactoParam> {
   std::string pred_out;
   /** \brief type of loss, defaut is fm*/
   std::string loss;
-
   /** \brief the maximal number of data passes */
   int max_num_epochs;
-
   /** \brief  */
   int num_threads;
 
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
-  /** \brief  */
   DMLC_DECLARE_PARAMETER(DiFactoParam) {
     DMLC_DECLARE_FIELD(task).set_default("train");
     DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
     DMLC_DECLARE_FIELD(data_in);
-    DMLC_DECLARE_FIELD(val_data);
-    DMLC_DECLARE_FIELD(model_out);
-    DMLC_DECLARE_FIELD(model_in);
-    DMLC_DECLARE_FIELD(pred_out);
+    DMLC_DECLARE_FIELD(val_data).set_default("");
+    DMLC_DECLARE_FIELD(model_out).set_default("");
+    DMLC_DECLARE_FIELD(model_in).set_default("");
+    DMLC_DECLARE_FIELD(pred_out).set_default("");
     DMLC_DECLARE_FIELD(loss).set_default("fm");
+    DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
+    DMLC_DECLARE_FIELD(num_threads).set_default(2);
   }
 };
 
@@ -102,16 +91,29 @@ class DiFacto {
   /** \brief the callback function type */
   typedef std::function<void()> Callback;
 
-  void AddEpochCallback(const Callback& callback);
 
-  void AddContCallback(const Callback& callback);
+  /**
+   * \brief add a callback which will be evoked for every data pass
+   * @param callback the callback
+   */
+  void AddEpochCallback(const Callback& callback) {
+    epoch_callbacks_.push_back(callback);
+  }
+
+  /**
+   * \brief add a callback which will be evoked for every second
+   * @param callback the callback
+   */
+  void AddContCallback(const Callback& callback) {
+    cont_callbacks_.push_back(callback);
+  }
 
   /**
    * \brief Run difacto
    */
   void Run() {
     CHECK(inited_) << "run Init first";
-    if (local_ || role_ == "scheduler") {
+    if (local_ || !strcmp(getenv("DMLC_ROLE"), "scheduler")) {
       RunScheduler();
     } else {
       tracker_->Wait();
@@ -128,8 +130,9 @@ class DiFacto {
   /**
    * \brief return the current progress
    */
-  std::vector<real_t> GetProgress() const {
+  const std::vector<real_t>& GetProgress() const {
     CHECK(inited_) << "run Init first";
+    return progress_;
   }
 
  private:
@@ -166,21 +169,16 @@ class DiFacto {
   JobTracker* tracker_;
   /** \brief whether of not on a single machine */
   bool local_;
-  /** \brief the role (scheduler, worker, or sever) of the current process */
-  std::string role_;
 
   /** \brief callbacks for every second*/
   std::vector<Callback> cont_callbacks_;
   /** \brief callbacks for every epoch*/
   std::vector<Callback> epoch_callbacks_;
-
-  /** \brief the learner, availabe if in the local learner or this is a server */
-  Learner* learner_;
-
-  /** \brief the learner communicator, availabe if in the local learner or this is a worker */
+  /** \brief the model store*/
   Store* store_;
-
+  /** \brief the loss*/
   Loss* loss_;
+  /** \brief current progress*/
   std::vector<real_t> progress_;
 
   double worktime_;

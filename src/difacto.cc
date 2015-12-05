@@ -13,12 +13,10 @@ DMLC_REGISTER_PARAMETER(DiFactoParam);
 
 DiFacto::DiFacto() {
   inited_= false;
-  learner_ = nullptr;
   store_ = nullptr;
 }
 
 DiFacto::~DiFacto() {
-  delete learner_;
   delete store_;
 }
 
@@ -32,15 +30,9 @@ KWArgs DiFacto::Init(const KWArgs& kwargs) {
   using namespace std::placeholders;
   tracker_->SetConsumer(std::bind(&DiFacto::Process, this, _1));
 
-  // init learner
-
-  // char* role_c = getenv("DMLC_ROLE");
-  // role_ = std::string(role_c, strlen(role_c));
   // init store
-  // if (local_ || role_ == "worker") {
   store_ = Store::Create(local_ ? "local" : "dist");
   remain = store_->Init(remain);
-  // }
 
   // init loss
   loss_ = Loss::Create(param_.loss);
