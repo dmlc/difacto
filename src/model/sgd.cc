@@ -1,7 +1,9 @@
 #include "./sgd.h"
+#include <string.h>
 namespace difacto {
 
-KWArgs SGDModel::Init(const KWArgs& kwargs, feaid_t start_id, feaid_t end_id) {
+void SGDModel::Init(int V_dim, feaid_t start_id, feaid_t end_id) {
+  V_dim_ = V_dim;
   CHECK_GT(end_id, start_id);
   start_id_ = start_id;
   end_id_ = end_id;
@@ -11,7 +13,6 @@ KWArgs SGDModel::Init(const KWArgs& kwargs, feaid_t start_id, feaid_t end_id) {
   } else {
     dense_ = false;
   }
-  return param_.InitAllowUnknown(kwargs);
 }
 
 
@@ -19,13 +20,13 @@ void SGDModel::Load(dmlc::Stream* fi, bool* has_aux) {
   CHECK_NOTNULL(has_aux);
   CHECK_NOTNULL(fi);
   feaid_t id;
-  std::vector<char> tmp((param_.V_dim*2+10)*sizeof(real_t));
+  std::vector<char> tmp((V_dim_*2+10)*sizeof(real_t));
   bool has_aux_cur, first = true;
   while (fi->Read(&id, sizeof(id))) {
     int len; fi->Read(&len);
     if (id < start_id_ || id >= end_id_) {
       // skip
-      len = len > 0 : len : -len;
+      len = len > 0 ? len : -len;
       CHECK_LT(len, (int)tmp.size());
       fi->Read(tmp.data(), len);
       continue;
@@ -47,11 +48,11 @@ void SGDModel::Load(dmlc::Stream* fi, bool* has_aux) {
 
 void SGDModel::Save(bool save_aux, dmlc::Stream *fo) const {
   if (dense_) {
-    for (feaid_t id = 0; id < (feaid_t)model_vec_.size(); ++i) {
+    for (feaid_t id = 0; id < (feaid_t)model_vec_.size(); ++id) {
       Save(save_aux, id + start_id_, model_vec_[id], fo);
     }
   } else {
-    for (const it& : model_) {
+    for (const auto& it : model_map_) {
       Save(save_aux, it.first + start_id_, it.second, fo);
     }
   }
@@ -74,20 +75,19 @@ void SGDModel::Load(dmlc::Stream* fi, int len, SGDEntry* entry) {
   }
 
   if (len > 0) {
-    CHECK_EQ(len, param_.V_dim * (1 + has_aux));
+    CHECK_EQ(len, V_dim_ * (1 + has_aux));
     entry->V = new real_t[len];
     fi->Read(entry->V, len);
   }
 }
 
 void SGDModel::Save(bool save_aux, feaid_t id,
-                    const SGDEntry& entry, dmlc::Stream *fo) {
+                    const SGDEntry& entry, dmlc::Stream *fo) const {
   if (!save_aux && entry.V == nullptr && entry.w == 0) {
     // skip empty entry
     return;
   }
-  int V_dim = param_.V_dim;
-  int V_len = (1 + save_aux) * (entry->V ? V_dim : 0) * sizeof(real_t);
+  int V_len = (1 + save_aux) * (entry.V ? V_dim_ : 0) * sizeof(real_t);
   int len = (1 + save_aux) * 2 * sizeof(real_t) + V_len;
   fo->Write(id);
   fo->Write(len);
@@ -100,9 +100,15 @@ void SGDModel::Save(bool save_aux, feaid_t id,
   if (V_len) fo->Write(entry.V, V_len);
 }
 
+KWArgs SGDOptimizer::Init(const KWArgs& kwargs) {
+  auto remain = param_.InitAllowUnknown(kwargs);
+  model_.Init(param_.V_dim, 0, std::numeric_limits<feaid_t>::max());
+  return remain;
+}
+
 
 void SGDOptimizer::Get(const std::vector<feaid_t>& fea_ids,
-                       std::vector<T>* weights,
+                       std::vector<real_t>* weights,
                        std::vector<int>* weight_lens) {
   int V_dim = param_.V_dim;
   size_t size = fea_ids.size();
@@ -128,12 +134,11 @@ void SGDOptimizer::AddCount(const std::vector<feaid_t>& fea_ids,
   for (size_t i = 0; i < fea_ids.size(); ++i) {
     auto& e = model_[fea_ids[i]];
     e.fea_cnt += fea_cnts[i];
-    if (e.V == nullptr && e.w[0] != 0 && e.fea_cnt > param_.V_threshold) {
+    if (e.V == nullptr && e.w != 0 && e.fea_cnt > param_.V_threshold) {
       InitV(&e);
     }
   }
 }
-
 
 void SGDOptimizer::Update(const std::vector<feaid_t>& fea_ids,
                           const std::vector<real_t>& grads,
@@ -163,7 +168,7 @@ void SGDOptimizer::UpdateW(real_t gw, SGDEntry* e) {
   real_t w = e->w;
   // update sqrt_g
   gw += w * param_.l2;
-  e->sqrt_g = sqrt(sg * gs + gw * gw);
+  e->sqrt_g = sqrt(sg * sg + gw * gw);
   // update z
   e->z -= gw - (e->sqrt_g - sg) / param_.lr * w;
   // update w by soft shrinkage
@@ -181,7 +186,7 @@ void SGDOptimizer::UpdateW(real_t gw, SGDEntry* e) {
     if (e->V == nullptr && e->fea_cnt > param_.V_threshold) {
       InitV(e);
     }
-  } else if (w != 0 && e->w[0] == 0) {
+  } else if (w != 0 && e->w == 0) {
     -- new_w_;
   }
 }
@@ -201,7 +206,7 @@ void SGDOptimizer::InitV(SGDEntry* e) {
   int n = param_.V_dim;
   e->V = new real_t[n*2];
   for (int i = 0; i < n; ++i) {
-    e->V[i] = (rand() / (real_t)RAND_MAX - 0.5) * param_.init_scale;
+    e->V[i] = (rand() / (real_t)RAND_MAX - 0.5) * param_.V_init_scale;
   }
   memset(e->V+n, 0, n*sizeof(real_t));
 }

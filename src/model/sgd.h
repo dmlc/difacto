@@ -12,24 +12,14 @@
 #include "dmlc/io.h"
 namespace difacto {
 
-struct SGDModelParam : public dmlc::Parameter<SGDModelParam> {
+struct SGDOptimizerParam : public dmlc::Parameter<SGDOptimizerParam> {
   /** \brief the l1 regularizer for :math:`w`: :math:`\lambda_1 |w|_1` */
   float l1;
   /** \brief the l2 regularizer for :math:`w`: :math:`\lambda_2 \|w\|_2^2` */
   float l2;
   /** \brief the l2 regularizer for :math:`V`: :math:`\lambda_2 \|V_i\|_2^2` */
   float V_l2;
-  /** \brief the embedding dimension */
-  int V_dim;
-  DMLC_DECLARE_PARAMETER(SGDModelParam) {
-    DMLC_DECLARE_FIELD(l1).set_range(0, 1e10).set_default(1);
-    DMLC_DECLARE_FIELD(l2).set_range(0, 1e10).set_default(0);
-    DMLC_DECLARE_FIELD(V_l2).set_range(0, 1e10).set_default(.01);
-    DMLC_DECLARE_FIELD(V_dim);
-  }
-};
 
-struct SGDOptimizerParam : public dmlc::Parameter<SGDOptimizerParam> {
   /** \brief the learning rate :math:`\eta` (or :math:`\alpha`) for :math:`w` */
   float lr;
   /** \brief learning rate :math:`\beta` */
@@ -50,6 +40,9 @@ struct SGDOptimizerParam : public dmlc::Parameter<SGDOptimizerParam> {
   int V_threshold;
 
   DMLC_DECLARE_PARAMETER(SGDOptimizerParam) {
+    DMLC_DECLARE_FIELD(l1).set_range(0, 1e10).set_default(1);
+    DMLC_DECLARE_FIELD(l2).set_range(0, 1e10).set_default(0);
+    DMLC_DECLARE_FIELD(V_l2).set_range(0, 1e10).set_default(.01);
     DMLC_DECLARE_FIELD(lr).set_range(0, 10).set_default(.01);
     DMLC_DECLARE_FIELD(lr_beta).set_range(0, 1e10).set_default(1);
     DMLC_DECLARE_FIELD(V_lr).set_range(0, 1e10).set_default(.01);
@@ -86,10 +79,11 @@ class SGDModel {
   /**
    * \brief init model
    *
+   * @param V_dim the dimension of V
    * @param start_id the minimal feature id
    * @param end_id the maximal feature id
    */
-  KWArgs Init(const KWArgs& kwargs, feaid_t start_id, feaid_t end_id);
+  void Init(int V_dim, feaid_t start_id, feaid_t end_id);
   /**
    * \brief get the weight entry for a feature id
    * \param id the feature id
@@ -116,13 +110,13 @@ class SGDModel {
 
   /** \brief save one entry */
   inline void Save(
-      bool save_aux, feaid_t id, const SGDEntry& entry, dmlc::Stream *fo);
+      bool save_aux, feaid_t id, const SGDEntry& entry, dmlc::Stream *fo) const;
 
+  int V_dim_;
   bool dense_;
-  feaid_t start_id_;
+  feaid_t start_id_, end_id_;
   std::vector<SGDEntry> model_vec_;
   std::unordered_map<feaid_t, SGDEntry> model_map_;
-  SGDModelParam param_;
 };
 
 /**
@@ -137,12 +131,7 @@ class SGDOptimizer : public Model {
   SGDOptimizer() : new_w_(0), has_aux_(true) { }
   virtual ~SGDOptimizer() { }
 
-  KWArgs Init(const KWArgs& kwargs) override {
-    auto remain = param_.InitAllowUnknown(kwargs);
-    remain.push_back(std::make_pair("V_dim", std::to_string(param_.V_dim)));
-    remain = model_.Init(remain, 0, std::numeric_limits<feaid_t>::max());
-    return remain;
-  }
+  KWArgs Init(const KWArgs& kwargs) override;
 
   void Load(dmlc::Stream* fi, bool* has_aux) override {
     model_.Load(fi, has_aux);

@@ -7,7 +7,7 @@ CFLAGS = -std=c++11 -fopenmp -fPIC -O3 -ggdb -Wall -finline-functions $(INCPATH)
 # LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
 
 OBJS = $(addprefix build/, job.o difacto.o loss/loss.o model/model.o model_sync.o \
-	common/localizer.o data/batch_iter.o)
+	common/localizer.o data/batch_iter.o model/sgd.o)
 
 DMLC_DEPS = dmlc-core/libdmlc.a
 
