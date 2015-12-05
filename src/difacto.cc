@@ -133,7 +133,7 @@ void DiFacto::ProcessFile(const Job& job) {
   int shuffle = 0;
   float neg_sampling = 1;
   BatchIter reader(
-      job.filename, job.part_idx, job.num_parts, param_.data_format,
+      job.filename, param_.data_format, job.part_idx, job.num_parts,
       batch_size, shuffle, neg_sampling);
 
   Tracker<BatchJob> tracker;

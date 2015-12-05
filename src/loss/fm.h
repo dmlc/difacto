@@ -35,7 +35,7 @@ struct FMParam : public dmlc::Parameter<FMParam> {
   /** \brief number of threads */
   int nthreads;
   DMLC_DECLARE_PARAMETER(FMParam) {
-    DMLC_DECLARE_FIELD(V_dim).set_range(0, 10000).set_default(0);
+    DMLC_DECLARE_FIELD(V_dim).set_range(0, 10000);
     DMLC_DECLARE_FIELD(V_dropout).set_range(0, 1).set_default(0);
     DMLC_DECLARE_FIELD(V_grad_clipping).set_range(0, 1000.0).set_default(0);
     DMLC_DECLARE_FIELD(V_grad_normalization).set_range(0, 1000.0).set_default(0);

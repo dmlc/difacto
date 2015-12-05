@@ -29,14 +29,16 @@ class Model {
   /**
    * \brief load the model
    * \param fi input stream
+   * \param has_aux whether the loaded model has aux data
    */
-  virtual void Load(dmlc::Stream* fi) = 0;
+  virtual void Load(dmlc::Stream* fi, bool* has_aux) = 0;
 
   /**
    * \brief save the model
+   * \param save_aux whether or not save aux data
    * \param fo output stream
    */
-  virtual void Save(dmlc::Stream *fo) const = 0;
+  virtual void Save(bool save_aux, dmlc::Stream *fo) const = 0;
 
   /**
    * \brief add feature count
