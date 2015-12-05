@@ -47,7 +47,7 @@ class Model {
    * @param fea_cnts the according counts
    */
   virtual void AddCount(const std::vector<feaid_t>& fea_ids,
-                        const std::vector<int>& fea_cnts) = 0;
+                        const std::vector<real_t>& fea_cnts) = 0;
 
   /**
    * \brief get the weights on the given features

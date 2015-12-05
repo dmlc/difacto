@@ -46,14 +46,16 @@ struct SGDOptimizerParam : public dmlc::Parameter<SGDOptimizerParam> {
   float V_init_scale;
   /** \brief the embedding dimension */
   int V_dim;
-
+  /** \brief the minimal feature count for allocating V */
   int V_threshold;
+
   DMLC_DECLARE_PARAMETER(SGDOptimizerParam) {
     DMLC_DECLARE_FIELD(lr).set_range(0, 10).set_default(.01);
     DMLC_DECLARE_FIELD(lr_beta).set_range(0, 1e10).set_default(1);
     DMLC_DECLARE_FIELD(V_lr).set_range(0, 1e10).set_default(.01);
     DMLC_DECLARE_FIELD(V_lr_beta).set_range(0, 10).set_default(1);
     DMLC_DECLARE_FIELD(V_init_scale).set_range(0, 10).set_default(.01);
+    DMLC_DECLARE_FIELD(V_threshold).set_default(10);
     DMLC_DECLARE_FIELD(V_dim);
   }
 };
@@ -69,7 +71,7 @@ struct SGDEntry {
   /** \brief the number of appearence of this feature in the data so far */
   real_t fea_cnt;
   /** \brief w and its aux data */
-  real_t w, sqr_g, z;
+  real_t w, sqrt_g, z;
   /** \brief V and its aux data */
   real_t *V;
 };
@@ -118,8 +120,8 @@ class SGDModel {
 
   bool dense_;
   feaid_t start_id_;
-  std::vector<SGDEntry<T>> model_vec_;
-  std::unordered_map<SGDEntry<T>> model_map_;
+  std::vector<SGDEntry> model_vec_;
+  std::unordered_map<feaid_t, SGDEntry> model_map_;
   SGDModelParam param_;
 };
 
@@ -132,33 +134,35 @@ class SGDModel {
  */
 class SGDOptimizer : public Model {
  public:
-  SGD() { }
-  virtual ~SGD() { }
+  SGDOptimizer() : new_w_(0), has_aux_(true) { }
+  virtual ~SGDOptimizer() { }
 
   KWArgs Init(const KWArgs& kwargs) override {
-    auto remain = param_.InitAllowUnknown(KWArgs);
-    remain.push_back("V_dim", std::to_string(param_.V_dim));
+    auto remain = param_.InitAllowUnknown(kwargs);
+    remain.push_back(std::make_pair("V_dim", std::to_string(param_.V_dim)));
     remain = model_.Init(remain, 0, std::numeric_limits<feaid_t>::max());
     return remain;
   }
 
   void Load(dmlc::Stream* fi, bool* has_aux) override {
     model_.Load(fi, has_aux);
+    has_aux_ = *has_aux;
   }
 
   void Save(bool save_aux, dmlc::Stream *fo) const override {
     model_.Save(save_aux, fo);
   }
 
+  void AddCount(const std::vector<feaid_t>& fea_ids,
+                const std::vector<real_t>& fea_cnts) override;
+
   void Get(const std::vector<feaid_t>& fea_ids,
-           std::vector<T>* weights,
+           std::vector<real_t>* weights,
            std::vector<int>* weight_lens) override;
 
-  void AddCount(const std::vector<feaid_t>& fea_ids,
-                const std::vector<uint32_t>& fea_cnts) override;
 
-  void Update(const std::vector<ps::Key>& fea_ids,
-              const std::vector<T>& grad,
+  void Update(const std::vector<feaid_t>& fea_ids,
+              const std::vector<real_t>& grads,
               const std::vector<int>& grad_lens) override;
 
 
@@ -176,6 +180,7 @@ class SGDOptimizer : public Model {
   SGDOptimizerParam param_;
 
   int64_t new_w_;
+  bool has_aux_;
 };
 
 

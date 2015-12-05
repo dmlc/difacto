@@ -113,10 +113,10 @@ void DiFacto::RunEpoch(int epoch, int job_type) {
 void DiFacto::Process(const Job& job) {
   if (job.type == Job::kSaveModel) {
     dmlc::Stream* fo;
-    CHECK_NOTNULL(model_)->Save(fo);
+    // CHECK_NOTNULL(model_)->Save(fo);
   } else if (job.type == Job::kLoadModel) {
     dmlc::Stream* fi;
-    CHECK_NOTNULL(model_)->Load(fi);
+    // CHECK_NOTNULL(model_)->Load(fi);
   } else {
     ProcessFile(job);
   }

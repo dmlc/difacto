@@ -80,8 +80,8 @@ void SGDModel::Load(dmlc::Stream* fi, int len, SGDEntry* entry) {
   }
 }
 
-void SGDModel::Save(
-    bool save_aux, feaid_t id, const SGDEntry& entry, dmlc::Stream *fo) {
+void SGDModel::Save(bool save_aux, feaid_t id,
+                    const SGDEntry& entry, dmlc::Stream *fo) {
   if (!save_aux && entry.V == nullptr && entry.w == 0) {
     // skip empty entry
     return;
@@ -101,10 +101,9 @@ void SGDModel::Save(
 }
 
 
-void SGDOptimizer::Get(
-    const std::vector<feaid_t>& fea_ids,
-    std::vector<T>* weights,
-    std::vector<int>* weight_lens) {
+void SGDOptimizer::Get(const std::vector<feaid_t>& fea_ids,
+                       std::vector<T>* weights,
+                       std::vector<int>* weight_lens) {
   int V_dim = param_.V_dim;
   size_t size = fea_ids.size();
   weights->resize(size * (1 + V_dim));
@@ -123,68 +122,64 @@ void SGDOptimizer::Get(
   }
 }
 
-void SGDOptimizer::AddCount(
-    const std::vector<feaid_t>& fea_ids,
-    const std::vector<uint32_t>& fea_cnts) {
+void SGDOptimizer::AddCount(const std::vector<feaid_t>& fea_ids,
+                            const std::vector<real_t>& fea_cnts) {
   CHECK_EQ(fea_ids.size(), fea_cnts.size());
   for (size_t i = 0; i < fea_ids.size(); ++i) {
     auto& e = model_[fea_ids[i]];
     e.fea_cnt += fea_cnts[i];
-    // if (e.V_len == 0 && e.w[0] != 0 && e.fea_cnt > V_threshold_) {
-    //     e.InitV(V_dim_, V_init_scale_);
-    //   }
-    // }
-  }
-}
-
-
-void SGDOptimizer::Update(const std::vector<ps::Key>& fea_ids,
-                          const std::vector<T>& grad,
-                          const std::vector<int>& grad_lens) override {
-  size_t size = fea_ids.size();
-  bool no_len = gradient_lens.empty();
-  if (no_len) { CHECK_EQ(gradients.size(), size); }
-
-  int p = 0;
-
-  for (size_t i = 0; i < size; ++i) {
-    auto& e = model_[fea_ids[i]];
-    UpdateW(gradients[p], &e);
-    if (!no_len && gradient_lens[i] > 1) {
-      int n = gradient_lens[i] - 1;
-      UpdateV(gradients.data() + p, n, &e);
-      p += n;
+    if (e.V == nullptr && e.w[0] != 0 && e.fea_cnt > param_.V_threshold) {
+      InitV(&e);
     }
   }
-  CHECK_EQ((size_t)p, gradients.size());
 }
 
 
-// T w_alpha_, w_beta_, V_alpha_, V_beta_;
-// T V_init_scale_;
-// int V_dim_, V_threshold_;
+void SGDOptimizer::Update(const std::vector<feaid_t>& fea_ids,
+                          const std::vector<real_t>& grads,
+                          const std::vector<int>& grad_lens) {
+  CHECK(has_aux_) << "no aux data";
+  size_t size = fea_ids.size();
+  bool w_only = grad_lens.empty();
+  if (w_only) {
+    CHECK_EQ(grads.size(), size);
+  }
+  int p = 0;
+  for (size_t i = 0; i < size; ++i) {
+    auto& e = model_[fea_ids[i]];
+    UpdateW(grads[p++], &e);
+    if (!w_only && grad_lens[i] > 1) {
+      CHECK_EQ(grad_lens[i], param_.V_dim);
+      UpdateV(grads.data() + p, &e);
+      p += param_.V_dim;
+    }
+  }
+  CHECK_EQ((size_t)p, grads.size());
+}
+
 
 void SGDOptimizer::UpdateW(real_t gw, SGDEntry* e) {
-  T w = e->w[0];
-  T cg = e->w[1];
-  // update w[1]
-  gw += w * w_l2_;
-  e->w[1] = sqrt(cg * cg + gw * gw);
-  // update w[2]
-  e->w[2] -= gw - (e->w[1] - cg) / w_alpha_ * w;
-  // update w[0] by soft shrinkage
-  T z = e->w[2];
-  if (z <= w_l1_ && z >= - w_l1_) {
-    e->w[0] = 0;
+  real_t sg = e->sqrt_g;
+  real_t w = e->w;
+  // update sqrt_g
+  gw += w * param_.l2;
+  e->sqrt_g = sqrt(sg * gs + gw * gw);
+  // update z
+  e->z -= gw - (e->sqrt_g - sg) / param_.lr * w;
+  // update w by soft shrinkage
+  real_t z = e->z;
+  real_t l1 = param_.l1;
+  if (z <= l1 && z >= - l1) {
+    e->w = 0;
   } else {
-    T eta = (w_beta + e->w[1]) / w_alpha;
-    e->w[0] = (z > 0 ? z - w_l1_ : z + w_l1_) / eta;
+    real_t eta = (param_.lr_beta + e->sqrt_g) / param_.lr;
+    e->w = (z > 0 ? z - l1 : z + l1) / eta;
   }
   // update statistics
-  if (w == 0 && e->w[0] != 0) {
+  if (w == 0 && e->w != 0) {
     ++ new_w_;
-    if (e.V_len == 0 && e.fea_cnt > V_threshold_) {
-      e.InitV(V_dim_, V_init_scale_);
+    if (e->V == nullptr && e->fea_cnt > param_.V_threshold) {
+      InitV(e);
     }
   } else if (w != 0 && e->w[0] == 0) {
     -- new_w_;
@@ -192,28 +187,23 @@ void SGDOptimizer::UpdateW(real_t gw, SGDEntry* e) {
 }
 
 void SGDOptimizer::UpdateV(real_t const* gV, SGDEntry* e) {
-
+  int n = param_.V_dim;
   for (int i = 0; i < n; ++i) {
-    T g = gV[i] + V_l2_ * e->V[i];
-    T cg = e->V[i+len];
-    e->V[i+len] = sqrt(cg * cg + g * g);
-    float eta = V_alpha_ / ( e->V[i+len] + V_beta_ );
+    real_t g = gV[i] + param_.V_l2 * e->V[i];
+    real_t cg = e->V[i+n];
+    e->V[i+n] = sqrt(cg * cg + g * g);
+    float eta = param_.V_lr / ( e->V[i+n] + param_.V_lr_beta);
     e->V[i] -= eta * g;
   }
 }
 
-
 void SGDOptimizer::InitV(SGDEntry* e) {
-  // /** \brief init V */
-  // void InitV(int len, T init_scale) {
-  //   CHECK_EQ(V_len, 0) << "already inited";
-  //   V_len = len;
-  //   V = new T[len * 2];
-  //   for (int i = 0; i < len; ++i) {
-  //     V[i] = (rand() / static_cast<T>(RAND_MAX) - 0.5) * init_scale;
-  //   }
-  //   memset(V+len, 0, len*sizeof(T));
-  // }
+  int n = param_.V_dim;
+  e->V = new real_t[n*2];
+  for (int i = 0; i < n; ++i) {
+    e->V[i] = (rand() / (real_t)RAND_MAX - 0.5) * param_.init_scale;
+  }
+  memset(e->V+n, 0, n*sizeof(real_t));
 }
 
 }  // namespace difacto
