@@ -6,7 +6,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-
+#include "dmlc/logging.h"
 namespace difacto {
 
 /*!
@@ -38,6 +38,11 @@ inline feaid_t ReverseBytes(feaid_t x) {
       (x & 0xF0F0F0F0F0F0F0F0ULL) >> 4;
   return x;
 }
+
+/**
+ * \brief for debug printing
+ */
+#define LL LOG(ERROR)
 
 }  // namespace difacto
 #endif  // DIFACTO_BASE_H_

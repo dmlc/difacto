@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "./base.h"
+#include "./progress.h"
 #include "dmlc/data.h"
 namespace difacto {
 
@@ -42,7 +43,7 @@ class Loss {
    * \brief evaluate the progress
    * \param prog the output progress
    */
-  virtual void Evaluate(std::vector<real_t>* prog) = 0;
+  virtual void Evaluate(Progress* prog) = 0;
 
   /*!
    * \brief compute the gradients

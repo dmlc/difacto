@@ -42,12 +42,18 @@ KWArgs DiFacto::Init(const KWArgs& kwargs) {
     LOG(WARNING) << "unrecognized keyword argument:";
     for (auto kw : remain) LOG(WARNING) << "  " << kw.first << " : " << kw.second;
   }
+
+  // init callbacks
+  AddEpochCallback([this](){
+      LOG(ERROR) << "epoch: " << epoch();
+      LL << pprinter_.Body(progress(), true);
+    });
   inited_ = true;
   return remain;
 }
 
 void DiFacto::RunScheduler() {
-  int cur_epoch = 0;
+  epoch_ = 0;
   // load learner
   if (param_.model_in.size()) {
     Job job;
@@ -60,13 +66,13 @@ void DiFacto::RunScheduler() {
   // predict
   if (param_.task.find("predict") != std::string::npos) {
     CHECK(param_.model_in.size());
-    RunEpoch(cur_epoch, Job::kPrediction);
+    RunEpoch(epoch_, Job::kPrediction);
   }
 
   // train
-  for (; cur_epoch < param_.max_num_epochs; ++ cur_epoch) {
-    RunEpoch(cur_epoch, Job::kTraining);
-    RunEpoch(cur_epoch, Job::kValidation);
+  for (; epoch_ < param_.max_num_epochs; ++ epoch_) {
+    RunEpoch(epoch_, Job::kTraining);
+    RunEpoch(epoch_, Job::kValidation);
     for (auto& cb : epoch_callbacks_) cb();
   }
 }
@@ -78,7 +84,7 @@ void DiFacto::RunEpoch(int epoch, int job_type) {
   job.filename = job_type == Job::kValidation ? param_.val_data : param_.data_in;
   if (job.filename.empty()) return;
 
-  job.num_parts = 100;
+  job.num_parts = 1;
   std::vector<Job> jobs;
   for (int i = 0; i < job.num_parts; ++i) {
     job.part_idx = i;
@@ -93,6 +99,7 @@ void DiFacto::RunEpoch(int epoch, int job_type) {
 }
 
 void DiFacto::Process(const Job& job) {
+  LL << job.filename;
   if (job.type == Job::kSaveModel) {
     dmlc::Stream* fo;
     // CHECK_NOTNULL(learner_)->Save(fo);
@@ -118,18 +125,20 @@ void DiFacto::ProcessFile(const Job& job) {
       job.filename, param_.data_format, job.part_idx, job.num_parts,
       batch_size, shuffle, neg_sampling);
 
+  LL << "xx";
   Tracker<BatchJob> tracker;
   tracker.SetConsumer([this](const BatchJob& batch, const Callback& on_complete) {
+      LL << "yy";
       auto val = new std::vector<real_t>();
       auto val_siz = new std::vector<int>();
 
       auto pull_callback = [this, batch, val, val_siz, on_complete]() {
         // eval the objective,
         CHECK_NOTNULL(loss_)->InitData(batch.data->GetBlock(), *val, *val_siz);
-        std::vector<real_t> prog;
-        loss_->Evaluate(&prog);
-
-        // TODO merge into prog
+        Progress recent;
+        LL << "xx";
+        loss_->Evaluate(&recent);
+        progress_.Merge(recent);
 
         if (batch.type == Job::kTraining) {
           // calculate the gradients
@@ -184,6 +193,8 @@ void DiFacto::ProcessFile(const Job& job) {
     tracker.Add({batch});
   }
 
+  tracker.Wait();
+  LL << tracker.NumRemains();
   while (tracker.NumRemains() > 0) Sleep(10);
 }
 

@@ -19,6 +19,7 @@
 #include "./store.h"
 #include "./learner.h"
 #include "./loss.h"
+#include "./progress.h"
 namespace difacto {
 
 /**
@@ -130,11 +131,14 @@ class DiFacto {
   /**
    * \brief return the current progress
    */
-  const std::vector<real_t>& GetProgress() const {
+  const Progress& progress() const {
     CHECK(inited_) << "run Init first";
     return progress_;
   }
 
+  int epoch() const {
+    return epoch_;
+  }
  private:
   /**
    * \brief schedule the jobs
@@ -179,10 +183,11 @@ class DiFacto {
   /** \brief the loss*/
   Loss* loss_;
   /** \brief current progress*/
-  std::vector<real_t> progress_;
-
+  Progress progress_;
+  ProgressPrinter pprinter_;
   double worktime_;
 
+  int epoch_;
   // dmlc::Stream pred_out_;
 };
 

@@ -27,14 +27,9 @@ class Tracker {
               cur_id_(0),
               thread_(&Tracker::RunConsumer, this) { }
   ~Tracker() {
-    {
-      std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this] {
-          return pending_.size() + running_.size() == 0;
-        });
-    }
+    Wait();
     done_ = true;
-    cond_.notify_one();
+    run_cond_.notify_one();
     thread_.join();
   }
 
@@ -44,26 +39,36 @@ class Tracker {
    */
   void Add(const std::vector<Work>& work) {
     CHECK(consumer_) << "set consumer first";
-    mu_.lock();
-    for (const auto& w : work) pending_.push(w);
-    mu_.unlock();
+    {
+      std::lock_guard<std::mutex> lk(mu_);
+      for (const auto& w : work) pending_.push(w);
+    }
+    run_cond_.notify_all();
   }
 
+  /**
+   * \brief block untill all jobs are finished
+   *
+   */
+  void Wait() {
+    std::unique_lock<std::mutex> lk(mu_);
+    fin_cond_.wait(lk, [this] {
+        return pending_.size() + running_.size() == 0;
+      });
+  }
   /**
    * \brief clear all works that have not been assigned yet
    */
   void Clear() {
-    mu_.lock();
+    std::lock_guard<std::mutex> lk(mu_);
     while (pending_.size()) pending_.pop();
-    mu_.unlock();
   }
   /**
    * \brief return the number of unfinished job
    */
   int NumRemains() {
-    mu_.lock();
+    std::lock_guard<std::mutex> lk(mu_);
     return pending_.size() + running_.size();
-    mu_.unlock();
   }
 
   /** \brief the callback function type */
@@ -90,7 +95,7 @@ class Tracker {
     while (true) {
       {
         std::unique_lock<std::mutex> lk(mu_);
-        cond_.wait(lk, [this] {return (done_ || pending_.size() > 0); });
+        run_cond_.wait(lk, [this] { return (done_ || pending_.size() > 0); });
         if (done_) break;
         running_.push_back(
             std::make_pair(cur_id_++, std::move(pending_.front())));
@@ -98,6 +103,7 @@ class Tracker {
       }
       CHECK(consumer_);
       int id = running_.back().first;
+      LL << id;
       consumer_(running_.back().second, [this, id]() {
           Remove(id);
         });
@@ -105,17 +111,16 @@ class Tracker {
   }
 
   void Remove(int id) {
-    mu_.lock();
+    std::lock_guard<std::mutex> lk(mu_);
     for (auto it = running_.begin(); it != running_.end(); ++it) {
       if (it->first == id) { running_.erase(it); break; }
     }
-    mu_.unlock();
   }
 
   bool done_;
   int cur_id_;
   std::mutex mu_;
-  std::condition_variable cond_;
+  std::condition_variable run_cond_, fin_cond_;
   std::thread thread_;
   Consumer consumer_;
 

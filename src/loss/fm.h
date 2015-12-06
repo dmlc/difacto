@@ -10,7 +10,7 @@
 #include "difacto/loss.h"
 #include "common/spmv.h"
 #include "common/spmm.h"
-#include "common/progress.h"
+#include "difacto/progress.h"
 #include "./bin_class_eval.h"
 namespace difacto {
 
@@ -81,11 +81,10 @@ class FMLoss : public Loss {
    * - sum(A, 2) : sum the rows of A
    * - .* : elemenetal-wise times
    */
-  void Evaluate(std::vector<real_t>* progress) {
+  void Evaluate(Progress* prog) {
     int nt = param_.nthreads;
     int V_dim = param_.V_dim;
     py_.resize(w.X.size);
-    Progress prog;
     BinClassEval eval(w.X.label, py_.data(), py_.size(), nt);
 
     // py = X * w
@@ -93,7 +92,7 @@ class FMLoss : public Loss {
 
     // py += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
     if (!V.weight.empty()) {
-      if (progress) prog.objv_w() = eval.LogitObjv();
+      if (prog) prog->objv_w() = eval.LogitObjv();
 
       // tmp = (X.*X)*(V.*V)
       std::vector<real_t> vv = V.weight;
@@ -118,13 +117,14 @@ class FMLoss : public Loss {
     }
 
     // auc, acc, logloss, copc
-    if (progress) {
-      prog.objv()   = eval.LogitObjv();
-      prog.auc()    = eval.AUC();
-      prog.new_ex() = w.X.size;
-      prog.count()  = 1;
+    LL << prog;
+    if (prog) {
+      prog->objv()   = eval.LogitObjv();
+      prog->auc()    = eval.AUC();
+      prog->new_ex() = w.X.size;
+      prog->count()  = 1;
       // prog.copc()   = eval.Copc();
-      *progress = prog.data;
+      LL << prog->new_ex();
     }
   }
 
