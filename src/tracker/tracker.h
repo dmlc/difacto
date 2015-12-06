@@ -47,13 +47,14 @@ class Tracker {
   }
 
   /**
-   * \brief block untill all jobs are finished
+   * \brief block untill the number of unfinished workers below a threadhold
    *
+   * \param num_remains the maximal number of unfinished workers
    */
-  void Wait() {
+  void Wait(int num_remains = 0) {
     std::unique_lock<std::mutex> lk(mu_);
-    fin_cond_.wait(lk, [this] {
-        return pending_.size() + running_.size() == 0;
+    fin_cond_.wait(lk, [this, num_remains] {
+        return pending_.size() + running_.size() <= num_remains;
       });
   }
   /**
@@ -87,6 +88,7 @@ class Tracker {
    * \brief set the async consumer function
    */
   void SetConsumer(const Consumer& consumer) {
+    LL << "asdf";
     consumer_ = consumer;
   }
 
@@ -103,7 +105,6 @@ class Tracker {
       }
       CHECK(consumer_);
       int id = running_.back().first;
-      LL << id;
       consumer_(running_.back().second, [this, id]() {
           Remove(id);
         });
@@ -111,10 +112,13 @@ class Tracker {
   }
 
   void Remove(int id) {
-    std::lock_guard<std::mutex> lk(mu_);
-    for (auto it = running_.begin(); it != running_.end(); ++it) {
-      if (it->first == id) { running_.erase(it); break; }
+    {
+      std::lock_guard<std::mutex> lk(mu_);
+      for (auto it = running_.begin(); it != running_.end(); ++it) {
+        if (it->first == id) { running_.erase(it); break; }
+      }
     }
+    fin_cond_.notify_one();
   }
 
   bool done_;

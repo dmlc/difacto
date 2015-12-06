@@ -117,14 +117,12 @@ class FMLoss : public Loss {
     }
 
     // auc, acc, logloss, copc
-    LL << prog;
     if (prog) {
       prog->objv()   = eval.LogitObjv();
       prog->auc()    = eval.AUC();
       prog->new_ex() = w.X.size;
       prog->count()  = 1;
       // prog.copc()   = eval.Copc();
-      LL << prog->new_ex();
     }
   }
 

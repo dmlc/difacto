@@ -85,6 +85,14 @@ bool BatchIter::Next() {
     }
     start_ += len;
   }
+
+  bool binary =  true;
+  for (auto f : batch_.value) if (f != 1) { binary = false; break; }
+  if (binary) batch_.value.clear();
+
+  out_blk_ = batch_.GetBlock();
+
+  return out_blk_.size > 0;
 }
 
 void BatchIter::Push(size_t pos, size_t len) {

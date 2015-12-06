@@ -118,17 +118,8 @@ struct BatchJob {
 };
 
 void DiFacto::ProcessFile(const Job& job) {
-  int batch_size = 100;
-  int shuffle = 0;
-  float neg_sampling = 1;
-  BatchIter reader(
-      job.filename, param_.data_format, job.part_idx, job.num_parts,
-      batch_size, shuffle, neg_sampling);
-
-  LL << "xx";
   Tracker<BatchJob> tracker;
   tracker.SetConsumer([this](const BatchJob& batch, const Callback& on_complete) {
-      LL << "yy";
       auto val = new std::vector<real_t>();
       auto val_siz = new std::vector<int>();
 
@@ -136,7 +127,6 @@ void DiFacto::ProcessFile(const Job& job) {
         // eval the objective,
         CHECK_NOTNULL(loss_)->InitData(batch.data->GetBlock(), *val, *val_siz);
         Progress recent;
-        LL << "xx";
         loss_->Evaluate(&recent);
         progress_.Merge(recent);
 
@@ -168,6 +158,12 @@ void DiFacto::ProcessFile(const Job& job) {
       store_->Pull(Store::kWeight, batch.feaids, val, val_siz, pull_callback);
     });
 
+  int batch_size = 100;
+  int shuffle = 0;
+  float neg_sampling = 1;
+  BatchIter reader(
+      job.filename, param_.data_format, job.part_idx, job.num_parts,
+      batch_size, shuffle, neg_sampling);
   while (reader.Next()) {
     // map feature id into continous index
     BatchJob batch;
@@ -188,14 +184,13 @@ void DiFacto::ProcessFile(const Job& job) {
       store_->Wait(store_->Push(Store::kFeaCount, batch.feaids, feacnt, empty));
     }
 
-    while (tracker.NumRemains() > 10) Sleep(10);
+    // while (tracker.NumRemains() > 10) Sleep(10);
 
     tracker.Add({batch});
   }
 
   tracker.Wait();
-  LL << tracker.NumRemains();
-  while (tracker.NumRemains() > 0) Sleep(10);
+  // while (tracker.NumRemains() > 0) Sleep(10);
 }
 
 }  // namespace difacto
