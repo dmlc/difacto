@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include "data/batch_iter.h"
 #include "./utils.h"
-#include "data/strtonum.h"
 
 using namespace difacto;
 int batch_size = 37;
