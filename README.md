@@ -1,5 +1,8 @@
 # DiFacto -- Distributed Factorization Machines
 
+Refacto from https://github.com/dmlc/wormhole/tree/master/learn/difacto
+
+Still under construction
 
 ## References
 

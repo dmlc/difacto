@@ -88,7 +88,6 @@ class Tracker {
    * \brief set the async consumer function
    */
   void SetConsumer(const Consumer& consumer) {
-    LL << "asdf";
     consumer_ = consumer;
   }
 

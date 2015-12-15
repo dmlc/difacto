@@ -40,13 +40,24 @@ KWArgs DiFacto::Init(const KWArgs& kwargs) {
 
   if (local_ && !remain.empty()) {
     LOG(WARNING) << "unrecognized keyword argument:";
-    for (auto kw : remain) LOG(WARNING) << "  " << kw.first << " : " << kw.second;
+    for (auto kw : remain) LOG(WARNING) << "  " << kw.first << " = " << kw.second;
   }
 
   // init callbacks
+  AddBeforeEpochCallback([this](){
+      LOG(INFO) << "epoch " << epoch() << ": "
+                << (job_type() == Job::kTraining ? "training" : "validation");
+      LOG(INFO) << pprinter_.Head();
+    });
+  AddContCallback([this]() {
+      if (job_type() == Job::kTraining) {
+        LOG(INFO) << pprinter_.Body(progress());
+      }
+    });
   AddEpochCallback([this](){
-      LOG(ERROR) << "epoch: " << epoch();
-      LL << pprinter_.Body(progress(), true);
+      if (job_type() == Job::kValidation) {
+        LOG(INFO) << pprinter_.Body(progress());
+      }
     });
   inited_ = true;
   return remain;
@@ -73,11 +84,12 @@ void DiFacto::RunScheduler() {
   for (; epoch_ < param_.max_num_epochs; ++ epoch_) {
     RunEpoch(epoch_, Job::kTraining);
     RunEpoch(epoch_, Job::kValidation);
-    for (auto& cb : epoch_callbacks_) cb();
   }
 }
 
 void DiFacto::RunEpoch(int epoch, int job_type) {
+  job_type_ = job_type;
+  for (auto& cb : before_epoch_callbacks_) cb();
   Job job;
   job.type = job_type;
   job.epoch = epoch;
@@ -96,10 +108,10 @@ void DiFacto::RunEpoch(int epoch, int job_type) {
     Sleep();
     for (auto& cb : cont_callbacks_) cb();
   }
+  for (auto& cb : epoch_callbacks_) cb();
 }
 
 void DiFacto::Process(const Job& job) {
-  LL << job.filename;
   if (job.type == Job::kSaveModel) {
     dmlc::Stream* fo;
     // CHECK_NOTNULL(learner_)->Save(fo);

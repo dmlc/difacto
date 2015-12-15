@@ -92,9 +92,16 @@ class DiFacto {
   /** \brief the callback function type */
   typedef std::function<void()> Callback;
 
+  /**
+   * \brief add a callback which will be evoked before running an epoch
+   * @param callback the callback
+   */
+  void AddBeforeEpochCallback(const Callback& callback) {
+    before_epoch_callbacks_.push_back(callback);
+  }
 
   /**
-   * \brief add a callback which will be evoked for every data pass
+   * \brief add a callback which will be evoked after an epoch is finished
    * @param callback the callback
    */
   void AddEpochCallback(const Callback& callback) {
@@ -131,14 +138,14 @@ class DiFacto {
   /**
    * \brief return the current progress
    */
-  const Progress& progress() const {
-    CHECK(inited_) << "run Init first";
-    return progress_;
-  }
+  const Progress& progress() const { return progress_; }
 
-  int epoch() const {
-    return epoch_;
-  }
+  /** \brief returns the current epoch */
+  int epoch() const { return epoch_; }
+
+  /** \brief returns the current job type */
+  int job_type() const { return job_type_; }
+
  private:
   /**
    * \brief schedule the jobs
@@ -178,6 +185,8 @@ class DiFacto {
   std::vector<Callback> cont_callbacks_;
   /** \brief callbacks for every epoch*/
   std::vector<Callback> epoch_callbacks_;
+  /** \brief callbacks for before every epoch*/
+  std::vector<Callback> before_epoch_callbacks_;
   /** \brief the model store*/
   Store* store_;
   /** \brief the loss*/
@@ -188,6 +197,7 @@ class DiFacto {
   double worktime_;
 
   int epoch_;
+  int job_type_;
   // dmlc::Stream pred_out_;
 };
 

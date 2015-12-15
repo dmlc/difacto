@@ -57,21 +57,16 @@ class ProgressPrinter {
  public:
   /**
    * \brief return a readable header string
-   * \parram show_V whether or not show V
    */
-  std::string Head(bool show_V) {
-    if (show_V) {
-      return "  ttl #ex   inc #ex |  |w|_0  logloss_w |   |V|_0    logloss    AUC";
-    } else {
-      return "  ttl #ex   inc #ex |  |w|_0  logloss    logloss    AUC";
-    }
+  std::string Head() const {
+    return "  ttl #ex   inc #ex |  |w|_0  logloss_w |   |V|_0    logloss    AUC";
   }
 
   /**
    * \brief return a readable string
    * \param show_V whether or not show V
    */
-  std::string Body(const Progress& cur, bool show_V) {
+  std::string Body(const Progress& cur) {
     if (cur.new_ex() == prev_.new_ex()) return "";
     char buf[256];
 
@@ -79,18 +74,11 @@ class ProgressPrinter {
     for (size_t i = 0; i < cur.data.size(); ++i) {
       diff.data[i] = cur.data[i] - prev_.data[i];
     }
-    if (show_V) {
-      snprintf(buf, 256, "%9.4g  %7.2g | %9.4g  %6.4f | %9.4g  %7.5f  %7.5f ",
-               cur.new_ex(), diff.new_ex(),
-               cur.new_w(), diff.objv_w() / diff.new_ex(),
-               cur.new_V(), diff.objv() / diff.new_ex(),
-               diff.auc() / diff.count());
-    } else {
-      snprintf(buf, 256, "%9.4g  %7.2g | %9.4g  %6.4f | %9.4g  %7.5f  %7.5f ",
-               cur.new_ex(), diff.new_ex(),
-               cur.new_w(), diff.objv() / diff.new_ex(),
-               diff.auc() / diff.count());
-    }
+    snprintf(buf, 256, "%9.4g  %7.2g | %9.4g  %6.4f | %9.4g  %7.5f  %7.5f ",
+             cur.new_ex(), diff.new_ex(),
+             cur.new_w(), diff.objv_w() / diff.new_ex(),
+             cur.new_V(), diff.objv() / diff.new_ex(),
+             diff.auc() / diff.count());
     prev_.data = cur.data;
     return std::string(buf);
   }
