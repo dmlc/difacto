@@ -16,7 +16,7 @@ BatchIter::BatchIter(
   start_        = 0;
   end_          = 0;
   if (shuf_buf_) {
-    CHECK_GT(shuf_buf_, batch_size_);
+    CHECK_GE(shuf_buf_, batch_size_);
     buf_reader_ = new BatchIter(
         uri, format, part_index, num_parts, shuf_buf_);
     parser_ = NULL;

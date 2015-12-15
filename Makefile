@@ -15,7 +15,7 @@ common/localizer.o data/batch_iter.o )
 
 DMLC_DEPS = dmlc-core/libdmlc.a
 
-all: build/difacto
+all: build/difacto cpp-test
 
 clean:
 	rm -rf build
@@ -30,14 +30,17 @@ build/%.o: src/%.cc
 	$(CXX) $(INCPATH) -std=c++0x -MM -MT build/$*.o $< >build/$*.d
 	$(CXX) $(CFLAGS) -c $< -o $@
 
-build/difacto.a: $(OBJS)
+build/libdifacto.a: $(OBJS)
 	ar crv $@ $(filter %.o, $?)
 
-build/difacto: build/main.o build/difacto.a $(DMLC_DEPS)
+build/difacto: build/main.o build/libdifacto.a $(DMLC_DEPS)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 dmlc-core/libdmlc.a:
 	$(MAKE) -C dmlc-core libdmlc.a DEPS_PATH=$(DEPS_PATH) CXX=$(CXX)
+
+include tests/cpp/test.mk
+cpp-test: $(CPPTEST)
 
 -include build/*.d
 -include build/*/*.d
