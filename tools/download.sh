@@ -25,4 +25,28 @@ elif [ $1 == "ctrb" ]; then
         fi
         tar -zxvf ctrb.tar.gz
     fi
+elif [ $1 == "epsilon" ]; then
+    if [ ! -e epsilon_normalized.bz2 ]; then
+        wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/epsilon_normalized.bz2
+    fi
+
+    if [ ! -e epsilon_normalized.t.bz2 ]; then
+        wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/epsilon_normalized.t.bz2
+    fi
+elif [ $1 == "gisette" ]; then
+    if [ ! -e gisette_scale ]; then
+        if [ ! -e gisette_scale.bz2 ]; then
+            wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/gisette_scale.bz2
+        fi
+        bzip2 -d gisette_scale.bz2
+    fi
+
+    if [ ! -e gisette_scale.t ]; then
+        if [ ! -e gisette_scale.t.bz2 ]; then
+            wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/gisette_scale.t.bz2
+        fi
+        bzip2 -d gisette_scale.t.bz2
+    fi
+else
+    echo "unknown dataset name : $1"
 fi

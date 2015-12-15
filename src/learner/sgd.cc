@@ -112,8 +112,8 @@ KWArgs SGDLearner::Init(const KWArgs& kwargs) {
 
 
 void SGDLearner::Get(const std::vector<feaid_t>& fea_ids,
-                       std::vector<real_t>* weights,
-                       std::vector<int>* weight_lens) {
+                     std::vector<real_t>* weights,
+                     std::vector<int>* weight_lens) {
   int V_dim = param_.V_dim;
   size_t size = fea_ids.size();
   weights->resize(size * (1 + V_dim));

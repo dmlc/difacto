@@ -29,11 +29,11 @@ struct Progress {
   real_t& auc() { return data[1]; }
   real_t auc() const { return data[1]; }
 
+  real_t& acc() { return data[3]; }
+  real_t acc() const { return data[3]; }
+
   real_t& objv_w() { return data[2]; }
   real_t objv_w() const { return data[2]; }
-
-  real_t& copc() { return data[3]; }
-  real_t copc() const { return data[3]; }
 
   real_t& count() { return data[4]; }
   real_t count() const { return data[4]; }
@@ -59,7 +59,7 @@ class ProgressPrinter {
    * \brief return a readable header string
    */
   std::string Head() const {
-    return "  ttl #ex   inc #ex |  |w|_0  logloss_w |   |V|_0    logloss    AUC";
+    return " ttl #ex   inc #ex |  |w|_0  logloss_w |   |V|_0    logloss    ACC AUC";
   }
 
   /**
@@ -74,10 +74,13 @@ class ProgressPrinter {
     for (size_t i = 0; i < cur.data.size(); ++i) {
       diff.data[i] = cur.data[i] - prev_.data[i];
     }
-    snprintf(buf, 256, "%9.4g  %7.2g | %9.4g  %6.4f | %9.4g  %7.5f  %7.5f ",
+    snprintf(buf, 256, "%9.4g  %7.2g | %9.4g  %6.4f | %9.4g  %7.5f  %7.5f  %7.5f",
              cur.new_ex(), diff.new_ex(),
-             cur.new_w(), diff.objv_w() / diff.new_ex(),
-             cur.new_V(), diff.objv() / diff.new_ex(),
+             cur.new_w(),
+             diff.objv_w() / diff.new_ex(),
+             cur.new_V(),
+             diff.objv() / diff.new_ex(),
+             diff.acc() / diff.count(),
              diff.auc() / diff.count());
     prev_.data = cur.data;
     return std::string(buf);

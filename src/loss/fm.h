@@ -122,7 +122,7 @@ class FMLoss : public Loss {
       prog->auc()    = eval.AUC();
       prog->new_ex() = w.X.size;
       prog->count()  = 1;
-      // prog.copc()   = eval.Copc();
+      prog->acc()    = eval.Accuracy(.5);
     }
   }
 

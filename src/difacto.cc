@@ -196,7 +196,7 @@ void DiFacto::ProcessFile(const Job& job) {
       store_->Wait(store_->Push(Store::kFeaCount, batch.feaids, feacnt, empty));
     }
 
-    // while (tracker.NumRemains() > 10) Sleep(10);
+    while (tracker.NumRemains() > 1) Sleep(10);
 
     tracker.Add({batch});
   }
