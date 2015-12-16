@@ -1,4 +1,4 @@
-# DiFacto -- Distributed Factorization Machines
+# <img src=https://raw.githubusercontent.com/dmlc/dmlc.github.io/master/img/logo-m/difacto.png width=135/> for Distributed Factorization Machines
 
 Refacto from https://github.com/dmlc/wormhole/tree/master/learn/difacto
 
