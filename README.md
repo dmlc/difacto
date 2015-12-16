@@ -14,8 +14,10 @@ Fast and memory efficient library for factorization machines (FM).
 
 Building requires a C++ compiler supporting C++11, e.g. `gcc >= 4.8`.
 
-1. Build difacto (with 8 threads) via `make -j8`
+1. Build difacto from source (with 8 threads) by `make -j8`
+
 2. Download a sample dataset `./tools/download.sh gisette data/`
+
 3. Run FM with 2-dimension
 
    ```bash

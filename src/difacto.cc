@@ -14,39 +14,42 @@ DMLC_REGISTER_PARAMETER(DiFactoParam);
 DiFacto::DiFacto() {
   inited_= false;
   store_ = nullptr;
+  pmonitor_ = nullptr;
 }
 
 DiFacto::~DiFacto() {
   delete store_;
+  delete pmonitor_;
 }
 
 KWArgs DiFacto::Init(const KWArgs& kwargs) {
   auto remain = param_.InitAllowUnknown(kwargs);
-  local_ = param_.task.find("dist_") == std::string::npos;
 
   // init job tracker
-  tracker_ = JobTracker::Create(local_ ? "local" : "dist");
+  tracker_ = JobTracker::Create();
   remain = tracker_->Init(remain);
   using namespace std::placeholders;
   tracker_->SetConsumer(std::bind(&DiFacto::Process, this, _1));
 
   // init store
-  store_ = Store::Create(local_ ? "local" : "dist");
+  store_ = Store::Create();
   remain = store_->Init(remain);
+
 
   // init loss
   loss_ = Loss::Create(param_.loss);
   remain = loss_->Init(remain);
 
-  if (local_ && !remain.empty()) {
+  if (!remain.empty()) {
     LOG(WARNING) << "unrecognized keyword argument:";
     for (auto kw : remain) LOG(WARNING) << "  " << kw.first << " = " << kw.second;
   }
 
   // init callbacks
   AddBeforeEpochCallback([this](){
-      LOG(INFO) << "epoch " << epoch() << ": "
-                << (job_type() == Job::kTraining ? "training" : "validation");
+      LOG(INFO) << " -- epoch " << epoch() << ": "
+                << (job_type() == Job::kTraining ? "training" : "validation")
+                << " -- ";
       LOG(INFO) << pprinter_.Head();
     });
   AddContCallback([this]() {
@@ -64,6 +67,9 @@ KWArgs DiFacto::Init(const KWArgs& kwargs) {
 }
 
 void DiFacto::RunScheduler() {
+  // init progress monitor
+  pmonitor_ = ProgressMonitor::Create();
+
   epoch_ = 0;
   // load learner
   if (param_.model_in.size()) {
@@ -138,9 +144,11 @@ void DiFacto::ProcessFile(const Job& job) {
       auto pull_callback = [this, batch, val, val_siz, on_complete]() {
         // eval the objective,
         CHECK_NOTNULL(loss_)->InitData(batch.data->GetBlock(), *val, *val_siz);
-        Progress recent;
-        loss_->Evaluate(&recent);
-        progress_.Merge(recent);
+        Progress prog; loss_->Evaluate(&prog);
+        if (pmonitor_ == nullptr) {
+          pmonitor_ = ProgressMonitor::Create();
+        }
+        pmonitor_->Add(prog);
 
         if (batch.type == Job::kTraining) {
           // calculate the gradients

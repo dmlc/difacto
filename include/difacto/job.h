@@ -98,9 +98,8 @@ class JobTracker {
 
   /**
    * \brief factory function
-   * \param type can be "local" or "dist"
    */
-  static JobTracker* Create(const std::string& type);
+  static JobTracker* Create();
 };
 
 

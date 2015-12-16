@@ -9,6 +9,7 @@
 #include <vector>
 #include <limits>
 #include "difacto/learner.h"
+#include "difacto/progress.h"
 #include "dmlc/parameter.h"
 #include "dmlc/io.h"
 namespace difacto {
@@ -131,8 +132,12 @@ class SGDModel {
  */
 class SGDLearner : public Learner {
  public:
-  SGDLearner() : new_w_(0), has_aux_(true) { }
-  virtual ~SGDLearner() { }
+  SGDLearner() : new_w_(0), new_V_(0), has_aux_(true) {
+    ppmonitor_ = ProgressMonitor::Create();
+  }
+  virtual ~SGDLearner() {
+    delete ppmonitor_;
+  }
 
   KWArgs Init(const KWArgs& kwargs) override;
 
@@ -171,7 +176,9 @@ class SGDLearner : public Learner {
   SGDModel model_;
   SGDLearnerParam param_;
 
+  ProgressMonitor* ppmonitor_;
   int64_t new_w_;
+  int64_t new_V_;
   bool has_aux_;
 };
 

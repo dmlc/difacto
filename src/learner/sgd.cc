@@ -165,6 +165,10 @@ void SGDLearner::Update(const std::vector<feaid_t>& fea_ids,
     }
   }
   CHECK_EQ((size_t)p, grads.size());
+  Progress prog;
+  prog.new_w() = new_w_;
+  prog.new_V() = new_V_;
+  ppmonitor_->Add(prog);
 }
 
 
@@ -214,6 +218,7 @@ void SGDLearner::InitV(SGDEntry* e) {
     e->V[i] = (rand_r(&param_.seed) / (real_t)RAND_MAX - 0.5) * param_.V_init_scale;
   }
   memset(e->V+n, 0, n*sizeof(real_t));
+  new_V_ += n;
 }
 
 }  // namespace difacto

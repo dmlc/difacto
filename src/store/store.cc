@@ -4,13 +4,13 @@ namespace difacto {
 
 DMLC_REGISTER_PARAMETER(StoreLocalParam);
 
-Store* Store::Create(const std::string& type) {
-  if (type == "local") {
-    return new StoreLocal();
+Store* Store::Create() {
+  if (IsDistributed()) {
+    LOG(FATAL) << "not implemented";
+    return nullptr;
   } else {
-    LOG(FATAL) << "unknown store type " << type;
+    return new StoreLocal();
   }
-  return nullptr;
 }
 
 }  // namespace difacto

@@ -11,18 +11,7 @@ struct Progress {
  public:
   Progress() : data(8) { }
 
-  /**
-   * \brief merge from another progress
-   */
-  void Merge(const Progress& other) {
-    for (size_t i = 0; i < data.size(); ++i) {
-      data[i] += other.data[i];
-    }
-  }
-
-  /**
-   * \brief accessors & mutators
-   */
+  /** \brief accessors & mutators */
   real_t& objv() { return data[0]; }
   real_t objv() const { return data[0]; }
 
@@ -48,47 +37,65 @@ struct Progress {
   real_t new_V() const { return data[7]; }
 
   /**
+   * \brief merge from another progress
+   */
+  void Merge(const Progress& other) {
+    for (size_t i = 0; i < data.size(); ++i) {
+      data[i] += other.data[i];
+    }
+  }
+
+  /**
    * \brief the actual data
    */
   std::vector<real_t> data;
 };
 
+/**
+ * \brief returns a readable string for the progress
+ */
 class ProgressPrinter {
  public:
   /**
    * \brief return a readable header string
    */
   std::string Head() const {
-    return " ttl #ex   inc #ex |  |w|_0  logloss_w |   |V|_0    logloss    ACC AUC";
+    return " #ex new     |w|_0    |V|_0 logloss_w logloss accuracy AUC";
   }
 
   /**
    * \brief return a readable string
    * \param show_V whether or not show V
    */
-  std::string Body(const Progress& cur) {
-    if (cur.new_ex() == prev_.new_ex()) return "";
-    char buf[256];
+  std::string Body(const Progress& cur);
 
-    Progress diff;
-    for (size_t i = 0; i < cur.data.size(); ++i) {
-      diff.data[i] = cur.data[i] - prev_.data[i];
-    }
-    snprintf(buf, 256, "%9.4g  %7.2g | %9.4g  %6.4f | %9.4g  %7.5f  %7.5f  %7.5f",
-             cur.new_ex(), diff.new_ex(),
-             cur.new_w(),
-             diff.objv_w() / diff.new_ex(),
-             cur.new_V(),
-             diff.objv() / diff.new_ex(),
-             diff.acc() / diff.count(),
-             diff.auc() / diff.count());
-    prev_.data = cur.data;
-    return std::string(buf);
-  }
  private:
   Progress prev_;
 };
 
+/**
+ * \brief collects progress from all nodes. This class is thread safe.
+ */
+class ProgressMonitor {
+ public:
+  virtual ~ProgressMonitor() { }
+
+  /**
+   * \brief add progress to the monitor
+   */
+  virtual void Add(const Progress& prog) = 0;
+
+  /**
+   * \brief get the progress from the monitor
+   *
+   */
+  virtual void Get(Progress* prog) = 0;
+
+  /**
+   * \brief the factory function
+   */
+  static ProgressMonitor* Create();
+};
 
 }  // namespace difacto
 #endif /* DIFACTO_PROGRESS_H_ */

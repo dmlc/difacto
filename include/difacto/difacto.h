@@ -60,6 +60,8 @@ struct DiFactoParam : public dmlc::Parameter<DiFactoParam> {
   int max_num_epochs;
   /** \brief  */
   int num_threads;
+  /** \brief filename for kwargs */
+  std::string argfile;
 
   DMLC_DECLARE_PARAMETER(DiFactoParam) {
     DMLC_DECLARE_FIELD(task).set_default("train");
@@ -72,6 +74,7 @@ struct DiFactoParam : public dmlc::Parameter<DiFactoParam> {
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
     DMLC_DECLARE_FIELD(num_threads).set_default(2);
+    DMLC_DECLARE_FIELD(argfile).set_default("");
   }
 };
 
@@ -121,7 +124,7 @@ class DiFacto {
    */
   void Run() {
     CHECK(inited_) << "run Init first";
-    if (local_ || !strcmp(getenv("DMLC_ROLE"), "scheduler")) {
+    if (!IsDistributed() || !strcmp(getenv("DMLC_ROLE"), "scheduler")) {
       RunScheduler();
     } else {
       tracker_->Wait();
@@ -138,7 +141,10 @@ class DiFacto {
   /**
    * \brief return the current progress
    */
-  const Progress& progress() const { return progress_; }
+  const Progress& progress() {
+    pmonitor_->Get(&progress_);;
+    return progress_;
+  }
 
   /** \brief returns the current epoch */
   int epoch() const { return epoch_; }
@@ -178,8 +184,6 @@ class DiFacto {
   bool inited_;
   /** \brief the job tracker */
   JobTracker* tracker_;
-  /** \brief whether of not on a single machine */
-  bool local_;
 
   /** \brief callbacks for every second*/
   std::vector<Callback> cont_callbacks_;
@@ -191,8 +195,9 @@ class DiFacto {
   Store* store_;
   /** \brief the loss*/
   Loss* loss_;
-  /** \brief current progress*/
+  /** \brief the current progress */
   Progress progress_;
+  ProgressMonitor* pmonitor_;
   ProgressPrinter pprinter_;
   double worktime_;
 

@@ -4,13 +4,13 @@ namespace difacto {
 
 DMLC_REGISTER_PARAMETER(Job);
 
-JobTracker* JobTracker::Create(const std::string& type) {
-  if (type == "local") {
-    return new JobTrackerLocal();
+JobTracker* JobTracker::Create() {
+  if (IsDistributed()) {
+    LOG(FATAL) << "not implemented";
+    return nullptr;
   } else {
-    LOG(FATAL) << "unknown job tracker type " << type;
+    return new JobTrackerLocal();
   }
-  return NULL;
 }
 
 }  // namespace difacto

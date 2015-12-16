@@ -3,6 +3,7 @@
  */
 #ifndef DIFACTO_BASE_H_
 #define DIFACTO_BASE_H_
+#include <stdlib.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,6 +38,13 @@ inline feaid_t ReverseBytes(feaid_t x) {
   x = (x & 0x0F0F0F0F0F0F0F0FULL) << 4 |
       (x & 0xF0F0F0F0F0F0F0F0ULL) >> 4;
   return x;
+}
+
+/**
+ * \brief returns true if it is currently under distributed running
+ */
+inline bool IsDistributed() {
+  return getenv("DMLC_ROLE") != nullptr;
 }
 
 /**

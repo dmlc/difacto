@@ -89,9 +89,10 @@ class FMLoss : public Loss {
 
     // py = X * w
     SpMV::Times(w.X, w.weight, &py_, nt);
+    if (prog) prog->objv_w() = eval.LogitObjv();
+
     // py += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
-    if (!V.weight.empty()) {
-      if (prog) prog->objv_w() = eval.LogitObjv();
+    if (V.weight.size()) {
 
       // tmp = (X.*X)*(V.*V)
       std::vector<real_t> vv = V.weight;
@@ -117,7 +118,11 @@ class FMLoss : public Loss {
 
     // auc, acc, logloss, copc
     if (prog) {
-      prog->objv()   = eval.LogitObjv();
+      if (V.weight.size()) {
+        prog->objv() = eval.LogitObjv();
+      } else {
+        prog->objv() = prog->objv_w();
+      }
       prog->auc()    = eval.AUC();
       prog->new_ex() = w.X.size;
       prog->count()  = 1;

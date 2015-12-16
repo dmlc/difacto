@@ -1,10 +1,9 @@
 # Examples
 
+This fold contains example configurations, which can be passed by
+`argfile=`. For example,
 
-download dataset
-
+```bash
 ../tools/download.sh ctra data
-
-run:
-
-../build/difacto ctra.conf
+../build/difacto argfile=ctra.conf
+```
