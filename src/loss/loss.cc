@@ -1,5 +1,5 @@
 #include "difacto/loss.h"
-#include "./fm.h"
+#include "./fm_loss.h"
 namespace difacto {
 
 DMLC_REGISTER_PARAMETER(FMParam);

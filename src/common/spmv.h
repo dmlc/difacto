@@ -48,8 +48,9 @@ class SpMV {
         if (D.offset[i] == D.offset[i+1]) continue;
         V y_i = 0;
         if (D.value) {
-          for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j)
+          for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j) {
             y_i += x[D.index[j]] * D.value[j];
+          }
         } else {
           for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j)
             y_i += x[D.index[j]];

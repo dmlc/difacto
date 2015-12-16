@@ -2,7 +2,7 @@
 #include "./utils.h"
 #include "data/batch_iter.h"
 #include "difacto/base.h"
-#include <common/localizer.h>
+#include "common/localizer.h"
 
 using namespace difacto;
 
@@ -48,4 +48,13 @@ TEST(Localizer, BaseHash) {
             norm1(batch.offset, size+1));
   EXPECT_EQ(norm2(iter.Value().value, batch.offset[size]),
             norm2(batch.value, batch.offset[size]));
+}
+
+TEST(Localizer, ReverseBytes) {
+  feaid_t max = -1;
+  int n = 1000000;
+  for (int i = 0; i < n; ++i) {
+    feaid_t j = (max / n) * i;
+    EXPECT_EQ(j, ReverseBytes(ReverseBytes(j)));
+  }
 }

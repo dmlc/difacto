@@ -85,14 +85,12 @@ void Localizer::RemapIndex(
 
   size_t k = 0;
   for (size_t i = 0; i < blk.size; ++i) {
-    size_t n = 0;
     for (size_t j = blk.offset[i]; j < blk.offset[i+1]; ++j) {
       if (remapped_idx[j] == 0) continue;
-      ++n;
       if (blk.value) o->value[k] = blk.value[j];
       o->index[k++] = remapped_idx[j] - 1;
     }
-    o->offset[i+1] = o->offset[i] + n;
+    o->offset[i+1] = k;
   }
   CHECK_EQ(k, matched);
 
