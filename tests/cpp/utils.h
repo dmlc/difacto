@@ -34,23 +34,6 @@ double norm2(T const* data, int len) {
   return norm;
 }
 
-/**
- * \brief return a debug string of a vector
- */
-template <typename V>
-inline std::string DebugStr(const V* data, int n, int m = 5) {
-  std::stringstream ss;
-  ss << "[" << n << "]: ";
-  if (n <= 2 * m) {
-    for (int i = 0; i < n; ++i) ss << data[i] << " ";
-  } else {
-    for (int i = 0; i < m; ++i) ss << data[i] << " ";
-    ss << "... ";
-    for (int i = n-m; i < n; ++i) ss << data[i] << " ";
-  }
-  return ss.str();
-}
-
 }  // namespace difacto
 
 #endif  // DIFACTO_TEST_CPP_UTILS_H_

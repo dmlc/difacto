@@ -44,5 +44,30 @@ inline feaid_t ReverseBytes(feaid_t x) {
  */
 #define LL LOG(ERROR)
 
+/**
+ * \brief return a debug string of a vector
+ */
+template <typename V>
+inline std::string DebugStr(const V* data, int n, int m = 5) {
+  std::stringstream ss;
+  ss << "[" << n << "]: ";
+  if (n <= 2 * m) {
+    for (int i = 0; i < n; ++i) ss << data[i] << " ";
+  } else {
+    for (int i = 0; i < m; ++i) ss << data[i] << " ";
+    ss << "... ";
+    for (int i = n-m; i < n; ++i) ss << data[i] << " ";
+  }
+  return ss.str();
+}
+
+/**
+ * \brief return a debug string of a vector
+ */
+template <typename V>
+inline std::string DebugStr(const std::vector<V>& vec) {
+  return DebugStr(vec.data(), vec.size());
+}
+
 }  // namespace difacto
 #endif  // DIFACTO_BASE_H_

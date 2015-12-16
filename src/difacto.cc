@@ -187,10 +187,12 @@ void DiFacto::ProcessFile(const Job& job) {
     bool push_cnt =
         job.type == Job::kTraining && job.epoch == 0;
 
-    Localizer lc(param_.num_threads);
+    Localizer lc(-1, param_.num_threads);
     lc.Compact(reader.Value(), batch.data, batch.feaids.get(),
                push_cnt ? feacnt.get() : nullptr);
 
+    // LL << batch.data->GetBlock().size;
+    // LL << batch.feaids->size();
     if (push_cnt) {
       auto empty = std::make_shared<std::vector<int>>();
       store_->Wait(store_->Push(Store::kFeaCount, batch.feaids, feacnt, empty));

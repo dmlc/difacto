@@ -130,6 +130,7 @@ void SGDLearner::Get(const std::vector<feaid_t>& fea_ids,
       weight_lens->at(i) = (e.V ? V_dim : 0) + 1;
     }
   }
+  weights->resize(p);
 }
 
 void SGDLearner::AddCount(const std::vector<feaid_t>& fea_ids,
@@ -156,12 +157,14 @@ void SGDLearner::Update(const std::vector<feaid_t>& fea_ids,
   int p = 0;
   for (size_t i = 0; i < size; ++i) {
     auto& e = model_[fea_ids[i]];
+    auto old_w = e.w;
     UpdateW(grads[p++], &e);
     if (!w_only && grad_lens[i] > 1) {
       CHECK_EQ(grad_lens[i], param_.V_dim);
       UpdateV(grads.data() + p, &e);
       p += param_.V_dim;
     }
+    // LL << ReverseBytes(fea_ids[i]) << " " << old_w << " " << model_[fea_ids[i]].w;
   }
   CHECK_EQ((size_t)p, grads.size());
 }
