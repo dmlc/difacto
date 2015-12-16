@@ -24,12 +24,15 @@ class ArgParser {
   KWArgs GetKWArgs() {
     std::stringstream ss(data_);
     dmlc::Config* conf = new dmlc::Config(ss);
-    std::string argfile = conf->GetParam("argfile");
-    if (argfile.size()) {
-      AddArgFile(argfile.c_str());
-      delete conf;
-      std::stringstream ss(data_);
-      conf = new dmlc::Config(ss);
+
+    for (auto it : *conf) {
+      if (it.first == "argfile") {
+        AddArgFile(it.second.c_str());
+        delete conf;
+        std::stringstream ss(data_);
+        conf = new dmlc::Config(ss);
+        break;
+      }
     }
     KWArgs kwargs;
     for (auto it : *conf) {

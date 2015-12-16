@@ -2,12 +2,36 @@
 
 [![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)
 
-Fast and memory efficient library for factorization machines.
+Fast and memory efficient library for factorization machines (FM).
 
 - Supports both ℓ1 regularized logistic regression and factorization
   machines.
 - Runs on local machine and distributed clusters.
 - Scales to datasets with billions examples and features.
+
+
+### Quick Start
+Build and Run
+
+Building requires a C++ compiler supporting C++11, e.g. `gcc >= 4.8`.
+
+1. Build difacto (with 8 threads)
+
+   ```bash
+   make -j8
+   ```
+
+2. Download a sample dataset
+
+   ```bash
+   ./tools/download.sh gisette data/
+   ```
+3. Run FM with 2-dimension
+
+   ```bash
+   build/difacto data_in=data/gisette_scale val_data=data/gisette_scale.t \
+   lr=.02 V_dim=2 V_lr=.001
+   ```
 
 ### History
 
