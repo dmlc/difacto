@@ -11,24 +11,16 @@ Fast and memory efficient library for factorization machines (FM).
 
 ### Quick Start
 
+The following commands clone and build difacto, then download a sample dataset,
+and train FM with 2-dimension on it.
 
-1. Clone this project
-
-   ```bash
-   git clone --recursive https://github.com/dmlc/difacto
-   ```
-
-2. Build difacto from source (with 8 threads) by `make -j8`. Note that a C++
-   compiler supporting C++11, e.g. `gcc >= 4.8`, is required.
-
-3. Download a sample dataset `./tools/download.sh gisette data/`
-
-4. Run FM with 2-dimension
-
-   ```bash
-   build/difacto data_in=data/gisette_scale val_data=data/gisette_scale.t \
-   lr=.02 V_dim=2 V_lr=.001
-   ```
+```bash
+git clone --recursive https://github.com/dmlc/difacto
+make -j8
+./tools/download.sh gisette data/
+build/difacto data_in=data/gisette_scale val_data=data/gisette_scale.t \
+lr=.02 V_dim=2 V_lr=.001
+```
 
 ### History
 
