@@ -9,16 +9,21 @@ Fast and memory efficient library for factorization machines (FM).
 - Runs on local machine and distributed clusters.
 - Scales to datasets with billions examples and features.
 
-
 ### Quick Start
 
-Building requires a C++ compiler supporting C++11, e.g. `gcc >= 4.8`.
 
-1. Build difacto from source (with 8 threads) by `make -j8`
+1. Clone this project
 
-2. Download a sample dataset `./tools/download.sh gisette data/`
+   ```bash
+   git clone --recursive https://github.com/dmlc/difacto
+   ```
 
-3. Run FM with 2-dimension
+2. Build difacto from source (with 8 threads) by `make -j8`. Note that a C++
+   compiler supporting C++11, e.g. `gcc >= 4.8`, is required.
+
+3. Download a sample dataset `./tools/download.sh gisette data/`
+
+4. Run FM with 2-dimension
 
    ```bash
    build/difacto data_in=data/gisette_scale val_data=data/gisette_scale.t \
@@ -28,8 +33,10 @@ Building requires a C++ compiler supporting C++11, e.g. `gcc >= 4.8`.
 ### History
 
 Origins from
-[wormhole/learn/difacto](https://github.com/dmlc/wormhole/tree/master/learn/difacto). But
-this repository is still under developing.
+[wormhole/learn/difacto](https://github.com/dmlc/wormhole/tree/master/learn/difacto).
+
+(NOTE: this project is still under developing, we hope to make the first release
+at the end of 2015.)
 
 ### References
 
