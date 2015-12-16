@@ -292,3 +292,13 @@ breathe_projects = {
 breathe_default_project = "difacto"
 
 extensions = [ "breathe" ]
+
+def generate_doxygen_xml(app):
+    """Run the doxygen make commands if we're on the ReadTheDocs server"""
+    read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+    if read_the_docs_build:
+        subprocess.call("doxygen", shell=True)
+
+def setup(app):
+    # Add hook for building doxygen xml when needed
+    app.connect("builder-inited", generate_doxygen_xml)
