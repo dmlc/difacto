@@ -47,7 +47,7 @@ class Loss {
 
   /*!
    * \brief compute the gradients
-   * \param grad the output gradients, often should have the same size as \ref model
+   * \param grad the output gradients. grad could be empty.
    */
   virtual void CalcGrad(std::vector<real_t>* grad) = 0;
 

@@ -4,17 +4,13 @@
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    LOG(ERROR) << "usage: difacto arg_file [args]";
-    LOG(ERROR) << " arg_file: use 'none' if no arg_file";
+    LOG(ERROR) << "usage: difacto key1=val1 key2=val2 ...";
     return 0;
   }
 
   using namespace difacto;
   ArgParser parser;
-  if (strcmp(argv[1], "none")) {
-    parser.AddArgFile(argv[1]);
-  }
-  for (int i = 2; i < argc; ++i) {
+  for (int i = 1; i < argc; ++i) {
     parser.AddArg(argv[i]);
   }
 

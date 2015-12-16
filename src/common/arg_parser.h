@@ -12,6 +12,35 @@ class ArgParser {
   ~ArgParser() { }
 
   /**
+   * \brief add an arg
+   */
+  void AddArg(const char* argv) {
+    data_.append(argv); data_.append(" ");
+  }
+
+  /**
+   * \brief return parsed kwargs
+   */
+  KWArgs GetKWArgs() {
+    std::stringstream ss(data_);
+    dmlc::Config* conf = new dmlc::Config(ss);
+    std::string argfile = conf->GetParam("argfile");
+    if (argfile.size()) {
+      AddArgFile(argfile.c_str());
+      delete conf;
+      std::stringstream ss(data_);
+      conf = new dmlc::Config(ss);
+    }
+    KWArgs kwargs;
+    for (auto it : *conf) {
+      kwargs.push_back(it);
+    }
+    delete conf;
+    return kwargs;
+  }
+
+ private:
+  /**
    * \brief read all args in a file
    */
   void AddArgFile(const char* const filename) {
@@ -24,27 +53,6 @@ class ArgParser {
       if (!r) break;
     }
   }
-  /**
-   * \brief add an arg
-   */
-  void AddArg(const char* argv) {
-    data_.append(argv); data_.append(" ");
-  }
-
-  /**
-   * \brief return parsed kwargs
-   */
-  KWArgs GetKWArgs() {
-    std::stringstream ss(data_);
-    dmlc::Config conf(ss);
-    KWArgs kwargs;
-    for (auto it : conf) {
-      kwargs.push_back(it);
-    }
-    return kwargs;
-  }
-
- private:
   std::string data_;
 };
 }  // namespace difacto

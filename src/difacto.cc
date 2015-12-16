@@ -191,8 +191,6 @@ void DiFacto::ProcessFile(const Job& job) {
     lc.Compact(reader.Value(), batch.data, batch.feaids.get(),
                push_cnt ? feacnt.get() : nullptr);
 
-    // LL << batch.data->GetBlock().size;
-    // LL << batch.feaids->size();
     if (push_cnt) {
       auto empty = std::make_shared<std::vector<int>>();
       store_->Wait(store_->Push(Store::kFeaCount, batch.feaids, feacnt, empty));

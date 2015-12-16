@@ -194,8 +194,8 @@ class FMLoss : public Loss {
         norm = sqrt(norm);
         for (real_t& g : V.weight) g = g / norm;
       }
+      V.Save(grad);
     }
-    V.Save(grad);
   }
 
   void Predict(std::vector<real_t>* pred) override {
@@ -230,8 +230,15 @@ class FMLoss : public Loss {
       if (pos.empty()) {
         *CHECK_NOTNULL(grad) = weight;
       } else {
+        for (int i = static_cast<int>(pos.size()); i > 0; --i) {
+          if (pos[i-1] != static_cast<unsigned>(-1)) {
+            size_t n = pos[i-1]+1;
+            if (grad->size() < n) grad->resize(n);
+            break;
+          }
+        }
         for (size_t i = 0; i < pos.size(); ++i) {
-          if (pos[i] == (unsigned)-1) continue;
+          if (pos[i] == static_cast<unsigned>(-1)) continue;
           grad->at(pos[i]) = weight[i];
         }
       }
@@ -249,12 +256,14 @@ class FMLoss : public Loss {
               const dmlc::RowBlock<unsigned>& data,
               const std::vector<real_t>& model,
               const std::vector<int>& model_siz) {
+      Clear();
       dim = d;
       if (dim == 0) return;
       std::vector<unsigned> col_map(model_siz.size());
       unsigned k = 0, p = 0;
       for (size_t i = 0; i < model_siz.size(); ++i) {
-        if (model_siz[i] == dim + 1) {
+        if (model_siz[i] > 1) {
+          CHECK_EQ(model_siz[i], dim + 1);
           pos.push_back(p+1);  // skip the first dim
           col_map[i] = ++ k;
         }
@@ -298,7 +307,10 @@ class FMLoss : public Loss {
     void Save(std::vector<real_t>* grad) const {
       if (dim == 0) return;
       CHECK_EQ(weight.size(), pos.size()*dim);
+      size_t n = pos.back() + dim;
+      if (grad->size() < n) grad->resize(n);
       for (size_t i = 0; i < pos.size(); ++i) {
+        CHECK_LE(static_cast<size_t>(pos[i] + dim), grad->size());
         memcpy(grad->data()+pos[i], weight.data()+i*dim, dim*sizeof(real_t));
       }
     }
