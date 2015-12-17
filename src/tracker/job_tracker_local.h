@@ -1,5 +1,9 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_TRACKER_JOB_TRACKER_LOCAL_H_
 #define DIFACTO_TRACKER_JOB_TRACKER_LOCAL_H_
+#include <vector>
 #include "difacto/job.h"
 #include "./tracker.h"
 namespace difacto {
@@ -45,6 +49,7 @@ class JobTrackerLocal : public JobTracker {
           on_complete();
         });
   }
+
  private:
   inline void Init() {
     if (!tracker_) tracker_ = new Tracker<Job>();

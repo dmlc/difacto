@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #include "./batch_iter.h"
 #include "data/libsvm_parser.h"
 #include "./adfea_parser.h"
@@ -15,6 +18,7 @@ BatchIter::BatchIter(
   neg_sampling_ = neg_sampling;
   start_        = 0;
   end_          = 0;
+  seed_         = 0;
   if (shuf_buf_) {
     CHECK_GE(shuf_buf_, batch_size_);
     buf_reader_ = new BatchIter(
@@ -75,9 +79,11 @@ bool BatchIter::Next() {
       for (size_t i = start_; i < start_ + len; ++i) {
         int j = rdp_[i];
         // downsampling
+        float p = static_cast<float>(rand_r(&seed_)) /
+                  static_cast<float>(RAND_MAX);
         if (neg_sampling_ < 1.0 &&
             in_blk_.label[j] <= 0 &&
-            (float)rand() / (float)RAND_MAX > 1 - neg_sampling_) {
+            p > 1 - neg_sampling_) {
           continue;
         }
         batch_.Push(in_blk_[j]);

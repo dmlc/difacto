@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_COMMON_ARG_PARSER_H_
 #define DIFACTO_COMMON_ARG_PARSER_H_
 #include <string>
@@ -59,4 +62,4 @@ class ArgParser {
   std::string data_;
 };
 }  // namespace difacto
-#endif /* DIFACTO_COMMON_ARG_PARSER_H_ */
+#endif  // DIFACTO_COMMON_ARG_PARSER_H_

@@ -1,5 +1,8 @@
-#ifndef DIFACTO_DATA_MAATCH_FILE_H_
-#define DIFACTO_DATA_MAATCH_FILE_H_
+/**
+ * Copyright (c) 2015 by Contributors
+ */
+#ifndef DIFACTO_DATA_MATCH_FILE_H_
+#define DIFACTO_DATA_MATCH_FILE_H_
 #include <regex.h>
 #include <vector>
 #include <string>
@@ -36,8 +39,8 @@ inline void MatchFile(const std::string& pattern,
   file = ".*" + file;
   int status = regcomp(&pat, file.c_str(), REG_EXTENDED|REG_NEWLINE);
   if (status != 0) {
-	char error_message[1000];
-	regerror(status, &pat, error_message, 1000);
+    char error_message[1000];
+    regerror(status, &pat, error_message, 1000);
     LOG(FATAL) << "error regex '" << pattern << "' : " << error_message;
   }
 
@@ -51,4 +54,4 @@ inline void MatchFile(const std::string& pattern,
 }
 
 }  // namespace difacto
-#endif /* DIFACTO_DATA_MAATCH_FILE_H_ */
+#endif  // DIFACTO_DATA_MATCH_FILE_H_

@@ -1,9 +1,13 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_LOSS_BIN_CLASS_EVAL_H_
 #define DIFACTO_LOSS_BIN_CLASS_EVAL_H_
-#include "difacto/base.h"
 #include <algorithm>
-#include <dmlc/logging.h>
-#include <dmlc/omp.h>
+#include <vector>
+#include "difacto/base.h"
+#include "dmlc/logging.h"
+#include "dmlc/omp.h"
 namespace difacto {
 
 /**
@@ -79,21 +83,21 @@ class BinClassEval {
 #pragma omp parallel for reduction(+:objv) num_threads(nt_)
     for (size_t i = 0; i < size_; ++i) {
       real_t y = label_[i] > 0 ? 1 : -1;
-      objv += log( 1 + exp( - y * predict_[i] ));
+      objv += log(1 + exp(- y * predict_[i]));
     }
     return objv;
   }
 
-  real_t Copc(){
-    real_t clk = 0;
-    real_t clk_exp = 0.0;
-#pragma omp parallel for reduction(+:clk,clk_exp) num_threads(nt_)
-    for (size_t i = 0; i < size_; ++i) {
-      if (label_[i] > 0) clk += 1;
-      clk_exp += 1.0 / ( 1.0 + exp( - predict_[i] ));
-    }
-    return clk / clk_exp;
-  }
+//   real_t Copc() {
+//     real_t clk = 0;
+//     real_t clk_exp = 0.0;
+// #pragma omp parallel for reduction(+:clk,clk_exp) num_threads(nt_)
+//     for (size_t i = 0; i < size_; ++i) {
+//       if (label_[i] > 0) clk += 1;
+//       clk_exp += 1.0 / ( 1.0 + exp( - predict_[i] ));
+//     }
+//     return clk / clk_exp;
+//   }
 
  private:
   real_t const* label_;
@@ -103,4 +107,4 @@ class BinClassEval {
 };
 
 }  // namespace difacto
-#endif /* DIFACTO_LOSS_BIN_CLASS_EVAL_H_ */
+#endif  // DIFACTO_LOSS_BIN_CLASS_EVAL_H_

@@ -1,9 +1,11 @@
 /**
+ * Copyright (c) 2015 by Contributors
  * @file   crb_parser.h
  * @brief  parser for compressed row block data format
  */
 #ifndef DIFACTO_DATA_CRB_PARSER_H_
 #define DIFACTO_DATA_CRB_PARSER_H_
+#include <vector>
 #include "data/parser.h"
 #include "dmlc/recordio.h"
 #include "./compressed_row_block.h"
@@ -44,4 +46,4 @@ class CRBParser : public dmlc::data::ParserImpl<feaid_t> {
   dmlc::InputSplit *source_;
 };
 }  // namespace difacto
-#endif /* DIFACTO_DATA_CRB_PARSER_H_ */
+#endif  // DIFACTO_DATA_CRB_PARSER_H_

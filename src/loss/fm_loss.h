@@ -1,8 +1,8 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_LOSS_FM_H_
-#define DIFACTO_LOSS_FM_H_
+#ifndef DIFACTO_LOSS_FM_LOSS_H_
+#define DIFACTO_LOSS_FM_LOSS_H_
 #include <vector>
 #include "difacto/base.h"
 #include "dmlc/data.h"
@@ -93,7 +93,6 @@ class FMLoss : public Loss {
 
     // py += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
     if (V.weight.size()) {
-
       // tmp = (X.*X)*(V.*V)
       std::vector<real_t> vv = V.weight;
       for (auto& v : vv) v *= v;
@@ -143,7 +142,7 @@ class FMLoss : public Loss {
 #pragma omp parallel for num_threads(nt)
     for (size_t i = 0; i < py_.size(); ++i) {
       real_t y = w.X.label[i] > 0 ? 1 : -1;
-      py_[i] = - y / ( 1 + exp ( y * py_[i] ));
+      py_[i] = - y/(1 + exp(y * py_[i]));
     }
 
     // grad_w = ...
@@ -270,7 +269,7 @@ class FMLoss : public Loss {
         if (model_siz[i] > 1) {
           CHECK_EQ(model_siz[i], dim + 1);
           pos.push_back(p+1);  // skip the first dim
-          col_map[i] = ++ k;
+          col_map[i] = ++k;
         }
         p += model_siz[i];
       }
@@ -331,7 +330,7 @@ class FMLoss : public Loss {
 
    private:
     template <typename T>
-    T* BeginPtr(std::vector<T>& vec) {
+    const T* BeginPtr(const std::vector<T>& vec) {
       return vec.empty() ? nullptr : vec.data();
     }
     std::vector<real_t> val_, val2_;
@@ -346,4 +345,4 @@ class FMLoss : public Loss {
 };
 
 }  // namespace difacto
-#endif  // DIFACTO_LOSS_FM_H_
+#endif  // DIFACTO_LOSS_FM_LOSS_H_

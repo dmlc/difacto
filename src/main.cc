@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #include "difacto/difacto.h"
 #include "learner/sgd.h"
 #include "common/arg_parser.h"

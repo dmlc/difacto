@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #include "difacto/loss.h"
 #include "./fm_loss.h"
 namespace difacto {

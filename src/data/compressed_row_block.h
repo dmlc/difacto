@@ -7,8 +7,9 @@
 #define DIFACTO_DATA_COMPRESSED_ROW_BLOCK_H_
 #if DIFACTO_USE_LZ4
 #include <lz4.h>
-#endif // DIFACTO_USE_LZ4
+#endif  // DIFACTO_USE_LZ4
 #include <vector>
+#include <string>
 #include "data/row_block.h"
 namespace difacto {
 
@@ -113,7 +114,7 @@ class CompressedRowBlock {
     dst->resize(len);
     int dst_size = len * sizeof(T);
     CHECK_EQ(dst_size, LZ4_decompress_safe(
-        cdata_ + cur_len_, (char*)dst->data(), cp_size, dst_size));
+        cdata_ + cur_len_, static_cast<char*>(dst->data()), cp_size, dst_size));
     cur_len_ += cp_size;
 #else
     LOG(FATAL) << "compile with USE_LZ4=1";
@@ -139,5 +140,5 @@ class CompressedRowBlock {
   static const int kMagicNumber = 1196140743;
 };
 
-} // namespace difacto
-#endif /* DIFACTO_DATA_COMPRESSED_ROW_BLOCK_H_ */
+}  // namespace difacto
+#endif  // DIFACTO_DATA_COMPRESSED_ROW_BLOCK_H_

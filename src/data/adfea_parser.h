@@ -6,6 +6,7 @@
 #ifndef DIFACTO_DATA_ADFEA_PARSER_H_
 #define DIFACTO_DATA_ADFEA_PARSER_H_
 #include <limits>
+#include <vector>
 #include "difacto/base.h"
 #include "data/row_block.h"
 #include "data/parser.h"
@@ -40,7 +41,7 @@ class AdfeaParser : public dmlc::data::ParserImpl<feaid_t> {
 
     if (!source_->NextChunk(&chunk)) return false;
 
-    CHECK(chunk.size != 0);
+    CHECK_NE(chunk.size, 0);
     bytes_read_ += chunk.size;
     data->resize(1);
     dmlc::data::RowBlockContainer<feaid_t>& blk = (*data)[0];
@@ -75,7 +76,7 @@ class AdfeaParser : public dmlc::data::ParserImpl<feaid_t> {
           }
           blk.label.push_back(*head == '1');
         } else {
-          ++ i;
+          ++i;
         }
       }
 
@@ -95,4 +96,4 @@ class AdfeaParser : public dmlc::data::ParserImpl<feaid_t> {
 };
 
 }  // namespace difacto
-#endif /* DIFACTO_DATA_ADFEA_PARSER_H_ */
+#endif  // DIFACTO_DATA_ADFEA_PARSER_H_

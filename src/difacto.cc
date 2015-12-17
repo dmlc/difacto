@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #include "difacto/difacto.h"
 #include <string.h>
 #include <stdlib.h>
@@ -12,7 +15,7 @@ namespace difacto {
 DMLC_REGISTER_PARAMETER(DiFactoParam);
 
 DiFacto::DiFacto() {
-  inited_= false;
+  inited_ = false;
   store_ = nullptr;
   pmonitor_ = nullptr;
 }
@@ -87,7 +90,7 @@ void DiFacto::RunScheduler() {
   }
 
   // train
-  for (; epoch_ < param_.max_num_epochs; ++ epoch_) {
+  for (; epoch_ < param_.max_num_epochs; ++epoch_) {
     RunEpoch(epoch_, Job::kTraining);
     RunEpoch(epoch_, Job::kValidation);
   }

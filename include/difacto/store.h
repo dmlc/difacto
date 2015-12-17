@@ -10,7 +10,6 @@
 #include "dmlc/io.h"
 namespace difacto {
 
-
 /**
  * \brief the store allows workers to get and set and model
  */
@@ -19,9 +18,9 @@ class Store {
   Store() { }
   virtual ~Store() { }
 
-  const static int kFeaCount = 1;
-  const static int kWeight = 2;
-  const static int kGradient = 3;
+  static const int kFeaCount = 1;
+  static const int kWeight = 2;
+  static const int kGradient = 3;
 
   /**
    * \brief init

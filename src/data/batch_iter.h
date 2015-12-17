@@ -1,9 +1,13 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_DATA_BATCH_ITER_H_
 #define DIFACTO_DATA_BATCH_ITER_H_
+#include <string>
+#include <vector>
 #include "difacto/base.h"
 #include "dmlc/data.h"
 #include "data/parser.h"
-#include <string>
 namespace difacto {
 
 /**
@@ -59,7 +63,6 @@ class BatchIter {
   }
 
  private:
-
   /**
    * \brief batch_.push(in_blk_(pos:pos+len))
    */
@@ -76,7 +79,8 @@ class BatchIter {
   // random pertubation
   std::vector<unsigned> rdp_;
   BatchIter* buf_reader_;
+  unsigned int seed_;
 };
 
 }  // namespace difacto
-#endif /* DIFACTO_DATA_BATCH_ITER_H_ */
+#endif  // DIFACTO_DATA_BATCH_ITER_H_

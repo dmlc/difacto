@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #include "difacto/job.h"
 #include "./job_tracker_local.h"
 namespace difacto {

@@ -1,5 +1,11 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_STORE_STORE_LOCAL_H_
 #define DIFACTO_STORE_STORE_LOCAL_H_
+#include <string>
+#include <vector>
+#include <functional>
 #include "difacto/store.h"
 #include "difacto/learner.h"
 #include "dmlc/parameter.h"

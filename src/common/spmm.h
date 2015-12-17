@@ -4,6 +4,7 @@
 #ifndef DIFACTO_COMMON_SPMM_H_
 #define DIFACTO_COMMON_SPMM_H_
 #include <cstring>
+#include <vector>
 #include "dmlc/data.h"
 #include "dmlc/omp.h"
 #include "./range.h"
@@ -49,6 +50,7 @@ class SpMM {
       TransTimes<V>(D, x.data(), NULL, 0, y->data(), y->size(), dim, nt);
     }
   }
+
  private:
   // y = D * x
   template<typename V>

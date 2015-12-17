@@ -1,9 +1,10 @@
 /**
+ * Copyright (c) 2015 by Contributors
  * @file   criteo_parser.h
  * @brief  parse criteo ctr data format
  */
-#ifndef DMLC_DATA_CRITEO_PARSER_H_
-#define DMLC_DATA_CRITEO_PARSER_H_
+#ifndef DIFACTO_DATA_CRITEO_PARSER_H_
+#define DIFACTO_DATA_CRITEO_PARSER_H_
 #include <limits>
 #if DIFACTO_USE_CITY
 #include <city.h>
@@ -41,7 +42,7 @@ class CriteoParser : public dmlc::data::ParserImpl<feaid_t> {
     dmlc::InputSplit::Blob chunk;
     if (!source_->NextChunk(&chunk)) return false;
 
-    CHECK(chunk.size != 0);
+    CHECK_NE(chunk.size, 0);
     bytes_read_ += chunk.size;
     char *p = reinterpret_cast<char*>(chunk.dptr);
     char *end = p + chunk.size;
@@ -77,7 +78,7 @@ class CriteoParser : public dmlc::data::ParserImpl<feaid_t> {
       // parse categorty feature
       for (int i = 0; i < 26; ++i) {
         if (p == end) break;
-        if (isspace(*p)) { ++ p; continue; }
+        if (isspace(*p)) { ++p; continue; }
         pp = p + 8; CHECK(isspace(*pp)) << i << " " << end - p << " " << *p;
         size_t len = pp - p;
         if (len) blk.index.push_back(
@@ -91,7 +92,6 @@ class CriteoParser : public dmlc::data::ParserImpl<feaid_t> {
   }
 
  private:
-
   inline feaid_t Hash(const char* p, size_t len) {
 #if DIFACTO_USE_CITY
     return CityHash64(p, len);
@@ -115,4 +115,4 @@ class CriteoParser : public dmlc::data::ParserImpl<feaid_t> {
 };
 
 }  // namespace difacto
-#endif /* DMLC_DATA_CRITEO_PARSER_H_ */
+#endif  // DIFACTO_DATA_CRITEO_PARSER_H_

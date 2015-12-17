@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_PROGRESS_H_
 #define DIFACTO_PROGRESS_H_
 #include <vector>
@@ -98,4 +101,4 @@ class ProgressMonitor {
 };
 
 }  // namespace difacto
-#endif /* DIFACTO_PROGRESS_H_ */
+#endif  // DIFACTO_PROGRESS_H_

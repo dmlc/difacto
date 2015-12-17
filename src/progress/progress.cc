@@ -1,3 +1,6 @@
+/**
+ * Copyright (c) 2015 by Contributors
+ */
 #include "difacto/progress.h"
 #include "progress/progress_monitor_local.h"
 namespace difacto {
@@ -13,7 +16,7 @@ std::string ProgressPrinter::Body(const Progress& cur) {
   for (size_t i = 0; i < cur.data.size(); ++i) {
     diff.data[i] = cur.data[i] - prev_.data[i];
   }
-  snprintf(buf, 256, "%8.3g  %9.4g %9.4g  %6.4f %7.5f %6.4f %6.4f",
+  snprintf(buf, sizeof(buf), "%8.3g  %9.4g %9.4g  %6.4f %7.5f %6.4f %6.4f",
            diff.new_ex(),
            cur.new_w(),
            cur.new_V(),

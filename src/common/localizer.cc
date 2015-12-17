@@ -70,7 +70,7 @@ void Localizer::RemapIndex(
       if (*cur_dict == cur_pair->k) {
         remapped_idx[cur_pair->i]
             = static_cast<unsigned>((cur_dict-idx_dict.cbegin()) + 1);
-        ++ matched;
+        ++matched;
       }
       ++cur_pair;
     }
