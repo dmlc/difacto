@@ -1,3 +1,3 @@
 if [ ${TASK} == "lint" ]; then
-    pip install cpplint --user `whoami`
+    pip install cpplint pylint --user `whoami`
 fi
