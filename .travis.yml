@@ -22,7 +22,7 @@ addons:
       - g++-4.8
 
 before_install:
-  - pip install codecov
+  - pip install codecov --user `whoami`
 
 after_success:
   - codecov
