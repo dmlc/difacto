@@ -41,6 +41,11 @@ inline feaid_t ReverseBytes(feaid_t x) {
 }
 
 /**
+ * \brief the default number of threads
+ */
+#define DEFAULT_NTHREADS 2
+
+/**
  * \brief returns true if it is currently under distributed running
  */
 inline bool IsDistributed() {

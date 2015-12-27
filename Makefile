@@ -16,7 +16,7 @@ common/localizer.o data/batch_iter.o )
 
 DMLC_DEPS = dmlc-core/libdmlc.a
 
-all: build/difacto # cpp-test
+all: build/difacto  cpp-test
 
 clean:
 	rm -rf build

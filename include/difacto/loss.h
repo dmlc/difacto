@@ -34,7 +34,7 @@ class Loss {
    * @param data X and Y
    * @param weights the weight entries
    * @param weight_lens the weight entry size. the i-th element is the length of
-   * the i-th weight
+   * the i-th weight. could be empty
    */
   virtual void InitData(const dmlc::RowBlock<unsigned>& data,
                         const std::vector<real_t>& weights,

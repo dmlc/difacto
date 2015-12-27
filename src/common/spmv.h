@@ -15,30 +15,43 @@ namespace difacto {
  */
 class SpMV {
  public:
-  static const int kDefaultNT = 2;
+  /** \brief row major sparse matrix */
   using SpMat = dmlc::RowBlock<unsigned>;
-
-  /** \brief y = D * x */
+  /**
+   * \brief y = D * x
+   *
+   * @param D n * m sparse matrix
+   * @param x length m vector
+   * @param y length n vector, should be pre-allocated
+   * @param nthreads optional number of threads
+   */
   template<typename V>
   static void Times(const SpMat& D, const std::vector<V>& x,
-                    std::vector<V>* y, int nthreads = kDefaultNT) {
+                    std::vector<V>* y, int nthreads = DEFAULT_NTHREADS) {
     CHECK_NOTNULL(y);
     CHECK_EQ(y->size(), D.size);
     Times<V>(D, x.data(), y->data(), nthreads);
   }
-
-  /** \brief y = D^T * x */
+  /**
+   * \brief y = D^T * x
+   * @param D n * m sparse matrix
+   * @param x length n vector
+   * @param y length m vector, should be pre-allocated
+   * @param nthreads optional number of threads
+   */
   template<typename V>
   static void TransTimes(const SpMat& D, const std::vector<V>& x,
-                    std::vector<V>* y, int nthreads = kDefaultNT) {
+                    std::vector<V>* y, int nthreads = DEFAULT_NTHREADS) {
     CHECK_EQ(x.size(), D.size);
     CHECK_NOTNULL(y);
     TransTimes<V>(D, x.data(), y->data(), y->size(), nthreads);
   }
 
+ private:
   /** \brief y = D * x */
   template<typename V>
-  static void Times(const SpMat& D,  const V* const x, V* y, int nthreads = kDefaultNT) {
+  static void Times(const SpMat& D,  const V* const x, V* y,
+                    int nthreads = DEFAULT_NTHREADS) {
 #pragma omp parallel num_threads(nthreads)
     {
       Range rg = Range(0, D.size).Segment(
@@ -63,7 +76,7 @@ class SpMV {
   /** \brief y = D^T * x */
   template<typename V>
   static void TransTimes(const SpMat& D,  const V* const x, V* y, size_t y_size,
-                         int nthreads = kDefaultNT) {
+                         int nthreads = DEFAULT_NTHREADS) {
 #pragma omp parallel num_threads(nthreads)
     {
       Range rg = Range(0, y_size).Segment(
