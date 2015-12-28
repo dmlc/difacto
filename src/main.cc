@@ -4,6 +4,8 @@
 #include "difacto/learner.h"
 #include "common/arg_parser.h"
 
+int kDefaultNThread = 2;
+
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     LOG(ERROR) << "usage: difacto key1=val1 key2=val2 ...";
@@ -17,7 +19,11 @@ int main(int argc, char *argv[]) {
   }
 
   Learner* learner = Learner::Create("xxx");
-  learner->Init(parser.GetKWArgs());
+  auto remain = learner->Init(parser.GetKWArgs());
+  if (!remain.empty()) {
+    LOG(WARNING) << "unrecognized keyword argument:";
+    for (auto kw : remain) LOG(WARNING) << "  " << kw.first << " = " << kw.second;
+  }
   learner->Run();
   delete learner;
   return 0;
