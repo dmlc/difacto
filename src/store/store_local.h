@@ -7,16 +7,16 @@
 #include <vector>
 #include <functional>
 #include "difacto/store.h"
-#include "difacto/learner.h"
+#include "difacto/updater.h"
 #include "dmlc/parameter.h"
 namespace difacto {
 
 
 struct StoreLocalParam : public dmlc::Parameter<StoreLocalParam> {
   /** \brief type of model, default is sgd */
-  std::string learner;
+  std::string updater;
   DMLC_DECLARE_PARAMETER(StoreLocalParam) {
-    DMLC_DECLARE_FIELD(learner).set_default("sgd");
+    DMLC_DECLARE_FIELD(updater).set_default("sgd");
   }
 };
 
@@ -25,22 +25,22 @@ struct StoreLocalParam : public dmlc::Parameter<StoreLocalParam> {
  */
 class StoreLocal : public Store {
  public:
-  StoreLocal() : learner_(nullptr) { }
-  virtual ~StoreLocal() { delete learner_; }
+  StoreLocal() : updater_(nullptr) { }
+  virtual ~StoreLocal() { delete updater_; }
 
   KWArgs Init(const KWArgs& kwargs) {
     auto remain = param_.InitAllowUnknown(kwargs);
-    learner_ = Learner::Create(param_.learner);
-    remain = learner_->Init(remain);
+    updater_ = Updater::Create(param_.updater);
+    remain = updater_->Init(remain);
     return remain;
   }
 
   void Load(dmlc::Stream* fi, bool* has_aux) override {
-    learner_->Load(fi, has_aux);
+    updater_->Load(fi, has_aux);
   }
 
   void Save(bool save_aux, dmlc::Stream *fo) const override {
-    learner_->Save(save_aux, fo);
+    updater_->Save(save_aux, fo);
   }
 
   int Push(int sync_type,
@@ -49,9 +49,9 @@ class StoreLocal : public Store {
            const std::shared_ptr<std::vector<int>>& lens,
            const std::function<void()>& on_complete) override {
     if (sync_type == kFeaCount) {
-      learner_->AddCount(*fea_ids, *vals);
+      updater_->AddCount(*fea_ids, *vals);
     } else {
-      learner_->Update(*fea_ids, *vals, *lens);
+      updater_->Update(*fea_ids, *vals, *lens);
     }
     if (on_complete) on_complete();
     return time_++;
@@ -62,7 +62,7 @@ class StoreLocal : public Store {
            std::vector<real_t>* vals,
            std::vector<int>* lens,
            const std::function<void()>& on_complete) override {
-    learner_->Get(*fea_ids, vals, lens);
+    updater_->Get(*fea_ids, vals, lens);
     if (on_complete) on_complete();
     return time_++;
   }
@@ -71,7 +71,7 @@ class StoreLocal : public Store {
 
  private:
   int time_;
-  Learner* learner_;
+  Updater* updater_;
   StoreLocalParam param_;
 };
 }  // namespace difacto

@@ -3,18 +3,18 @@
  * @file   sgd.h
  * @brief  the stochastic gradient descent solver
  */
-#ifndef DIFACTO_LEARNER_SGD_H_
-#define DIFACTO_LEARNER_SGD_H_
+#ifndef DIFACTO_UPDATER_SGD_UPDATER_H_
+#define DIFACTO_UPDATER_SGD_UPDATER_H_
 #include <string>
 #include <vector>
 #include <limits>
-#include "difacto/learner.h"
+#include "difacto/updater.h"
 #include "difacto/progress.h"
 #include "dmlc/parameter.h"
 #include "dmlc/io.h"
 namespace difacto {
 
-struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
+struct SGDUpdaterParam : public dmlc::Parameter<SGDUpdaterParam> {
   /** \brief the l1 regularizer for :math:`w`: :math:`\lambda_1 |w|_1` */
   float l1;
   /** \brief the l2 regularizer for :math:`w`: :math:`\lambda_2 \|w\|_2^2` */
@@ -42,7 +42,7 @@ struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
   int V_threshold;
   /** \brief random seed */
   unsigned int seed;
-  DMLC_DECLARE_PARAMETER(SGDLearnerParam) {
+  DMLC_DECLARE_PARAMETER(SGDUpdaterParam) {
     DMLC_DECLARE_FIELD(l1).set_range(0, 1e10).set_default(1);
     DMLC_DECLARE_FIELD(l2).set_range(0, 1e10).set_default(0);
     DMLC_DECLARE_FIELD(V_l2).set_range(0, 1e10).set_default(.01);
@@ -124,18 +124,18 @@ class SGDModel {
 };
 
 /**
- * \brief sgd learner
+ * \brief sgd updater
  *
  * - w is updated by FTRL, which is a smooth version of adagrad works well with
  *   the l1 regularizer
  * - V is updated by adagrad
  */
-class SGDLearner : public Learner {
+class SGDUpdater : public Updater {
  public:
-  SGDLearner() : new_w_(0), new_V_(0), has_aux_(true) {
+  SGDUpdater() : new_w_(0), new_V_(0), has_aux_(true) {
     ppmonitor_ = ProgressMonitor::Create();
   }
-  virtual ~SGDLearner() {
+  virtual ~SGDUpdater() {
     delete ppmonitor_;
   }
 
@@ -174,7 +174,7 @@ class SGDLearner : public Learner {
   void InitV(SGDEntry* e);
 
   SGDModel model_;
-  SGDLearnerParam param_;
+  SGDUpdaterParam param_;
 
   ProgressMonitor* ppmonitor_;
   int64_t new_w_;
@@ -184,4 +184,4 @@ class SGDLearner : public Learner {
 
 
 }  // namespace difacto
-#endif  // DIFACTO_LEARNER_SGD_H_
+#endif  // DIFACTO_UPDATER_SGD_UPDATER_H_

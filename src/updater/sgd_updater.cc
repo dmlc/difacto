@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#include "./sgd.h"
+#include "./sgd_updater.h"
 #include <string.h>
 namespace difacto {
 
@@ -103,7 +103,7 @@ void SGDModel::Save(bool save_aux, feaid_t id,
   if (V_len) fo->Write(entry.V, V_len);
 }
 
-KWArgs SGDLearner::Init(const KWArgs& kwargs) {
+KWArgs SGDUpdater::Init(const KWArgs& kwargs) {
   auto remain = param_.InitAllowUnknown(kwargs);
   model_.Init(param_.V_dim, 0, std::numeric_limits<feaid_t>::max());
   remain.push_back(std::make_pair("V_dim", std::to_string(param_.V_dim)));
@@ -111,7 +111,7 @@ KWArgs SGDLearner::Init(const KWArgs& kwargs) {
 }
 
 
-void SGDLearner::Get(const std::vector<feaid_t>& fea_ids,
+void SGDUpdater::Get(const std::vector<feaid_t>& fea_ids,
                      std::vector<real_t>* weights,
                      std::vector<int>* weight_lens) {
   int V_dim = param_.V_dim;
@@ -133,7 +133,7 @@ void SGDLearner::Get(const std::vector<feaid_t>& fea_ids,
   weights->resize(p);
 }
 
-void SGDLearner::AddCount(const std::vector<feaid_t>& fea_ids,
+void SGDUpdater::AddCount(const std::vector<feaid_t>& fea_ids,
                           const std::vector<real_t>& fea_cnts) {
   CHECK_EQ(fea_ids.size(), fea_cnts.size());
   for (size_t i = 0; i < fea_ids.size(); ++i) {
@@ -145,7 +145,7 @@ void SGDLearner::AddCount(const std::vector<feaid_t>& fea_ids,
   }
 }
 
-void SGDLearner::Update(const std::vector<feaid_t>& fea_ids,
+void SGDUpdater::Update(const std::vector<feaid_t>& fea_ids,
                         const std::vector<real_t>& grads,
                         const std::vector<int>& grad_lens) {
   CHECK(has_aux_) << "no aux data";
@@ -172,7 +172,7 @@ void SGDLearner::Update(const std::vector<feaid_t>& fea_ids,
 }
 
 
-void SGDLearner::UpdateW(real_t gw, SGDEntry* e) {
+void SGDUpdater::UpdateW(real_t gw, SGDEntry* e) {
   real_t sg = e->sqrt_g;
   real_t w = e->w;
   // update sqrt_g
@@ -200,7 +200,7 @@ void SGDLearner::UpdateW(real_t gw, SGDEntry* e) {
   }
 }
 
-void SGDLearner::UpdateV(real_t const* gV, SGDEntry* e) {
+void SGDUpdater::UpdateV(real_t const* gV, SGDEntry* e) {
   int n = param_.V_dim;
   for (int i = 0; i < n; ++i) {
     real_t g = gV[i] + param_.V_l2 * e->V[i];
@@ -211,7 +211,7 @@ void SGDLearner::UpdateV(real_t const* gV, SGDEntry* e) {
   }
 }
 
-void SGDLearner::InitV(SGDEntry* e) {
+void SGDUpdater::InitV(SGDEntry* e) {
   int n = param_.V_dim;
   e->V = new real_t[n*2];
   for (int i = 0; i < n; ++i) {

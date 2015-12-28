@@ -6,8 +6,8 @@ PROTOC = ${DEPS_PATH}/bin/protoc
 CFLAGS = -std=c++11 -fopenmp -fPIC -O2 -ggdb -Wall -finline-functions $(INCPATH)
 # LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
 
-OBJS = $(addprefix build/, difacto.o loss/loss.o \
-learner/learner.o learner/sgd.o \
+OBJS = $(addprefix build/, loss/loss.o \
+updater/updater.o updater/sgd_updater.o \
 learner/learner.o \
 store/store.o \
 tracker/job_tracker.o \
