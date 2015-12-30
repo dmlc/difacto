@@ -1,7 +1,7 @@
-#ifndef DIFACTO_COMMON_PARALLEL_KV_UNION_H_
-#define DIFACTO_COMMON_PARALLEL_KV_UNION_H_
+#ifndef DIFACTO_COMMON_KV_UNION_H_
+#define DIFACTO_COMMON_KV_UNION_H_
 #include <vector>
-#include "./parallel_kv_match.h"
+#include "./kv_match.h"
 namespace difacto {
 
 
@@ -13,7 +13,7 @@ namespace difacto {
  * val_a = {2,3,4};
  * key_b = {1,3,5};
  * val_b = {3,4,5};
- * ParallelKVUnion(key_a, val_a, key_b, val_b, &joined_key, &joined_val);
+ * KVUnion(key_a, val_a, key_b, val_b, &joined_key, &joined_val);
  * // then joined_key = {1,2,3,5}; and joined_val = {5,3,8,5};
  * \endcode
  *
@@ -30,7 +30,7 @@ namespace difacto {
  * @param num_threads number of thread (default is 2)
  */
 template <typename K, typename V>
-void ParallelUnion(
+void KVUnion(
     const std::vector<K>& keys_a,
     const std::vector<V>& vals_a,
     const std::vector<K>& keys_b,
@@ -49,15 +49,15 @@ void ParallelUnion(
 
   // merge list a
   joined_vals->resize(0);
-  size_t n1 = ParallelKVMatch<K, V>(
+  size_t n1 = KVMatch<K, V>(
       keys_a, vals_a, *joined_keys, joined_vals, val_len, ASSIGN, num_threads);
   CHECK_EQ(n1, keys_a.size());
 
   // merge list b
-  auto n2 = ParallelKVMatch<K, V>(
+  auto n2 = KVMatch<K, V>(
       keys_b, vals_b, *joined_keys, joined_vals, val_len, op, num_threads);
   CHECK_EQ(n2, keys_b.size());
 }
 
 }  // namespace difacto
-#endif  // DIFACTO_COMMON_PARALLEL_KV_UNION_H_
+#endif  // DIFACTO_COMMON_KV_UNION_H_

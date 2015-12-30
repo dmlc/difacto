@@ -1,7 +1,10 @@
-#ifndef DIFACTO_COMMON_PARALLEL_KV_MATCH_H_
-#define DIFACTO_COMMON_PARALLEL_KV_MATCH_H_
+#ifndef DIFACTO_COMMON_KV_MATCH_H_
+#define DIFACTO_COMMON_KV_MATCH_H_
 #include <vector>
+#include <thread>
 #include "dmlc/logging.h"
+#include "./range.h"
+#include "difacto/base.h"
 namespace difacto {
 
 /**
@@ -55,7 +58,7 @@ namespace {
  * \param n number of matched kv pairs
  */
 template <typename K, typename V>
-void ParallelKVMatch(
+void KVMatch(
     const K* src_key, const K* src_key_end, const V* src_val,
     const K* dst_key, const K* dst_key_end, V* dst_val,
     int k, AssignOp op, size_t grainsize, size_t* n) {
@@ -84,11 +87,11 @@ void ParallelKVMatch(
     }
   } else {
     std::thread thr(
-        ParallelKVMatch<K, V>, src_key, src_key_end, src_val,
+        KVMatch<K, V>, src_key, src_key_end, src_val,
         dst_key, dst_key + dst_len / 2, dst_val,
         k, op, grainsize, n);
     size_t m = 0;
-    ParallelKVMatch<K, V>(
+    KVMatch<K, V>(
         src_key, src_key_end, src_val,
         dst_key + dst_len / 2, dst_key_end, dst_val + ( dst_len / 2 ) * k,
         k, op, grainsize, &m);
@@ -140,7 +143,7 @@ Range FindRange(const std::vector<V>& arr, V lower, V upper) {
  * src_key = {1,2,3};
  * src_val = {6,7,8};
  * dst_key = {1,3,5};
- * ParallelKVMatch(src_key, src_val, dst_key, &dst_val);
+ * KVMatch(src_key, src_val, dst_key, &dst_val);
  * // then dst_val = {6,8,0};
  * \endcode
  * When finished, \a dst_val will have length `k * dst_key.size()` and filled
@@ -158,7 +161,7 @@ Range FindRange(const std::vector<V>& arr, V lower, V upper) {
  * \return the number of matched kv pairs
  */
 template <typename K, typename V>
-size_t ParallelKVMatch(
+size_t KVMatch(
     const std::vector<K>& src_key,
     const std::vector<V>& src_val,
     const std::vector<K>& dst_key,
@@ -177,7 +180,7 @@ size_t ParallelKVMatch(
   size_t grainsize = std::max(range.Size() * val_len / num_threads + 5,
                               (size_t)1024*1024);
   size_t n = 0;
-  ParallelKVMatch<K, V>(
+  KVMatch<K, V>(
       src_key.data(), src_key.data() + src_key.size(), src_val.data(),
       dst_key.data() + range.begin, dst_key.data() + range.end,
       dst_val->data() + range.begin * val_len, val_len, op, grainsize, &n);
@@ -185,4 +188,4 @@ size_t ParallelKVMatch(
 }
 
 }  // namespace difacto
-#endif  // DIFACTO_COMMON_PARALLEL_KV_MATCH_H_
+#endif  // DIFACTO_COMMON_KV_MATCH_H_

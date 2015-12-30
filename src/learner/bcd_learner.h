@@ -6,7 +6,7 @@
 #include "dmlc/data.h"
 #include "data/chunk_iter.h"
 #include "data/data_store.h"
-#include "common/parallel_kv_union.h"
+#include "common/kv_union.h"
 #include "common/spmt.h"
 namespace difacto {
 
@@ -175,7 +175,7 @@ class BCDLearner : public Learner {
         auto old_cnt = all_cnt;
         all_ids = new std::vector<feaid_t>();
         all_cnt = new std::vector<real_t>();
-        ParallelUnion(*old_ids, *old_cnt, *ids, *cnt, all_ids, all_cnt, 1, PLUS, 2);
+        KVUnion(*old_ids, *old_cnt, *ids, *cnt, all_ids, all_cnt, 1, PLUS, 2);
         delete old_ids;
         delete old_cnt;
         delete ids;
