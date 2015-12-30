@@ -176,7 +176,7 @@ size_t KVMatch(
   if (dst_key.empty()) return 0;
 
   // shorten the matching range
-  Range range = FindRange(dst_key, src_key.front(), src_key.back());
+  Range range = FindRange(dst_key, src_key.front(), src_key.back()+1);
   size_t grainsize = std::max(range.Size() * val_len / num_threads + 5,
                               (size_t)1024*1024);
   size_t n = 0;

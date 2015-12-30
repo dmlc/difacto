@@ -38,15 +38,17 @@ double norm2(T const* data, int len) {
 }
 
 std::default_random_engine generator;
-std::uniform_int_distribution<uint32_t> distribution(
-    0, std::numeric_limits<uint32_t>::max());
 
 /**
  * \brief generate a list of unique and sorted keys
+ * \param key_len the expected key length
+ * \param max_key the maximal key size
  */
-void gen_keys(int n, std::vector<uint32_t>* key) {
-  key->resize(n);
-  for (int i = 0; i < n; ++i) {
+void gen_keys(int key_len, uint32_t max_key, std::vector<uint32_t>* key) {
+  key->resize(key_len);
+  std::uniform_int_distribution<uint32_t> distribution(
+      0, max_key);
+  for (int i = 0; i < key_len; ++i) {
     key->at(i) = distribution(generator);
   }
   std::sort(key->begin(), key->end());

@@ -40,23 +40,21 @@ void KVUnion(
     int val_len = 1,
     AssignOp op = PLUS,
     int num_threads = DEFAULT_NTHREADS) {
+  // merge keys
+  CHECK_NOTNULL(joined_keys)->clear();
+  std::set_union(keys_a.begin(), keys_a.end(), keys_b.begin(), keys_b.end(),
+      std::back_inserter(*joined_keys));
 
-  // join keys
-  CHECK_NOTNULL(joined_keys)->resize(keys_a.size() + keys_b.size());
-  auto last = std::set_union(
-      keys_a.begin(), keys_a.end(), keys_b.begin(), keys_b.end(), joined_keys->begin());
-  joined_keys->resize(last - joined_keys->begin());
-
-  // merge list a
-  joined_vals->resize(0);
+  // merge value of list a
+  CHECK_NOTNULL(joined_vals)->clear();
   size_t n1 = KVMatch<K, V>(
       keys_a, vals_a, *joined_keys, joined_vals, val_len, ASSIGN, num_threads);
-  CHECK_EQ(n1, keys_a.size());
+  CHECK_EQ(n1, keys_a.size() * val_len);
 
-  // merge list b
+  // merge value list b
   auto n2 = KVMatch<K, V>(
       keys_b, vals_b, *joined_keys, joined_vals, val_len, op, num_threads);
-  CHECK_EQ(n2, keys_b.size());
+  CHECK_EQ(n2, keys_b.size() * val_len);
 }
 
 }  // namespace difacto
