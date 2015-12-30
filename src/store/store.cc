@@ -6,6 +6,7 @@
 namespace difacto {
 
 DMLC_REGISTER_PARAMETER(StoreLocalParam);
+DMLC_REGISTER_PARAMETER(StoreParam);
 
 Store* Store::Create() {
   if (IsDistributed()) {

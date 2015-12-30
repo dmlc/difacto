@@ -32,6 +32,11 @@ struct Job : public dmlc::Parameter<Job> {
   int part_idx;
   /** \brief the current epoch */
   int epoch;
+  /** \brief the node id this job is sent to
+   *
+   * effect only on the distributed setting, can either be a partial node or a
+   * node group */
+  int node_id;
 
   DMLC_DECLARE_PARAMETER(Job) {
     DMLC_DECLARE_FIELD(num_parts).set_range(0, 100000).set_default(0);

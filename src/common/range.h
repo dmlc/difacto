@@ -35,6 +35,16 @@ struct Range {
     return (begin <= i && i < end);
   }
 
+  /**
+   * \brief return a range for the whole range
+   */
+  static Range All() { return Range(0, -1); }
+
+  inline bool Valid() const { return end > begin; }
+
+  inline size_t Size const { return end - begin; }
+
+  // TODO ==
   size_t begin;
   size_t end;
 };

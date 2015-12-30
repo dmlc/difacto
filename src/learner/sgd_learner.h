@@ -1,22 +1,25 @@
 #ifndef DEFACTO_LEARNER_SGD_LEARNER_H_
 #define DEFACTO_LEARNER_SGD_LEARNER_H_
-#include <string.h>
 #include <stdlib.h>
 #include <chrono>
+#include <memory>
+#include <thread>
+#include "dmlc/data.h"
+#include "dmlc/parameter.h"
 #include "difacto/learner.h"
 #include "data/batch_iter.h"
 #include "data/row_block.h"
 #include "common/localizer.h"
 #include "dmlc/timer.h"
 #include "tracker/tracker.h"
-
+#include "difacto/loss.h"
+#include "difacto/store.h"
 namespace difacto {
 
 struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
-
   /**
    * \brief type of task,
-   * - train: the training task, which the default
+   * - train: the training task, which is the default
    * - predict: the prediction task
    */
   std::string task;

@@ -3,22 +3,13 @@
  */
 #ifndef DIFACTO_LEARER_H_
 #define DIFACTO_LEARER_H_
-#include <stdlib.h>
 #include <string.h>
-#include <chrono>
 #include <string>
 #include <functional>
-#include <memory>
-#include <thread>
 #include <vector>
-#include "dmlc/data.h"
 #include "dmlc/io.h"
-#include "dmlc/parameter.h"
 #include "./job.h"
 #include "./base.h"
-#include "./store.h"
-#include "./learner.h"
-#include "./loss.h"
 #include "./progress.h"
 namespace difacto {
 

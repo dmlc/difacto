@@ -3,6 +3,7 @@
  */
 #include "difacto/learner.h"
 #include "./sgd_learner.h"
+#include "./bcd_learner.h"
 namespace difacto {
 
 DMLC_REGISTER_PARAMETER(SGDLearnerParam);
@@ -10,6 +11,8 @@ DMLC_REGISTER_PARAMETER(SGDLearnerParam);
 Learner* Learner::Create(const std::string& type) {
   if (type == "sgd") {
     return new SGDLearner();
+  } else if (type == "bcd") {
+    return new BCDLearner();
   } else {
     LOG(FATAL) << "unknown learner type";
   }

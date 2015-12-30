@@ -8,7 +8,20 @@
 #include <string>
 #include "./base.h"
 #include "dmlc/io.h"
+#include "dmlc/parameter.h"
 namespace difacto {
+
+struct StoreParam : public dmlc::Parameter<StoreParam> {
+  /** \brief number of worker nodes */
+  int num_workers;
+  /** \brief number of server nodes */
+  int num_servers;
+
+  DMLC_DECLARE_PARAMETER(StoreParam) {
+    DMLC_DECLARE_FIELD(num_workers);
+    DMLC_DECLARE_FIELD(num_servers);
+  }
+};
 
 /**
  * \brief the store allows workers to get and set and model
@@ -28,7 +41,9 @@ class Store {
    * @param kwargs keyword arguments
    * @return the unknown kwargs
    */
-  virtual KWArgs Init(const KWArgs& kwargs) = 0;
+  virtual KWArgs Init(const KWArgs& kwargs) {
+    return param_.InitAllowUnknown(kwargs);
+  }
 
   /**
    * \brief load the model
@@ -86,9 +101,27 @@ class Store {
   virtual void Wait(int time) = 0;
 
   /**
+   * \brief return number of workers
+   */
+  int NumWorkers() { return param_.num_workers; }
+
+  /**
+   * \brief return number of servers
+   */
+  int NumServers() { return param_.num_servers; }
+
+  /**
+   * \brief return the rank of this node
+   */
+  virtual int Rank() = 0;
+
+  /**
    * \brief the factory function
    */
   static Store* Create();
+
+ private:
+  StoreParam param_;
 };
 
 }  // namespace difacto

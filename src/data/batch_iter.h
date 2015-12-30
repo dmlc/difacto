@@ -23,7 +23,7 @@ class BatchIter {
    * @param format the data format, support libsvm, crb, ...
    * @param part_index the i-th part to read
    * @param num_parts partition the file into serveral parts
-   * @param batch_size the batch size
+   * @param batch_size the batch size.
    * @param shuffle_size if nonzero, then the batch is randomly picked from a buffer with
    * shuffle_buf_size examples
    * @param neg_sampling the probability to pickup a negative sample (label <= 0)
