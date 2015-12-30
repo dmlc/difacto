@@ -42,9 +42,12 @@ struct Range {
 
   inline bool Valid() const { return end > begin; }
 
-  inline size_t Size const { return end - begin; }
+  inline size_t Size() const { return end - begin; }
 
-  // TODO ==
+  bool operator== (const Range& rhs) const {
+    return (begin == rhs.begin && end == rhs.end);
+  }
+
   size_t begin;
   size_t end;
 };

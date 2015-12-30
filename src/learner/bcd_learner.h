@@ -5,7 +5,7 @@
 #include "dmlc/parameter.h"
 #include "dmlc/data.h"
 #include "data/chunk_iter.h"
-#include "data/data_cache.h"
+#include "data/data_store.h"
 namespace difacto {
 
 struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {

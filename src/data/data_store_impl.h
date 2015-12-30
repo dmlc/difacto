@@ -1,5 +1,6 @@
 #ifndef DIFACTO_DATA_DATA_STORE_IMPL_H_
 #define DIFACTO_DATA_DATA_STORE_IMPL_H_
+#include <unordered_map>
 #include "common/range.h"
 namespace difacto {
 
@@ -34,9 +35,9 @@ class DataStoreImpl {
                       char** data) = 0;
 
   /**
-   * \brief add a hit to tell the data store do pretech
+   * \brief add a hint to tell the data store do pretech
    */
-  virtual void NextPullHit(int key, Range range) {}
+  virtual void NextPullHint(int key, Range range) {}
 };
 
 /**
@@ -47,7 +48,7 @@ class DataStoreMemory : public DataStoreImpl {
   DataStoreMemory() { }
   virtual ~DataStoreMemory() { }
 
-  void Push(int key, const char* data, size_t size, size_t type) {
+  void Push(int key, const char* data, size_t size, size_t type) override {
     CHECK(store_.count(key) == 0) << "duplicate key: " << key;
     auto& entry = store_[key];
     entry.type = type;
@@ -56,7 +57,7 @@ class DataStoreMemory : public DataStoreImpl {
   }
 
   size_t Pull(int key, Range range, size_t type, bool allow_nonexist,
-              char** data) orveride {
+              char** data) override {
     auto it = store_.find(key);
     if (it == store_.end()) {
       CHECK(allow_nonexist) << "key " << key << " does not exist";
@@ -65,11 +66,11 @@ class DataStoreMemory : public DataStoreImpl {
     } else {
       CHECK_EQ(type, it->second.type);
       CHECK(range.Valid());
-      *data = it->second.data.data() + range.begin();
-      if (range == Range::ALL()) {
+      *data = it->second.data.data() + range.begin;
+      if (range == Range::All()) {
         return it->second.data.size();
       } else {
-        CHECK_LE(range.end(), data.size());
+        CHECK_LE(range.end, it->second.data.size());
         return range.Size();
       }
     }
@@ -80,7 +81,7 @@ class DataStoreMemory : public DataStoreImpl {
     std::vector<char> data;
     size_t type;
   };
-  std::unorded_map<int, DataEntry> store_;
+  std::unordered_map<int, DataEntry> store_;
 };
 
 /**
