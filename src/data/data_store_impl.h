@@ -38,6 +38,14 @@ class DataStoreImpl {
    * \brief add a hint to tell the data store do pretech
    */
   virtual void NextPullHint(int key, Range range) {}
+
+
+  /**
+   * \brief remove data from the store
+   * \param key the unique key of the data
+   */
+  virtual void Remove(int key) = 0;
+
 };
 
 /**
@@ -76,6 +84,9 @@ class DataStoreMemory : public DataStoreImpl {
     }
   }
 
+  void Remove(int key) override {
+    store_.erase(key);
+  }
  private:
   struct DataEntry {
     std::vector<char> data;

@@ -6,6 +6,8 @@
 #include "dmlc/data.h"
 #include "data/chunk_iter.h"
 #include "data/data_store.h"
+#include "common/parallel_kv_union.h"
+#include "common/spmt.h"
 namespace difacto {
 
 struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
@@ -129,7 +131,7 @@ class BCDLearner : public Learner {
                          const std::string& filename = "") {
     job_type_ = job_type;
     for (auto& cb : before_epoch_callbacks_) cb();
-    int nworker = store_->NumWorkers();
+    int nworker = model_store_->NumWorkers();
     std::vector<Job> jobs(nworker);
     for (int i = 0; i < nworker; ++i) {
       jobs[i].type = job_type;
@@ -149,19 +151,39 @@ class BCDLearner : public Learner {
         job.filename, param_.data_format, job.part_idx, job.num_parts,
         1<<28);
 
-    auto feaids = std::make_shared<std::vector<feaid_t>>();
-    auto feacnt = std::make_shared<std::vector<feaid_t>>();
+    std::vector<feaid_t> *all_ids = nullptr, *ids;
+    std::vector<real_t> *all_cnt = nullptr, *cnt;
     while (reader.Next()) {
-      std::vector<feaid_t> ids;
-      std::vector<real_t> cnt;
+      // map feature id into continous intergers and transpose to easy slice a
+      // column block
+      ids = new std::vector<feaid_t>();
+      cnt = new std::vector<real_t>();
       Localizer lc(-1, 2);
-      dmlc::data::RowBlockContainer<unsigned> compact;
-      lc.Compact(reader.Value(), &compact, &ids, &cnt);
+      dmlc::data::RowBlockContainer<unsigned> compacted, transposed;
+      lc.Compact(reader.Value(), &compacted, ids, cnt);
+      SpMT::Transpose(compacted.GetBlock(), &transposed, ids->size(), 2);
 
+      data_store_->Push(num_data_blks_*kDataBOS_, transposed.GetBlock());
+      data_store_->Push(num_data_blks_*kDataBOS_+1, ids->data(), ids->size());
 
-
+      // merge ids and counts
+      if (all_ids == nullptr) {
+        all_ids = ids;
+        all_cnt = cnt;
+      } else {
+        auto old_ids = all_ids;
+        auto old_cnt = all_cnt;
+        all_ids = new std::vector<feaid_t>();
+        all_cnt = new std::vector<real_t>();
+        ParallelUnion(*old_ids, *old_cnt, *ids, *cnt, all_ids, all_cnt, 1, PLUS, 2);
+        delete old_ids;
+        delete old_cnt;
+        delete ids;
+        delete cnt;
+      }
     }
   }
+
   void ProcessFile(const Job& job) {
 
   }
@@ -171,10 +193,14 @@ class BCDLearner : public Learner {
     kPrediction, kPrepareTrainData, kPrepareValData
   };
 
+  static const int kDataBOS_ = 2;
+  int num_data_blks_ = 0;
   /** \brief the model store*/
-  Store* store_;
+  Store* model_store_ = nullptr;
+  /** \brief data store */
+  DataStore* data_store_ = nullptr;
   /** \brief the loss*/
-  Loss* loss_;
+  Loss* loss_ = nullptr;
   /** \brief parameters */
   BCDLearnerParam param_;
 };

@@ -117,12 +117,20 @@ class DataStore {
     store_->NextPullHint(key, range);
   }
 
+  /**
+   * \brief remove data from the store
+   * \param key the unique key of the data
+   */
+  void Remove(int key) {
+    store_->Remove(key);
+  }
+
  private:
   static const int kOS = 10;
 
   template<typename V>
   void Push_(int key, const V* data, size_t size) {
-    store_->Push(key, static_cast<char*>(data), size * sizeof(V),
+    store_->Push(key, reinterpret_cast<const char*>(data), size * sizeof(V),
                  typeid(V).hash_code());
   }
 
@@ -131,7 +139,7 @@ class DataStore {
     char** val;
     size_t ret = store_->Pull(
         key, range, typeid(V).hash_code(), allow_nonexist, val);
-    *CHECK_NOTNULL(data) = static_cast<V*>(*val);
+    *CHECK_NOTNULL(data) = reinterpret_cast<V*>(*val);
     return ret / sizeof(V);
   }
 

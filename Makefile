@@ -20,6 +20,8 @@ all: build/difacto  cpp-test
 
 clean:
 	rm -rf build
+	make -C dmlc-core clean
+	make -C ps-lite clean
 
 lint:
 	python2 dmlc-core/scripts/lint.py difacto all include src
