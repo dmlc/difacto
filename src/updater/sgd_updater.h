@@ -9,7 +9,6 @@
 #include <vector>
 #include <limits>
 #include "difacto/updater.h"
-#include "difacto/progress.h"
 #include "dmlc/parameter.h"
 #include "dmlc/io.h"
 namespace difacto {
@@ -133,10 +132,10 @@ class SGDModel {
 class SGDUpdater : public Updater {
  public:
   SGDUpdater() : new_w_(0), new_V_(0), has_aux_(true) {
-    ppmonitor_ = ProgressMonitor::Create();
+    // ppmonitor_ = ProgressMonitor::Create();
   }
   virtual ~SGDUpdater() {
-    delete ppmonitor_;
+    // delete ppmonitor_;
   }
 
   KWArgs Init(const KWArgs& kwargs) override;
@@ -176,7 +175,7 @@ class SGDUpdater : public Updater {
   SGDModel model_;
   SGDUpdaterParam param_;
 
-  ProgressMonitor* ppmonitor_;
+  // ProgressMonitor* ppmonitor_;
   int64_t new_w_;
   int64_t new_V_;
   bool has_aux_;

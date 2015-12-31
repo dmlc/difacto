@@ -9,7 +9,6 @@
 #include <vector>
 #include "dmlc/io.h"
 #include "./base.h"
-#include "./progress.h"
 #include "./tracker.h"
 namespace difacto {
 
@@ -20,10 +19,15 @@ namespace difacto {
  */
 class Learner {
  public:
+  /**
+   * \brief the factory function
+   * \param type the learner type such as "sgd"
+   */
+  static Learner* Create(const std::string& type);
   /** \brief construct */
-  Learner();
+  Learner() { }
   /** \brief deconstruct */
-  virtual ~Learner();
+  virtual ~Learner() { }
   /**
    * \brief init learner
    *
@@ -73,28 +77,15 @@ class Learner {
     tracker_->Stop();
   }
 
-
-  /**
-   * \brief return the current progress, thread-safe
-   */
-  void GetProgress(Progress* progress) {
-    pmonitor_->Get(progress);;
-  }
-
   /**
    * \brief returns the current epoch
    */
-  int GetEpoch() const { return epoch_; }
+  inline int epoch() const { return epoch_; }
   /**
    * \brief returns the current job type
    */
-  int GetJobType() const { return job_type_; }
+  inline int job_type() const { return job_type_; }
 
-  /**
-   * \brief the factory function
-   * \param type the loss type such as "fm"
-   */
-  static Learner* Create(const std::string& type);
 
  protected:
   /**
@@ -120,8 +111,6 @@ class Learner {
   std::vector<Callback> epoch_callbacks_;
   /** \brief callbacks for before every epoch*/
   std::vector<Callback> before_epoch_callbacks_;
-  /** \brief progress monitor collects progress */
-  ProgressMonitor* pmonitor_;
   /** \brief the current epoch */
   int epoch_;
   /** \brief the current job type */

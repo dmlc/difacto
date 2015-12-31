@@ -165,10 +165,10 @@ void SGDUpdater::Update(const std::vector<feaid_t>& fea_ids,
     }
   }
   CHECK_EQ((size_t)p, grads.size());
-  Progress prog;
-  prog.new_w() = new_w_;
-  prog.new_V() = new_V_;
-  ppmonitor_->Add(prog);
+  // Progress prog;
+  // prog.new_w() = new_w_;
+  // prog.new_V() = new_V_;
+  // ppmonitor_->Add(prog);
 }
 
 

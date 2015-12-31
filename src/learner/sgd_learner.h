@@ -118,35 +118,35 @@ class SGDLearner : public Learner {
     loss_ = Loss::Create(param_.loss);
     remain = loss_->Init(remain);
 
-    // init callbacks
-    AddBeforeEpochCallback([this](){
-        bool is_train = GetJobType() == SGDJob::kTraining;
-        LOG(INFO) << " -- epoch " << GetEpoch() << ": "
-                  << (is_train ? "training" : "validation")
-                  << " -- ";
-        LOG(INFO) << pprinter_.Head();
-      });
-    AddContCallback([this]() {
-        if (GetJobType() == SGDJob::kTraining) {
-          Progress prog;
-          GetProgress(&prog);
-          LOG(INFO) << pprinter_.Body(prog);
-        }
-      });
-    AddEpochCallback([this](){
-        if (GetJobType() == SGDJob::kValidation) {
-          Progress prog;
-          GetProgress(&prog);
-          LOG(INFO) << pprinter_.Body(prog);
-        }
-      });
+    // // init callbacks
+    // AddBeforeEpochCallback([this](){
+    //     bool is_train = GetJobType() == SGDJob::kTraining;
+    //     LOG(INFO) << " -- epoch " << GetEpoch() << ": "
+    //               << (is_train ? "training" : "validation")
+    //               << " -- ";
+    //     LOG(INFO) << pprinter_.Head();
+    //   });
+    // AddContCallback([this]() {
+    //     if (GetJobType() == SGDJob::kTraining) {
+    //       Progress prog;
+    //       GetProgress(&prog);
+    //       LOG(INFO) << pprinter_.Body(prog);
+    //     }
+    //   });
+    // AddEpochCallback([this](){
+    //     if (GetJobType() == SGDJob::kValidation) {
+    //       Progress prog;
+    //       GetProgress(&prog);
+    //       LOG(INFO) << pprinter_.Body(prog);
+    //     }
+    //   });
     return remain;
   }
 
  protected:
   void RunScheduler() override {
     // init progress monitor
-    pmonitor_ = ProgressMonitor::Create();
+    // pmonitor_ = ProgressMonitor::Create();
 
     epoch_ = 0;
     // load learner
@@ -308,7 +308,7 @@ class SGDLearner : public Learner {
   Loss* loss_;
   /** \brief parameters */
   SGDLearnerParam param_;
-  ProgressPrinter pprinter_;
+  // ProgressPrinter pprinter_;
 };
 
 }  // namespace difacto

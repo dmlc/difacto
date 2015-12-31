@@ -11,7 +11,6 @@ updater/updater.o updater/sgd_updater.o \
 learner/learner.o \
 store/store.o \
 tracker/tracker.o \
-progress/progress.o \
 common/localizer.o data/batch_iter.o )
 
 DMLC_DEPS = dmlc-core/libdmlc.a

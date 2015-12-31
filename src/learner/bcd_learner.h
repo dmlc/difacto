@@ -85,7 +85,7 @@ class BCDLearner : public Learner {
 
   void RunScheduler() override {
     // init progress monitor
-    pmonitor_ = ProgressMonitor::Create();
+    // pmonitor_ = ProgressMonitor::Create();
 
     // load and convert data
     bool has_val = param_.data_val.size() != 0;

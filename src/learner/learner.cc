@@ -19,14 +19,6 @@ Learner* Learner::Create(const std::string& type) {
   return nullptr;
 }
 
-Learner::Learner() {
-  pmonitor_ = nullptr;
-}
-
-Learner::~Learner() {
-  delete pmonitor_;
-}
-
 KWArgs Learner::Init(const KWArgs& kwargs) {
   // init job tracker
   tracker_ = Tracker::Create();

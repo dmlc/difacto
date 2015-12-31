@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 #include "./base.h"
-#include "./progress.h"
 #include "dmlc/data.h"
 namespace difacto {
 
@@ -17,7 +16,14 @@ namespace difacto {
  */
 class Loss {
  public:
+  /**
+   * \brief the factory function
+   * \param type the loss type such as "fm"
+   */
+  static Loss* Create(const std::string& type);
+  /** \brief constructor */
   Loss() { }
+  /** \brief deconstructor */
   virtual ~Loss() { }
 
   /**
@@ -43,7 +49,7 @@ class Loss {
    * \brief evaluate the progress
    * \param prog the output progress
    */
-  virtual void Evaluate(Progress* prog) = 0;
+  // virtual void Evaluate(Progress* prog) = 0;
 
   /*!
    * \brief compute the gradients
@@ -53,21 +59,15 @@ class Loss {
 
   /**
    * \brief predict
-   * \param pred the prediction results, whose length should be equal to the
+   * \return the prediction results, whose length should be equal to the
    * number of examples in \ref data
    */
-  virtual void Predict(std::vector<real_t>* pred) = 0;
+  virtual const std::vector<real_t>& Predict() = 0;
 
   /**
-   * \brief Clear data
+   * \brief Clear internal data
    */
   virtual void Clear() = 0;
-
-  /**
-   * \brief the factory function
-   * \param type the loss type such as "fm"
-   */
-  static Loss* Create(const std::string& type);
 };
 
 }  // namespace difacto

@@ -10,7 +10,6 @@
 #include "difacto/loss.h"
 #include "common/spmv.h"
 #include "common/spmm.h"
-#include "difacto/progress.h"
 #include "./bin_class_eval.h"
 namespace difacto {
 
@@ -69,64 +68,9 @@ class FMLoss : public Loss {
   }
 
   void Clear() override {
-    w.Clear(); V.Clear();
-  }
-
-  /**
-   * \brief evaluate the progress
-   *
-   *  py = X * w + .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
-   *
-   * where
-   * - sum(A, 2) : sum the rows of A
-   * - .* : elemenetal-wise times
-   */
-  void Evaluate(Progress* prog) {
-    int nt = param_.nthreads;
-    int V_dim = param_.V_dim;
-    py_.resize(w.X.size);
-    BinClassEval eval(w.X.label, py_.data(), py_.size(), nt);
-
-    // py = X * w
-    SpMV::Times(w.X, w.weight, &py_, nt);
-    if (prog) prog->objv_w() = eval.LogitObjv();
-
-    // py += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
-    if (V.weight.size()) {
-      // tmp = (X.*X)*(V.*V)
-      std::vector<real_t> vv = V.weight;
-      for (auto& v : vv) v *= v;
-      CHECK_EQ(vv.size(), V.pos.size() * V_dim);
-      std::vector<real_t> xxvv(V.X.size * V_dim);
-      SpMM::Times(V.XX, vv, &xxvv, nt);
-
-      // V.XV = X*V
-      V.XV.resize(xxvv.size());
-      SpMM::Times(V.X, V.weight, &V.XV, nt);
-
-      // py += .5 * sum((V.XV).^2 - xxvv)
-#pragma omp parallel for num_threads(nt)
-      for (size_t i = 0; i < py_.size(); ++i) {
-        real_t* t = V.XV.data() + i * V_dim;
-        real_t* tt = xxvv.data() + i * V_dim;
-        real_t s = 0;
-        for (int j = 0; j < V_dim; ++j) s += t[j] * t[j] - tt[j];
-        py_[i] += .5 * s;
-      }
-    }
-
-    // auc, acc, logloss, copc
-    if (prog) {
-      if (V.weight.size()) {
-        prog->objv() = eval.LogitObjv();
-      } else {
-        prog->objv() = prog->objv_w();
-      }
-      prog->auc()    = eval.AUC();
-      prog->new_ex() = w.X.size;
-      prog->count()  = 1;
-      prog->acc()    = eval.Accuracy(.5);
-    }
+    w.Clear();
+    V.Clear();
+    py_.clear();
   }
 
   /*!
@@ -202,9 +146,50 @@ class FMLoss : public Loss {
     }
   }
 
-  void Predict(std::vector<real_t>* pred) override {
-    Evaluate(nullptr);
-    *CHECK_NOTNULL(pred) = py_;
+  /**
+   * \brief perform prediction
+   *
+   *  py = X * w + .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
+   *
+   * where
+   * - sum(A, 2) : sum the rows of A
+   * - .* : elemenetal-wise times
+   *
+   * @return py
+   */
+  const std::vector<real_t>& Predict() override {
+    int nt = param_.nthreads;
+    int V_dim = param_.V_dim;
+    py_.resize(w.X.size);
+    BinClassEval eval(w.X.label, py_.data(), py_.size(), nt);
+
+    // py = X * w
+    SpMV::Times(w.X, w.weight, &py_, nt);
+
+    // py += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
+    if (V.weight.size()) {
+      // tmp = (X.*X)*(V.*V)
+      std::vector<real_t> vv = V.weight;
+      for (auto& v : vv) v *= v;
+      CHECK_EQ(vv.size(), V.pos.size() * V_dim);
+      std::vector<real_t> xxvv(V.X.size * V_dim);
+      SpMM::Times(V.XX, vv, &xxvv, nt);
+
+      // V.XV = X*V
+      V.XV.resize(xxvv.size());
+      SpMM::Times(V.X, V.weight, &V.XV, nt);
+
+      // py += .5 * sum((V.XV).^2 - xxvv)
+#pragma omp parallel for num_threads(nt)
+      for (size_t i = 0; i < py_.size(); ++i) {
+        real_t* t = V.XV.data() + i * V_dim;
+        real_t* tt = xxvv.data() + i * V_dim;
+        real_t s = 0;
+        for (int j = 0; j < V_dim; ++j) s += t[j] * t[j] - tt[j];
+        py_[i] += .5 * s;
+      }
+    }
+    return py_;
   }
 
  private:
