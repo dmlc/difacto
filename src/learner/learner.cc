@@ -29,10 +29,10 @@ Learner::~Learner() {
 
 KWArgs Learner::Init(const KWArgs& kwargs) {
   // init job tracker
-  job_tracker_ = JobTracker::Create();
-  auto remain = job_tracker_->Init(kwargs);
+  tracker_ = Tracker::Create();
+  auto remain = tracker_->Init(kwargs);
   using namespace std::placeholders;
-  job_tracker_->SetConsumer(std::bind(&Learner::Process, this, _1));
+  tracker_->SetConsumer(std::bind(&Learner::Process, this, _1, _2));
   return remain;
 }
 

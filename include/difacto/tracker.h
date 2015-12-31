@@ -1,10 +1,11 @@
 #ifndef DIFACTO_TRACKER_H_
 #define DIFACTO_TRACKER_H_
-namespace difacto {
 #include <string>
 #include <vector>
+#include <functional>
 #include "./base.h"
 
+namespace difacto {
 /**
  * \brief a thread-safe distributed job tracker
  *
@@ -26,7 +27,7 @@ class Tracker {
   /**
    * \brief factory function
    */
-  static JobTracker* Create();
+  static Tracker* Create();
   /** \brief constructor */
   Tracker() { }
   /** \brief deconstructor */
@@ -54,13 +55,13 @@ class Tracker {
    * \param args the job arguments
    */
   void Issue(int node_id, std::string args) {
-    Add({std::make_pair(node_id, args)});
+    Issue({std::make_pair(node_id, args)});
   }
   /**
    * \brief issue a list of jobs to the consumers
    * \param jobs the jobs to add
    */
-  virtual void Issue(const std::vector<std::par<int, std::string>>& jobs) = 0;
+  virtual void Issue(const std::vector<std::pair<int, std::string>>& jobs) = 0;
   /**
    * \brief return the number of unfinished job
    */

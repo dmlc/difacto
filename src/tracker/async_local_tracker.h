@@ -28,8 +28,8 @@ namespace difacto {
 template<typename JobArgs, typename JobRets = std::string>
 class AsyncLocalTracker {
  public:
-  Tracker() : thread_(&Tracker::RunConsumer, this) { }
-  ~Tracker() {
+  AsyncLocalTracker() : thread_(&AsyncLocalTracker::RunConsumer, this) { }
+  ~AsyncLocalTracker() {
     Wait();
     done_ = true;
     run_cond_.notify_one();
@@ -40,7 +40,7 @@ class AsyncLocalTracker {
    * \brief add a list of jobs into the job queue
    * \param jobs
    */
-  void Issue(const std::vector<Job>& jobs) {
+  void Issue(const std::vector<JobArgs>& jobs) {
     CHECK(consumer_) << "set consumer first";
     {
       std::lock_guard<std::mutex> lk(mu_);
@@ -119,9 +119,9 @@ class AsyncLocalTracker {
 
       // run the job
       CHECK(consumer_);
-      int id = it->first;
+      int id = it.first->first;
       auto on_complete = [this, id]() { Remove(id); };
-      consumer_(it->second.first, on_complete, &(it->second.second));
+      consumer_(it.first->second.first, on_complete, &(it.first->second.second));
     }
   }
 
@@ -143,8 +143,8 @@ class AsyncLocalTracker {
   std::thread thread_;
   Consumer consumer_;
   Monitor monitor_;
-  std::queue<Job> pending_;
-  std::unordered<int, std::pair<JobArgs, JobRets>> running_;
+  std::queue<JobArgs> pending_;
+  std::unordered_map<int, std::pair<JobArgs, JobRets>> running_;
 };
 
 

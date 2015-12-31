@@ -55,16 +55,16 @@ class LocalTracker : public Tracker {
   void SetConsumer(const Consumer& consumer) override {
     CHECK_NOTNULL(tracker_)->SetConsumer(
         [consumer](const Job& args,
-                   const Tracker<Job>::Callback& on_complete,
+                   const std::function<void()>& on_complete,
                    Job* rets) {
           rets->first = args.first;
-          consumer(job.args, &(rets->second));
+          consumer(args.second, &(rets->second));
           on_complete();
         });
   }
 
  private:
-  AsyncLocalTracker<std::string>* tracker_ = nullptr;
+  AsyncLocalTracker<Job, Job>* tracker_ = nullptr;
 };
 
 }  // namespace difacto

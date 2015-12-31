@@ -10,7 +10,6 @@ OBJS = $(addprefix build/, loss/loss.o \
 updater/updater.o updater/sgd_updater.o \
 learner/learner.o \
 store/store.o \
-tracker/job_tracker.o \
 tracker/tracker.o \
 progress/progress.o \
 common/localizer.o data/batch_iter.o )

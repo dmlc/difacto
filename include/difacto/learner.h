@@ -8,9 +8,9 @@
 #include <functional>
 #include <vector>
 #include "dmlc/io.h"
-#include "./job.h"
 #include "./base.h"
 #include "./progress.h"
+#include "./tracker.h"
 namespace difacto {
 
 /**
@@ -63,15 +63,17 @@ class Learner {
     if (!IsDistributed() || !strcmp(getenv("DMLC_ROLE"), "scheduler")) {
       RunScheduler();
     } else {
-      job_tracker_->Wait();
+      tracker_->Wait();
     }
   }
   /**
    * \brief Stop learner. It is often used to stop the training earlier
    */
   void Stop() {
-    job_tracker_->Stop();
+    tracker_->Stop();
   }
+
+
   /**
    * \brief return the current progress, thread-safe
    */
@@ -105,12 +107,13 @@ class Learner {
    * \brief the function runs on the worker/server to process jobs issued by the
    * scheduler
    *
-   * \param job the job received from the scheduler
+   * \param args the job arguments received from the scheduler
+   * \param rets the results send back to the scheduler
    */
-  virtual void Process(const Job& job) = 0;
+  virtual void Process(const std::string& args, std::string* rets) = 0;
 
   /** \brief the job tracker */
-  JobTracker* job_tracker_;
+  Tracker* tracker_;
   /** \brief callbacks for every second*/
   std::vector<Callback> cont_callbacks_;
   /** \brief callbacks for every epoch*/
