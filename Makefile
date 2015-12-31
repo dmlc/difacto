@@ -3,7 +3,7 @@ DEPS_PATH = $(shell pwd)/deps
 
 INCPATH = -I./src -I./include -I./dmlc-core/include -I./ps-lite/include -I./dmlc-core/src -I$(DEPS_PATH)/include
 PROTOC = ${DEPS_PATH}/bin/protoc
-CFLAGS = -std=c++11 -fopenmp -fPIC -O0 -ggdb -Wall -finline-functions $(INCPATH)
+CFLAGS = -std=c++11 -fopenmp -fPIC -O3 -ggdb -Wall -finline-functions $(INCPATH)
 # LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
 
 OBJS = $(addprefix build/, loss/loss.o \
@@ -16,7 +16,7 @@ common/localizer.o data/batch_iter.o )
 
 DMLC_DEPS = dmlc-core/libdmlc.a
 
-all: build/difacto  cpp-test
+all: build/difacto
 
 clean:
 	rm -rf build
@@ -44,6 +44,8 @@ dmlc-core/libdmlc.a:
 
 include tests/cpp/test.mk
 cpp-test: $(CPPTEST)
+
+test: cpp-test
 
 -include build/*.d
 -include build/*/*.d

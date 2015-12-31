@@ -1,4 +1,5 @@
-
+#ifndef DIFACTO_NODE_ID_H_
+#define DIFACTO_NODE_ID_H_
 namespace difacto {
 
 class NodeID {
@@ -23,3 +24,5 @@ class NodeID {
 
 };
 }  // namespace difacto
+
+#endif  // DIFACTO_NODE_ID_H_

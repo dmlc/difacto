@@ -107,7 +107,10 @@ class BCDLearner : public Learner {
     JobType type = static_cast<JobType>(job.type);
     if (type == kPrepareValData || type == kPrepareTrainData) {
       PrepareData(job);
+    } else if (type == kTraining || type == kValidation) {
+      IterateFeatureBlocks(job);
     }
+
     if (job.type == kSaveModel) {
     } else if (job.type == kLoadModel) {
     } else {
@@ -163,8 +166,10 @@ class BCDLearner : public Learner {
       lc.Compact(reader.Value(), &compacted, ids, cnt);
       SpMT::Transpose(compacted.GetBlock(), &transposed, ids->size(), 2);
 
-      data_store_->Push(num_data_blks_*kDataBOS_, transposed.GetBlock());
-      data_store_->Push(num_data_blks_*kDataBOS_+1, ids->data(), ids->size());
+      int id = (num_data_blks_++) * kDataBOS_;
+      data_store_->Push(id, transposed.GetBlock());
+      data_store_->Push(id + 1, ids->data(), ids->size());
+      data_store_->Push(id + 2, compacted.label.data(), compacted.label.size());
 
       // merge ids and counts
       if (all_ids == nullptr) {
@@ -184,6 +189,11 @@ class BCDLearner : public Learner {
     }
   }
 
+
+  void IterateFeatureBlocks(const Job& job) {
+
+  }
+
   void ProcessFile(const Job& job) {
 
   }
@@ -193,7 +203,7 @@ class BCDLearner : public Learner {
     kPrediction, kPrepareTrainData, kPrepareValData
   };
 
-  static const int kDataBOS_ = 2;
+  static const int kDataBOS_ = 5;
   int num_data_blks_ = 0;
   /** \brief the model store*/
   Store* model_store_ = nullptr;
