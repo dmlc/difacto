@@ -41,22 +41,26 @@ class Tracker {
 
   /////////////// functions for the producer /////////////////
   /**
-   * \brief add a job to the tracker
+   * \brief issue a job to the consumer
    *
-   * Once added, the tracker will start to issue the job, no other call such as
-   * Run is necessary
+   * If the node ID of the consumer is a group, e.g. kWorkerGroup, then this job
+   * could be sent to any node in that group. Given one consumer, the tracker
+   * sends a job only if the previous one has been finished.
    *
-   * \param node_id the node id this job will sent to, see \ref NodeID
+   * This function returns immediately once the job is queued. Use
+   * \ref NumRemains to query if or not the job is finished.
+   *
+   * \param node_id the node id of the consumer
    * \param args the job arguments
    */
-  void Add(int node_id, std::string args) {
+  void Issue(int node_id, std::string args) {
     Add({std::make_pair(node_id, args)});
   }
   /**
-   * \brief add a list of jobs to the tracker
+   * \brief issue a list of jobs to the consumers
    * \param jobs the jobs to add
    */
-  virtual void Add(const std::vector<std::par<int, std::string>>& jobs) = 0;
+  virtual void Issue(const std::vector<std::par<int, std::string>>& jobs) = 0;
   /**
    * \brief return the number of unfinished job
    */
