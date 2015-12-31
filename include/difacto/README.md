@@ -18,6 +18,7 @@ This fold contains the abstract classes of difacto.
    issue remote procedure calls (RPCs) from the scheduler to any workers and
    servers, and monitors the progress.
 
-An example interactive diagram between the scheduler, a worker, and a server:
+The following figure shows the scheduler sends a RPC to a worker, which get and
+update the weights on the servers.
 
  <img src=https://raw.githubusercontent.com/dmlc/web-data/master/difacto/class_arch.png width=500/>
