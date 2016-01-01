@@ -2,7 +2,7 @@
  * Copyright (c) 2015 by Contributors
  */
 #include "difacto/updater.h"
-#include "./sgd_updater.h"
+#include "./sgd/sgd_updater.h"
 namespace difacto {
 
 DMLC_REGISTER_PARAMETER(SGDUpdaterParam);

@@ -16,6 +16,11 @@ namespace difacto {
  */
 class Updater {
  public:
+  /**
+   * \brief the factory function
+   * \param type the updater type such as "fm"
+   */
+  static Updater* Create(const std::string& type);
   Updater() { }
   virtual ~Updater() { }
 
@@ -75,14 +80,7 @@ class Updater {
   virtual void Update(const std::vector<feaid_t>& fea_ids,
                       const std::vector<real_t>& grads,
                       const std::vector<int>& grad_lens) = 0;
-
-  /**
-   * \brief the factory function
-   * \param type the updater type such as "fm"
-   */
-  static Updater* Create(const std::string& type);
 };
 
 }  // namespace difacto
-
 #endif  // DIFACTO_UPDATER_H_

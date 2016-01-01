@@ -7,8 +7,8 @@ CFLAGS = -std=c++11 -fopenmp -fPIC -O3 -ggdb -Wall -finline-functions $(INCPATH)
 # LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
 
 OBJS = $(addprefix build/, loss/loss.o \
-updater/updater.o updater/sgd_updater.o \
-learner/learner.o \
+updater.o sgd/sgd_updater.o \
+learner.o \
 store/store.o \
 tracker/tracker.o \
 common/localizer.o data/batch_iter.o )

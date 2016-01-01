@@ -72,6 +72,36 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
   }
 };
 
+struct BCDJob {
+  /** \brief construct from a string */
+  BCDJob(const std::string& str) { ParseFromString(str); }
+
+  void SerializeToString(std::string* string) {
+    // TODO
+  }
+
+  void ParseFromString(const std::string& str) {
+    // TODO
+  }
+  static const int kLoadModel = 1;
+  static const int kSaveModel = 2;
+  static const int kTraining = 3;
+  static const int kValidation = 4;
+  static const int kPrediction = 5;
+  static const int kPrepareTrainData = 6;
+  static const int kPrepareValData = 7;
+  /** \brief job type */
+  int type;
+  /** \brief filename  */
+  std::string filename;
+  /** \brief number of partitions of this file */
+  int num_parts;
+  /** \brief the part will be processed */
+  int part_idx;
+  /** \brief the order to process feature blocks */
+  std::vector<int> fea_blks;
+};
+
 class BCDLearner : public Learner {
  public:
   BCDLearner() {
@@ -84,32 +114,32 @@ class BCDLearner : public Learner {
  protected:
 
   void RunScheduler() override {
-    // init progress monitor
-    // pmonitor_ = ProgressMonitor::Create();
-
     // load and convert data
     bool has_val = param_.data_val.size() != 0;
     CHECK(param_.data_in.size());
-    IssueJobToWorkers(kPrepareTrainData, param_.data_in);
+    IssueJobToWorkers(BCDJob::kPrepareTrainData, param_.data_in);
 
     if (has_val) {
-      IssueJobToWorkers(kPrepareValData, param_.data_val);
+      IssueJobToWorkers(BCDJob::kPrepareValData, param_.data_val);
     }
 
     epoch_ = 0;
     for (; epoch_ < param_.max_num_epochs; ++epoch_) {
-      IssueJobToWorkers(kTraining);
-      if (has_val) IssueJobToWorkers(kValidation);
+      IssueJobToWorkers(BCDJob::kTraining);
+      if (has_val) IssueJobToWorkers(BCDJob::kValidation);
     }
   }
 
   void Process(const std::string& args, std::string* rets) {
-    // JobType type = static_cast<JobType>(job.type);
-    // if (type == kPrepareValData || type == kPrepareTrainData) {
-    //   PrepareData(job);
-    // } else if (type == kTraining || type == kValidation) {
-    //   IterateFeatureBlocks(job);
-    // }
+    BCDJob job(args);
+
+    if (job.type == BCDJob::kPrepareValData ||
+        job.type == BCDJob::kPrepareTrainData) {
+      // PrepareData(job, rets);
+    } else if (job.type == BCDJob::kTraining ||
+               job.type == BCDJob::kValidation) {
+      // IterateFeatureBlocks(job, rets);
+    }
 
     // if (job.type == kSaveModel) {
     // } else if (job.type == kLoadModel) {
@@ -198,12 +228,11 @@ class BCDLearner : public Learner {
 
   // }
 
-  enum JobType {
-    kLoadModel, kSaveModel, kTraining, kValidation,
-    kPrediction, kPrepareTrainData, kPrepareValData
-  };
-
   static const int kDataBOS_ = 5;
+  /** \brief the current epoch */
+  int epoch_;
+  /** \brief the current job type */
+  int job_type_;
   int num_data_blks_ = 0;
   /** \brief the model store*/
   Store* model_store_ = nullptr;

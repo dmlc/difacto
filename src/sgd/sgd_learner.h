@@ -309,6 +309,11 @@ class SGDLearner : public Learner {
   /** \brief parameters */
   SGDLearnerParam param_;
   // ProgressPrinter pprinter_;
+
+  /** \brief the current epoch */
+  int epoch_;
+  /** \brief the current job type */
+  int job_type_;
 };
 
 }  // namespace difacto
