@@ -3,6 +3,7 @@
  */
 #ifndef DIFACTO_COMMON_RANGE_H_
 #define DIFACTO_COMMON_RANGE_H_
+#include "dmlc/logging.h"
 namespace difacto {
 /**
  * \brief a range between [begin, end)

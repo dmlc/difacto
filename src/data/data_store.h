@@ -1,14 +1,14 @@
 #ifndef DIFACTO_DATA_DATA_CACHE_H_
 #define DIFACTO_DATA_DATA_CACHE_H_
-#include <queue>
-#include <thread>
-#include <mutex>
 #include <utility>
+#include <memory>
+#include <vector>
 #include "common/range.h"
 #include "dmlc/data.h"
 #include "./data_store_impl.h"
+#include "./shared_row_block_container.h"
+#include "ps/sarray.h"
 namespace difacto {
-
 /**
  * \brief data store can be used to store and fetch data. Once the pushed data
  * exceed the maximal memory cacapcity, it will dump data into disks
@@ -36,18 +36,33 @@ class DataStore {
    */
   template <typename V>
   void Push(int key, const V* data, size_t size) {
-    Push_(key * kOS, data, size);
+    ps::SArray<V> sdata; sdata.CopyFrom(data, size);
+    Push(key, sdata);
   }
 
   /**
-   * \brief push data into the store, overwrite the previous data if key exists.
+   * \brief push data into the store. no data copy. overwrite the previous data
+   * if key exists.
    *
    * @param key the unique key
    * @param data the data
    */
   template <typename V>
   void Push(int key, const std::shared_ptr<std::vector<V>>& data) {
+    ps::SArray<V> sdata(data);
+    Push(key, sdata);
+  }
 
+  /**
+   * \brief push data into the store.no data copy. overwrite the previous data
+   * if key exists.
+   *
+   * @param key the unique key
+   * @param data the data
+   */
+  template <typename V>
+  void Push(int key, const SArray<V>& data) {
+    // TODO
   }
 
   /**
@@ -56,25 +71,10 @@ class DataStore {
    * \code
    * int data[] = {0,1,2,3};
    * Push(0, data, 4);
-   * int *ret;
-   * EXPECT_EQ(2, Pull(0, &ret, Range(1,3)));
+   * auto ret = Pull(Range(1,3));
    * EXPECT_EQ(ret[0], 1);
-   * EXPECT_EQ(ret[1], 2);
+   * EXPECT_EQ(ret[0], 2);
    * \endcode
-   *
-   * @param key the unique key
-   * @param data the pulled data buffer
-   * @param range an optional range for pulling
-   *
-   * @return the data size
-   */
-  template<typename V>
-  size_t Pull(int key, V** data, Range range = Range::All()) {
-    return Pull_(key * kOS, range, false, data);
-  }
-
-  /**
-   * \brief pull data from the store
    *
    * @param key the unique key
    * @param range an optional range for pulling
@@ -82,9 +82,11 @@ class DataStore {
    * @return the data
    */
   template <typename V>
-  std::shared_ptr<std::vector<V>> Pull(int key, Range range = Range::All()) {
-
+  SArray<V> Pull(int key, Range range = Range::All()) {
+    // TODO
   }
+
+
   /**
    * \brief give a hit to the store what will be pulled next.
    *
@@ -105,7 +107,7 @@ class DataStore {
   }
 
   /**
-   * \brief push a rowblock into the store
+   * \brief copy a rowblock into the store
    *
    * @param key the unique key
    * @param data the rowblock
@@ -113,46 +115,61 @@ class DataStore {
   template <typename T>
   void Push(int key, dmlc::RowBlock<T> data) {
     CHECK_EQ(data.offset[0], 0);
-    Push_(key * kOS, data.offset, data.size+1);
+    SharedRowBlockContainer<T> blk;
+    blk.offset.CopyFrom(data.offset, data.size+1);
     if (data.label != nullptr) {
-      Push_(key * kOS + 1, data.label, data.size);
+      blk.label.CopyFrom(data.label, data.size);
     }
     if (data.weight != nullptr) {
-      Push_(key * kOS + 2, data.weight, data.size);
+      blk.weight.CopyFrom(data.weight, data.size);
     }
     size_t nnz = data.offset[data.size] - data.offset[0];
-    Push_(key * kOS + 3, data.index, nnz);
+    blk.index.CopyFrom(data.index, nnz);
     if (data.value != nullptr) {
-      Push_(key * kOS + 4, data.value, nnz);
+      blk.value.CopyFrom(data.value, nnz);
     }
+    Push(blk);
   }
 
+  /**
+   * \brief push a shared rowblock container into the store (no memory copy)
+   *
+   * @param key the unique key
+   * @param data the rowblock container
+   */
+  template <typename T>
+  void Push(int key, const SharedRowBlockContainer<T>& data) {
+
+  }
 
   /**
    * \brief pull rowblock from the store
    *
    * @param key the unique key
-   * @param data the pulled rowblock buff
    * @param range an optional row range for pulling
    */
   template <typename T>
-  void Pull(int key, dmlc::RowBlock<T>* data, Range range = Range::All()) {
-    dmlc::RowBlock<T> out;
-    out.size = Pull_(key * kOS, range, false, &out.offset);
-    Pull_(key * kOS + 1, range, true, &out.label);
-    Pull_(key * kOS + 2, range, true, &out.weight);
-    Range rg2 = Range(out.offset[0], out.offset[out.size]);
-    Pull_(key * kOS + 3, rg2, false, &out.index);
-    Pull_(key * kOS + 4, rg2, true, &out.value);
-    *CHECK_NOTNULL(data) = out;
+  SharedRowBlockContainer<T> Pull(int key, Range range = Range::All()) {
+    // dmlc::RowBlock<T> out;
+    // out.size = Pull_(key * kOS, range, false, &out.offset);
+    // Pull_(key * kOS + 1, range, true, &out.label);
+    // Pull_(key * kOS + 2, range, true, &out.weight);
+    // Range rg2 = Range(out.offset[0], out.offset[out.size]);
+    // Pull_(key * kOS + 3, rg2, false, &out.index);
+    // Pull_(key * kOS + 4, rg2, true, &out.value);
+    // *CHECK_NOTNULL(data) = out;
+    SharedRowBlockContainer<T> block;
+    return block;
   }
  protected:
   static const int kOS = 10;
-  template<typename V>
-  void Push_(int key, const V* data, size_t size) {
-    store_->Push(key, reinterpret_cast<const char*>(data), size * sizeof(V),
-                 typeid(V).hash_code());
-  }
+
+
+  // template<typename V>
+  // void Push_(int key, const V* data, size_t size) {
+  //   store_->Push(key, reinterpret_cast<const char*>(data), size * sizeof(V),
+  //                typeid(V).hash_code());
+  // }
 
   template<typename V>
   size_t Pull_(int key, Range range, bool allow_nonexist, V** data) {

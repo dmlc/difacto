@@ -1,5 +1,8 @@
 #ifndef DIFACTO_DATA_DATA_STORE_IMPL_H_
 #define DIFACTO_DATA_DATA_STORE_IMPL_H_
+#include <queue>
+#include <thread>
+#include <mutex>
 #include <unordered_map>
 #include "common/range.h"
 namespace difacto {
