@@ -3,52 +3,49 @@
 #include <queue>
 #include <thread>
 #include <mutex>
+#include <string>
+#include <functional>
 #include <unordered_map>
 #include "common/range.h"
+#include "difacto/sarray.h"
 namespace difacto {
 
 class DataStoreImpl {
  public:
   DataStoreImpl();
   virtual ~DataStoreImpl();
-
   /**
    * \brief push a data into the store
    *
    * @param key the unique key
    * @param data the data buff
-   * @param size the data size
-   * @param type the data type
    */
-  virtual void Push(int key, const char* data, size_t size, size_t type) = 0;
-
+  virtual void Push(const std::string& key, const SArray<char>& data) = 0;
   /**
    * \brief pull data from the store
    *
    * @param key the unique key
    * @param range only pull a range of the data. If it is Range::All(), then pul
    * the whole data
-   * @param type the data type
-   * @param allow_nonexist if true, then set data to NULL if the key doesn't exist
-   * @param data the pulled data buff
-   *
-   * @return the size of data
+   * @param data the pulled data
    */
-  virtual size_t Pull(int key, Range range, size_t type, bool allow_nonexist,
-                      char** data) = 0;
+  virtual void Pull(const std::string& key, Range range, SArray<char>* data) = 0;
 
+  typedef std::function<void(const SArray<char>& data)> Callback;
   /**
-   * \brief add a hint to tell the data store do pretech
+   * \brief pretech a data
+   *
+   * @param key
+   * @param range
+   * @param on_complete the callback when prefetch is done
    */
-  virtual void NextPullHint(int key, Range range) {}
-
-
+  virtual void Prefetch(const std::string& key, Range range,
+                        Callback on_complete = nullptr) = 0;
   /**
    * \brief remove data from the store
    * \param key the unique key of the data
    */
-  virtual void Remove(int key) = 0;
-
+  virtual void Remove(const std::string& key) = 0;
 };
 
 /**
@@ -59,43 +56,35 @@ class DataStoreMemory : public DataStoreImpl {
   DataStoreMemory() { }
   virtual ~DataStoreMemory() { }
 
-  void Push(int key, const char* data, size_t size, size_t type) override {
-    CHECK(store_.count(key) == 0) << "duplicate key: " << key;
-    auto& entry = store_[key];
-    entry.type = type;
-    entry.data.resize(size);
-    memcpy(entry.data.data(), data, size);
+  void Push(const std::string& key, const SArray<char>& data) override {
+    store_[key] = data;
   }
 
-  size_t Pull(int key, Range range, size_t type, bool allow_nonexist,
-              char** data) override {
+  void Pull(const std::string& key, Range range, SArray<char>* data) override {
     auto it = store_.find(key);
     if (it == store_.end()) {
-      CHECK(allow_nonexist) << "key " << key << " does not exist";
-      *data = nullptr;
-      return 0;
+      *CHECK_NOTNULL(data) = SArray<char>();
     } else {
-      CHECK_EQ(type, it->second.type);
-      CHECK(range.Valid());
-      *data = it->second.data.data() + range.begin;
       if (range == Range::All()) {
-        return it->second.data.size();
+        *CHECK_NOTNULL(data) = it->second;
       } else {
-        CHECK_LE(range.end, it->second.data.size());
-        return range.Size();
+        *CHECK_NOTNULL(data) = it->second.segment(range.begin, range.end);
       }
     }
   }
+  void Prefetch(const std::string& key, Range range, Callback on_complete) override {
+    if (on_complete) {
+      SArray<char> data;
+      Pull(key, range, &data);
+      on_complete(data);
+    }
+  }
 
-  void Remove(int key) override {
+  void Remove(const std::string& key) override {
     store_.erase(key);
   }
  private:
-  struct DataEntry {
-    std::vector<char> data;
-    size_t type;
-  };
-  std::unordered_map<int, DataEntry> store_;
+  std::unordered_map<std::string,SArray<char>> store_;
 };
 
 /**

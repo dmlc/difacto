@@ -47,6 +47,13 @@ struct Range {
   bool operator== (const Range& rhs) const {
     return (begin == rhs.begin && end == rhs.end);
   }
+  bool operator!= (const Range& rhs) const {
+    return !(*this == rhs);
+  }
+
+  Range operator+ (const uint64_t v) const { return Range(begin+v, end+v); }
+  Range operator- (const uint64_t v) const { return Range(begin-v, end-v); }
+  Range operator* (const uint64_t v) const { return Range(begin*v, end*v); }
 
   uint64_t begin;
   uint64_t end;

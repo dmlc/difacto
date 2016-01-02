@@ -3,7 +3,7 @@
 #include <vector>
 #include "data/row_block.h"
 #include "difacto/base.h"
-#include "./sarray.h"
+#include "difacto/sarray.h"
 namespace difacto {
 
 /**
@@ -15,16 +15,35 @@ struct SharedRowBlockContainer {
   /** \brief default constructor */
   SharedRowBlockContainer() { }
   /**
-   * \brief construct from a rowblockcontainer
-   * \param blk the user should not delete rowblk
+   * \brief construct by moving from a rowblockcontainer
+   * \param blk the user should NOT delete blk
    */
   SharedRowBlockContainer(dmlc::data::RowBlockContainer<IndexType>* blk) {
+    // TODO
+  }
 
+  /**
+   * \brief construct by copying from a rowblock
+   * \param blk the rowblock
+   */
+  SharedRowBlockContainer(const dmlc::RowBlock<IndexType>& blk) {
+    offset.CopyFrom(blk.offset, blk.size+1);
+    if (blk.label != nullptr) {
+      label.CopyFrom(blk.label, blk.size);
+    }
+    if (blk.weight != nullptr) {
+      weight.CopyFrom(blk.weight, blk.size);
+    }
+    size_t nnz = blk.offset[blk.size] - blk.offset[0];
+    index.CopyFrom(blk.index, nnz);
+    if (blk.value != nullptr) {
+      value.CopyFrom(blk.value, nnz);
+    }
   }
 
   /*! \brief convert to a row block */
   dmlc::RowBlock<IndexType> GetBlock() const {
-
+    // TODO
   }
 
   /*! \brief array[size+1], row pointer to beginning of each rows */
