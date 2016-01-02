@@ -187,5 +187,19 @@ size_t KVMatch(
   return n;
 }
 
+
+// template <typename K, typename V>
+// size_t KVMatch(
+//    const K* src_key_begin, const K* src_key_end,
+//    const V* src_val_begin, const V* src_val_end,
+//    const K* dst_key_begin, const K* dst_key_end,
+//    V* dst_val_begin,
+//    int val_len = 1,
+//    AssignOp op = ASSIGN,
+//    int num_threads = DEFAULT_NTHREADS) {
+//   // TODO
+// }
+
+
 }  // namespace difacto
 #endif  // DIFACTO_COMMON_KV_MATCH_H_

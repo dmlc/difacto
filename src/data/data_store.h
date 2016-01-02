@@ -28,7 +28,7 @@ class DataStore {
   ~DataStore() { delete store_; }
 
   /**
-   * \brief push data into the store
+   * \brief copy data into the store, overwrite the previous data if key exists.
    *
    * @param key the unique key
    * @param data the data buffer
@@ -37,6 +37,71 @@ class DataStore {
   template <typename V>
   void Push(int key, const V* data, size_t size) {
     Push_(key * kOS, data, size);
+  }
+
+  /**
+   * \brief push data into the store, overwrite the previous data if key exists.
+   *
+   * @param key the unique key
+   * @param data the data
+   */
+  template <typename V>
+  void Push(int key, const std::shared_ptr<std::vector<V>>& data) {
+
+  }
+
+  /**
+   * \brief pull data from the store
+   *
+   * \code
+   * int data[] = {0,1,2,3};
+   * Push(0, data, 4);
+   * int *ret;
+   * EXPECT_EQ(2, Pull(0, &ret, Range(1,3)));
+   * EXPECT_EQ(ret[0], 1);
+   * EXPECT_EQ(ret[1], 2);
+   * \endcode
+   *
+   * @param key the unique key
+   * @param data the pulled data buffer
+   * @param range an optional range for pulling
+   *
+   * @return the data size
+   */
+  template<typename V>
+  size_t Pull(int key, V** data, Range range = Range::All()) {
+    return Pull_(key * kOS, range, false, data);
+  }
+
+  /**
+   * \brief pull data from the store
+   *
+   * @param key the unique key
+   * @param range an optional range for pulling
+   *
+   * @return the data
+   */
+  template <typename V>
+  std::shared_ptr<std::vector<V>> Pull(int key, Range range = Range::All()) {
+
+  }
+  /**
+   * \brief give a hit to the store what will be pulled next.
+   *
+   * the store may use the hint to perform data pretech
+   * @param key the unique key
+   * @param range an optional range
+   */
+  virtual void NextPullHint(int key, Range range = Range::All()) {
+    store_->NextPullHint(key, range);
+  }
+
+  /**
+   * \brief remove data from the store
+   * \param key the unique key of the data
+   */
+  virtual void Remove(int key) {
+    store_->Remove(key);
   }
 
   /**
@@ -62,29 +127,6 @@ class DataStore {
     }
   }
 
-  /**
-   * \brief pull data from the store
-   *
-   * @param key the unique key
-   * @param data the pulled data buffer
-   * @param range an optional range for pulling
-   *
-   * \code
-   * int data[] = {0,1,2,3};
-   * Push(0, data, 4);
-   * int *ret;
-   * EXPECT_EQ(2, Pull(0, &ret, Range(1,3)));
-   * EXPECT_EQ(ret[0], 1);
-   * EXPECT_EQ(ret[1], 2);
-   * \endcode
-   * @return the data size
-   */
-  template<typename V>
-  size_t Pull(int key, V** data, Range range = Range::All()) {
-    size_t size;
-    Pull_(key * kOS, range, false, data, &size);
-    return size;
-  }
 
   /**
    * \brief pull rowblock from the store
@@ -104,30 +146,8 @@ class DataStore {
     Pull_(key * kOS + 4, rg2, true, &out.value);
     *CHECK_NOTNULL(data) = out;
   }
-
-
-  /**
-   * \brief give a hit to the store what will be pulled next.
-   *
-   * the store may use the hint to perform data pretech
-   * @param key the unique key
-   * @param range an optional range
-   */
-  void NextPullHint(int key, Range range = Range::All()) {
-    store_->NextPullHint(key, range);
-  }
-
-  /**
-   * \brief remove data from the store
-   * \param key the unique key of the data
-   */
-  void Remove(int key) {
-    store_->Remove(key);
-  }
-
- private:
+ protected:
   static const int kOS = 10;
-
   template<typename V>
   void Push_(int key, const V* data, size_t size) {
     store_->Push(key, reinterpret_cast<const char*>(data), size * sizeof(V),
@@ -147,4 +167,4 @@ class DataStore {
 };
 
 }  // namespace difacto
-#endif /* DIFACTO_DATA_DATA_STORE_H_ */
+#endif  // DIFACTO_DATA_DATA_STORE_H_
