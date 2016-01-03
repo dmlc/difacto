@@ -219,8 +219,38 @@ class BCDLearner : public Learner {
   }
 
   void IterateFeatureBlocks(const bcd::JobArgs& job, bcd::IterFeaBlkRets* rets) {
+    CHECK(job.fea_blks.size());
+    // hint for data prefetch
+    for (int f : job.fea_blks) {
+      data_store_->NextPullHint("feaids", feablk_pos_[0][f]);
+      for (int d = 0; d < num_data_blks_; ++d) {
+        auto id = std::to_string(d) + "_";
+        data_store_->NextPullHint(id + "data", feablk_pos_[d+1][f]);
+        data_store_->NextPullHint(id + "feamap", feablk_pos_[d+1][f]);
+      }
+    }
 
+    std::vector<int> push_time;
+    //
 
+    for (size_t i = 0; i < job.fea_blks.size(); ++i) {
+      int f = job.fea_blks[i];
+      SArray<feaid_t> feaids;
+      SArray<real_t>* val = new SArray<real_t>();
+      SArray<int>* len  = new SArray<int>();
+      data_store_->Pull("feaids", &feaids, feablk_pos_[0][f]);
+      model_store_->Pull(Store::kWeight, feaids, val, len, [val, len]() {
+
+        });
+      // read data
+      int b = job.fea_blks[i];
+      auto id = std::to_string(b) + "_";
+      SArray<int> feamap;
+      data_store_->Pull(id + "feamap", &feamap, feablk_pos_[b+1]);
+      SharedRowBlockContainer<unsigned> blk;
+      data_store_->Pull(id + "data", &blk, feablk_pos_[b+1]);
+
+    }
   }
 
 
