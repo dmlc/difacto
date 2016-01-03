@@ -16,26 +16,26 @@ TEST(DataStore, MemBase) {
   gen_vals(n, -100, 100, &val2);
   gen_vals(n, -100, 100, &val3);
 
-  store.Push(1, val1.data(), val1.size());
-  store.Push(2, val2.data(), val2.size());
+  store.Push("1", val1.data(), val1.size());
+  store.Push("2", val2.data(), val2.size());
 
   SArray<real_t> ret1;
   SArray<int> ret2;
-  store.Pull(1, &ret1);
-  store.Pull(2, &ret2, Range(10,30));
+  store.Pull("1", &ret1);
+  store.Pull("2", &ret2, Range(10,30));
 
   // overwrite key
   SArray<uint64_t> ret3;
-  store.Push(1, val3.data(), val3.size());
-  store.Pull(1, &ret3);
+  store.Push("1", val3.data(), val3.size());
+  store.Pull("1", &ret3);
 
   // noncopy
   {
     SArray<int> val4(val2);
-    store.Push(4, val4);
+    store.Push("4", val4);
   }
   SArray<int> ret4;
-  store.Pull(4, &ret4);
+  store.Pull("4", &ret4);
 
   EXPECT_EQ(norm2(val1), norm2(ret1));
   EXPECT_EQ(norm2(SArray<int>(val2).segment(10, 30)), norm2(ret2));
@@ -49,13 +49,13 @@ TEST(DataStore, RowBlock) {
   auto data = iter.Value();
 
   DataStore store;
-  store.Push(1, data);
+  store.Push("1", data);
 
   SharedRowBlockContainer<feaid_t> blk1;
-  store.Pull(1, &blk1);
+  store.Pull("1", &blk1);
   check_equal(data, blk1.GetBlock());
 
   SharedRowBlockContainer<feaid_t> blk2;
-  store.Pull(1, &blk2, Range(10, 40));
+  store.Pull("1", &blk2, Range(10, 40));
   check_equal(data.Slice(10, 40), blk2.GetBlock());
 }

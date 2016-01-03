@@ -15,14 +15,6 @@ struct SharedRowBlockContainer {
   /** \brief default constructor */
   SharedRowBlockContainer() { }
   /**
-   * \brief construct by moving from a rowblockcontainer
-   * \param blk the user should NOT delete blk
-   */
-  SharedRowBlockContainer(dmlc::data::RowBlockContainer<IndexType>* blk) {
-    // TODO
-  }
-
-  /**
    * \brief construct by copying from a rowblock
    * \param blk the rowblock
    */
@@ -39,6 +31,32 @@ struct SharedRowBlockContainer {
     if (blk.value != nullptr) {
       value.CopyFrom(blk.value, nnz);
     }
+  }
+  /**
+   * \brief construct by moving from a rowblockcontainer
+   *
+   * CAUTION: advanced usage only. blk will be set nullptr after. If you only
+   * want to copy the data, use the above copying constructor
+   *
+   * \param blk the rowblock
+   */
+  SharedRowBlockContainer(dmlc::data::RowBlockContainer<IndexType>** blk) {
+    CHECK_NOTNULL(blk);
+    CHECK_NOTNULL(*blk);
+    std::shared_ptr<dmlc::data::RowBlockContainer<IndexType>> data(*blk);
+    *blk = nullptr;
+
+    // steal the data
+    offset.reset(data->offset.data(), data->offset.size(),
+                 [data](size_t* ptr) { data->offset.clear(); });
+    label.reset(data->label.data(), data->label.size(),
+                [data](real_t* ptr) { data->label.clear(); });
+    weight.reset(data->weight.data(), data->weight.size(),
+                 [data](real_t* ptr) { data->weight.clear(); });
+    index.reset(data->index.data(), data->index.size(),
+                [data](IndexType* ptr) { data->index.clear(); });
+    value.reset(data->value.data(), data->value.size(),
+                [data](real_t* ptr) { data->value.clear(); });
   }
 
   /*! \brief convert to a row block */

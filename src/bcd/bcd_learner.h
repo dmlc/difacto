@@ -90,65 +90,77 @@ class BCDLearner : public Learner {
   }
 
   void PrepareData(const bcd::JobArgs& job, bcd::PrepDataRets* rets) {
-    // read a 512MB chunk each time
-    ChunkIter reader(
-        job.filename, param_.data_format, job.part_idx, job.num_parts,
-        1<<28);
+    // read and process a 512MB chunk each time
+    ChunkIter reader(job.filename, param_.data_format,
+                     job.part_idx, job.num_parts, 1<<28);
 
     // std::vector<feaid_t> *all_ids = nullptr, *ids;
     // std::vector<real_t> *all_cnt = nullptr, *cnt;
 
-    // int nbit = param_.num_feature_group_bits;
-    // CHECK_LT(nbit, 18);
-    // std::vector<real_t> feablk_occur(1<<nbit);
-    // real_t row_counted = 0;
-    // while (reader.Next()) {
-    //   // count statistic infos
-    //   auto rowblk = reader.Value();
-    //   int skip = 10;  // only count 10% data
-    //   for (size_t i = 0; i < rowblk.size; i+=skip) {
-    //     for (size_t j = rowblk.offset[i]; j < rowblk.offset[i+1]; ++j) {
-    //       feaid_t f = rowblk.index[j];
-    //       ++feablk_occur[f-((f>>nbit)<<nbit)];
-    //     }
-    //     ++row_counted;
-    //   }
+    int nbit = param_.num_feature_group_bits;
+    CHECK_EQ(nbit % 4, 0) << "should be 0, 4, 8, ...";
+    CHECK_LE(nbit, 16);
 
-    //   // map feature id into continous intergers and transpose to easy slice a
-    //   // column block
-    //   ids = new std::vector<feaid_t>();
-    //   cnt = new std::vector<real_t>();
-    //   Localizer lc(-1, 2);
-    //   dmlc::data::RowBlockContainer<unsigned> compacted, transposed;
-    //   lc.Compact(rowblk, &compacted, ids, cnt);
-    //   SpMT::Transpose(compacted.GetBlock(), &transposed, ids->size(), 2);
+    std::vector<real_t> feablk_occur(1<<nbit);
+    real_t row_counted = 0;
+    bool first = true;
+    while (reader.Next()) {
+      // count statistic infos
+      auto rowblk = reader.Value();
+      int skip = 10;  // only count 10% data
+      for (size_t i = 0; i < rowblk.size; i+=skip) {
+        for (size_t j = rowblk.offset[i]; j < rowblk.offset[i+1]; ++j) {
+          feaid_t f = rowblk.index[j];
+          ++feablk_occur[f-((f>>nbit)<<nbit)];
+        }
+        ++row_counted;
+      }
 
-    //   int id = (num_data_blks_++) * kDataBOS_;
-    //   data_store_->Push(id, transposed.GetBlock());
-    //   data_store_->Push(id + 1, ids->data(), ids->size());
-    //   data_store_->Push(id + 2, compacted.label.data(), compacted.label.size());
+      // map feature id into continous intergers and transpose to easy slice a
+      // column block
+      std::shared_ptr<std::vector<feaid_t>> feaids(new std::vector<feaid_t>());
+      std::shared_ptr<std::vector<real_t>> feacnt(new std::vector<real_t>());
 
-    //   // merge ids and counts
-    //   if (all_ids == nullptr) {
-    //     all_ids = ids;
-    //     all_cnt = cnt;
-    //   } else {
-    //     auto old_ids = all_ids;
-    //     auto old_cnt = all_cnt;
-    //     all_ids = new std::vector<feaid_t>();
-    //     all_cnt = new std::vector<real_t>();
-    //     KVUnion(*old_ids, *old_cnt, *ids, *cnt, all_ids, all_cnt, 1, PLUS, 2);
-    //     delete old_ids;
-    //     delete old_cnt;
-    //     delete ids;
-    //     delete cnt;
-    //   }
-    // }
 
-    // if (row_counted) {
-    //   for (real_t& o : feablk_occur) o /= row_counted;
-    // }
-    // CHECK_NOTNULL(rets)->feablk_avg = feablk_occur;
+      Localizer lc(-1, 2);
+      auto compacted = new dmlc::data::RowBlockContainer<unsigned>();
+      auto transposed = new dmlc::data::RowBlockContainer<unsigned>();
+
+      lc.Compact(rowblk, compacted, feaids.get(), feacnt.get());
+      SpMT::Transpose(compacted->GetBlock(), transposed, feaids->size(), 2);
+      delete compacted;
+
+      // push into data store
+      SArray<feaid_t> sfeaids(feaids);
+      auto id = std::to_string(num_data_blks_++) + "_";
+      SharedRowBlockContainer<unsigned> data(&transposed);
+      data_store_->Push(id + "data", data);
+      data_store_->Push(id + "feaids", sfeaids);
+      data_store_->Push(id + "label", rowblk.label, rowblk.size);
+      delete transposed;
+
+      // merge ids and counts
+      SArray<real_t> sfeacnt(feacnt);
+      if (!first) {
+        SArray<feaid_t> prev_feaids, cur_feaids = sfeaids;
+        SArray<real_t> prev_feacnt, cur_feacnt = sfeacnt;
+        data_store_->Pull("feaids", &prev_feaids);
+        data_store_->Pull("feacnt", &prev_feacnt);
+        // TODO
+        // KVUNion(prev_feaids, prev_feacnt, cur_feaids, cur_feacnt,
+        // &sfeaids, &sfeacnt, 1, PLUS, 2);
+      } else {
+        first = false;
+      }
+      data_store_->Push("feaids", sfeaids);
+      data_store_->Push("feacnt", sfeacnt);
+    }
+
+    // report statistics to the scheduler
+    if (row_counted) {
+      for (real_t& o : feablk_occur) o /= row_counted;
+    }
+    CHECK_NOTNULL(rets)->feablk_avg = feablk_occur;
   }
 
   void BuildFeatureMap(const bcd::JobArgs& job) {

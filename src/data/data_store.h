@@ -37,23 +37,10 @@ class DataStore {
    * @param size the data size
    */
   template <typename V>
-  void Push(int key, const V* data, size_t size) {
+  void Push(const std::string& key, const V* data, size_t size) {
     ps::SArray<V> sdata; sdata.CopyFrom(data, size);
     Push(key, sdata);
   }
-
-  // /**
-  //  * \brief push data into the store. no data copy. overwrite the previous data
-  //  * if key exists.
-  //  *
-  //  * @param key the unique key
-  //  * @param data the data
-  //  */
-  // template <typename V>
-  // void Push(int key, const std::shared_ptr<std::vector<V>>& data) {
-  //   ps::SArray<V> sdata(data);
-  //   Push(key, sdata);
-  // }
 
   /**
    * \brief push data into the store.no data copy. overwrite the previous data
@@ -63,8 +50,12 @@ class DataStore {
    * @param data the data
    */
   template <typename V>
-  void Push(int key, const SArray<V>& data) {
-    Push_(std::to_string(key), data);
+  void Push(const std::string& key, const SArray<V>& data) {
+    DataType type;
+    type.code = typeid(V).hash_code();
+    type.size = sizeof(V);
+    data_types_[key] = type;
+    store_->Push(key, SArray<char>(data));
   }
   /**
    * \brief pull data from the store
@@ -83,8 +74,12 @@ class DataStore {
    * @return the data
    */
   template <typename V>
-  void Pull(int key, SArray<V>* data, Range range = Range::All()) {
-    Pull_(std::to_string(key), range, data);
+  void Pull(const std::string& key, SArray<V>* data, Range range = Range::All()) {
+    auto char_range = GetCharRange(key, range);
+    CHECK_EQ(data_types_[key].code, typeid(V).hash_code());
+    SArray<char> char_data;
+    store_->Pull(key, char_range, &char_data);
+    *CHECK_NOTNULL(data) = char_data;
   }
   /**
    * \brief give a hit to the store what will be pulled next.
@@ -93,7 +88,7 @@ class DataStore {
    * @param key the unique key
    * @param range an optional range
    */
-  virtual void NextPullHint(int key, Range range = Range::All()) {
+  virtual void NextPullHint(const std::string& key, Range range = Range::All()) {
     if (IsRowBlockKey(key)) {
       auto keys = GetRowBlockKeys(key);
       Range rg1 = range == Range::All() ? range
@@ -107,21 +102,20 @@ class DataStore {
       store_->Prefetch(keys[1], GetCharRange(keys[1], range));
       store_->Prefetch(keys[2], GetCharRange(keys[2], range));
     } else {
-      auto skey = std::to_string(key);
-      store_->Prefetch(skey, GetCharRange(skey, range));
+      store_->Prefetch(key, GetCharRange(key, range));
     }
   }
   /**
    * \brief remove data from the store
    * \param key the unique key of the data
    */
-  virtual void Remove(int key) {
+  virtual void Remove(const std::string& key) {
     if (IsRowBlockKey(key)) {
       for (const auto& s : GetRowBlockKeys(key)) {
         store_->Remove(s);
       }
     } else {
-      store_->Remove(std::to_string(key));
+      store_->Remove(key);
     }
   }
   /**
@@ -131,7 +125,7 @@ class DataStore {
    * @param data the rowblock
    */
   template <typename T>
-  void Push(int key, const dmlc::RowBlock<T>& data) {
+  void Push(const std::string& key, const dmlc::RowBlock<T>& data) {
     SharedRowBlockContainer<T> blk(data);
     Push(key, blk);
   }
@@ -142,15 +136,15 @@ class DataStore {
    * @param data the rowblock container
    */
   template <typename T>
-  void Push(int key, const SharedRowBlockContainer<T>& data) {
+  void Push(const std::string& key, const SharedRowBlockContainer<T>& data) {
     rowblk_keys_.insert(key);
     CHECK_EQ(data.offset[0], 0);
     auto keys = GetRowBlockKeys(key);
-    Push_(keys[0], data.offset);
-    Push_(keys[1], data.label);
-    Push_(keys[2], data.weight);
-    Push_(keys[3], data.index);
-    Push_(keys[4], data.value);
+    Push(keys[0], data.offset);
+    Push(keys[1], data.label);
+    Push(keys[2], data.weight);
+    Push(keys[3], data.index);
+    Push(keys[4], data.value);
   }
   /**
    * \brief pull rowblock from the store
@@ -160,51 +154,34 @@ class DataStore {
    * @param data the pulled data
    */
   template <typename T>
-  void Pull(int key, SharedRowBlockContainer<T>* data, Range range = Range::All()) {
+  void Pull(const std::string& key, SharedRowBlockContainer<T>* data,
+            Range range = Range::All()) {
     CHECK_NOTNULL(data);
     CHECK(IsRowBlockKey(key));
     auto keys = GetRowBlockKeys(key);
     Range rg1 = range == Range::All() ? range
                 : Range(range.begin, range.end+1);
-    Pull_(keys[0], rg1, &data->offset);
-    Pull_(keys[1], range, &data->label);
-    Pull_(keys[2], range, &data->weight);
+    Pull(keys[0], &data->offset, rg1);
+    Pull(keys[1], &data->label, range);
+    Pull(keys[2], &data->weight, range);
     Range rg3 = Range(data->offset[0], data->offset.back());
-    Pull_(keys[3], rg3, &data->index);
-    Pull_(keys[4], rg3, &data->value);
+    Pull(keys[3], &data->index, rg3);
+    Pull(keys[4], &data->value, rg3);
   }
 
  private:
-  template <typename V>
-  void Push_(const std::string& key, const SArray<V>& data) {
-    DataType type;
-    type.code = typeid(V).hash_code();
-    type.size = sizeof(V);
-    data_types_[key] = type;
-    store_->Push(key, SArray<char>(data));
-  }
-  template <typename V>
-  void Pull_(const std::string& key, Range range, SArray<V>* data) {
-    auto char_range = GetCharRange(key, range);
-    CHECK_EQ(data_types_[key].code, typeid(V).hash_code());
-    SArray<char> char_data;
-    store_->Pull(key, char_range, &char_data);
-    *CHECK_NOTNULL(data) = char_data;
+  std::vector<std::string> GetRowBlockKeys(const std::string& key) {
+    return {key+"_offset", key+"_label", key+"_weight", key+"_index", key+"_value"};
   }
 
-  std::vector<std::string> GetRowBlockKeys(int key) {
-    std::string skey = std::to_string(key) + "_";
-    return {skey+"offset", skey+"label", skey+"weight", skey+"index", skey+"value"};
-  }
-
-  inline bool IsRowBlockKey(int key) { return rowblk_keys_.count(key) != 0; }
+  inline bool IsRowBlockKey(const std::string& key) { return rowblk_keys_.count(key) != 0; }
 
   inline Range GetCharRange(const std::string& key, Range range) {
     auto it = data_types_.find(key);
     CHECK(it != data_types_.end()) << "key " << key << " dosen't exist";
     return (range == Range::All() ? range : range * it->second.size);
   }
-  std::unordered_set<int> rowblk_keys_;
+  std::unordered_set<std::string> rowblk_keys_;
   struct DataType { size_t code; size_t size; };
   std::unordered_map<std::string, DataType> data_types_;
   DataStoreImpl* store_;
