@@ -34,18 +34,13 @@ size_t KVMatchRefer (
   return matched;
 }
 
-std::uniform_int_distribution<int> dist_val(0, 1000);
-
 void test(int n, int k) {
   std::vector<uint32_t> key1, key2;
-  std::vector<int> val1, val2, val3;
+  std::vector<real_t> val1, val2, val3;
 
   gen_keys(n, n*10, &key1);
   gen_keys(n, n*10, &key2);
-  for (size_t i = 0; i < key1.size(); ++i) {
-    for (int j = 0; j < k; ++j)
-      val1.push_back(dist_val(generator));
-  }
+  gen_vals(key1.size()*k, -100, 100, &val1);
 
   size_t ret2 = KVMatchRefer(key1, val1, key2, &val3, k);
   size_t ret1 = KVMatch(key1, val1, key2, &val2, k, ASSIGN, 4);

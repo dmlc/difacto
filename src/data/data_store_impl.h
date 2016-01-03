@@ -12,8 +12,8 @@ namespace difacto {
 
 class DataStoreImpl {
  public:
-  DataStoreImpl();
-  virtual ~DataStoreImpl();
+  DataStoreImpl() { }
+  virtual ~DataStoreImpl() { }
   /**
    * \brief push a data into the store
    *
@@ -62,14 +62,11 @@ class DataStoreMemory : public DataStoreImpl {
 
   void Pull(const std::string& key, Range range, SArray<char>* data) override {
     auto it = store_.find(key);
-    if (it == store_.end()) {
-      *CHECK_NOTNULL(data) = SArray<char>();
+    CHECK(it != store_.end());
+    if (range == Range::All() || it->second.empty()) {
+      *CHECK_NOTNULL(data) = it->second;
     } else {
-      if (range == Range::All()) {
-        *CHECK_NOTNULL(data) = it->second;
-      } else {
-        *CHECK_NOTNULL(data) = it->second.segment(range.begin, range.end);
-      }
+      *CHECK_NOTNULL(data) = it->second.segment(range.begin, range.end);
     }
   }
   void Prefetch(const std::string& key, Range range, Callback on_complete) override {

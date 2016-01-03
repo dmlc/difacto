@@ -1,16 +1,61 @@
 #include <gtest/gtest.h>
 #include "data/data_store.h"
+#include "data/batch_iter.h"
 #include "./utils.h"
 
-TEST(DataStore, Base) {
+using namespace difacto;
 
-  std::vector<float>* a = new std::vector<float>();
-  void* b = reinterpret_cast<void*>(a);
-  std::vector<float>* c = reinterpret_cast<std::vector<float>*>(b);
+TEST(DataStore, MemBase) {
+  DataStore store;
+  int n = 1000;
+  std::vector<real_t> val1;
+  std::vector<int> val2;
+  std::vector<uint64_t> val3;
 
-  std::shared_ptr<std::vector<float>> f;
-  std::shared_ptr<char> d;
-  d = std::shared_ptr<char>(f, (char*)f->data());
-  // d = std::make_shared<void>(new std::vector<float>());
+  gen_vals(n, -100, 100, &val1);
+  gen_vals(n, -100, 100, &val2);
+  gen_vals(n, -100, 100, &val3);
 
+  store.Push(1, val1.data(), val1.size());
+  store.Push(2, val2.data(), val2.size());
+
+  SArray<real_t> ret1;
+  SArray<int> ret2;
+  store.Pull(1, &ret1);
+  store.Pull(2, &ret2, Range(10,30));
+
+  // overwrite key
+  SArray<uint64_t> ret3;
+  store.Push(1, val3.data(), val3.size());
+  store.Pull(1, &ret3);
+
+  // noncopy
+  {
+    SArray<int> val4(val2);
+    store.Push(4, val4);
+  }
+  SArray<int> ret4;
+  store.Pull(4, &ret4);
+
+  EXPECT_EQ(norm2(val1), norm2(ret1));
+  EXPECT_EQ(norm2(SArray<int>(val2).segment(10, 30)), norm2(ret2));
+  EXPECT_EQ(norm2(val3), norm2(ret3));
+  EXPECT_EQ(norm2(val2), norm2(ret4));
+}
+
+TEST(DataStore, RowBlock) {
+  BatchIter iter("../tests/data", "libsvm", 0, 1, 100);
+  CHECK(iter.Next());
+  auto data = iter.Value();
+
+  DataStore store;
+  store.Push(1, data);
+
+  SharedRowBlockContainer<feaid_t> blk1;
+  store.Pull(1, &blk1);
+  check_equal(data, blk1.GetBlock());
+
+  SharedRowBlockContainer<feaid_t> blk2;
+  store.Pull(1, &blk2, Range(10, 40));
+  check_equal(data.Slice(10, 40), blk2.GetBlock());
 }

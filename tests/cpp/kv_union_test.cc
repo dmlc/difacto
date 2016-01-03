@@ -46,22 +46,13 @@ void KVUnionRefer (
   }
 }
 
-std::uniform_int_distribution<int> dist_val(0, 1000);
-
 void test(int n, int k) {
   std::vector<uint32_t> key1, key2, jkey1, jkey2;
-  std::vector<int> val1, val2, jval1, jval2;
+  std::vector<real_t> val1, val2, jval1, jval2;
   gen_keys(n, n*10, &key1);
   gen_keys(n, n*10, &key2);
-  for (size_t i = 0; i < key1.size(); ++i) {
-    for (int j = 0; j < k; ++j)
-      val1.push_back(dist_val(generator));
-  }
-  for (size_t i = 0; i < key2.size(); ++i) {
-    for (int j = 0; j < k; ++j)
-      val2.push_back(dist_val(generator));
-  }
-
+  gen_vals(key1.size()*k, -100, 100, &val1);
+  gen_vals(key2.size()*k, -100, 100, &val2);
 
   KVUnion(key1, val1, key2, val2, &jkey1, &jval1, k, PLUS, 4);
   KVUnionRefer(key1, val1, key2, val2, &jkey2, &jval2, k);

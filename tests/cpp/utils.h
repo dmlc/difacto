@@ -5,7 +5,12 @@
 #include <algorithm>
 #include <math.h>
 #include <sstream>
+#include "dmlc/data.h"
+#include "difacto/base.h"
 namespace difacto {
+
+template <typename T>
+using RowBlock = dmlc::RowBlock<T>;
 
 /**
  * \brief returns the sum of a a vector
@@ -27,6 +32,7 @@ T norm1(T const* data, int len) {
   return norm;
 }
 
+
 /**
  * \brief return l2 norm of a vector
  */
@@ -36,6 +42,12 @@ double norm2(T const* data, int len) {
   for (int i = 0; i < len; ++i) norm += data[i] * data[i];
   return norm;
 }
+
+template <typename T>
+double norm2(const T& data) {
+  return norm2(data.data(), data.size());
+}
+
 
 std::default_random_engine generator;
 
@@ -56,6 +68,41 @@ void gen_keys(int key_len, uint32_t max_key, std::vector<uint32_t>* key) {
   key->resize(std::distance(key->begin(), end));
 }
 
+/**
+ * \brief generate a list of random values
+ *
+ * @param len the length
+ * @param max_val random value in [min_val, max_val)
+ * @param val results
+ */
+template <typename V>
+void gen_vals(int len, real_t min_val, real_t max_val, std::vector<V>* val) {
+  val->resize(len);
+  std::uniform_real_distribution<real_t> dis(min_val, max_val);
+  for (int i = 0; i < len; ++i) {
+    val->at(i) = static_cast<V>(dis(generator));
+  }
+}
+
+/**
+ * \brief check a == b
+ */
+template <typename T>
+void check_equal(RowBlock<T> a, RowBlock<T> b) {
+  EXPECT_EQ(a.size, b.size);
+  EXPECT_EQ(a.label != nullptr, b.label != nullptr);
+  EXPECT_EQ(norm1(a.offset, a.size+1), norm1(b.offset, b.size+1));
+  if (a.label) {
+    EXPECT_EQ(norm1(a.label, a.size), norm1(b.label, b.size));
+  }
+  size_t nnz = a.offset[a.size] - a.offset[0];
+  EXPECT_EQ(nnz, b.offset[b.size] - b.offset[0]);
+  EXPECT_EQ(norm1(a.index, nnz), norm1(b.index, nnz));
+  EXPECT_EQ(a.value != nullptr, b.value != nullptr);
+  if (a.value) {
+    EXPECT_EQ(norm2(a.value, nnz), norm2(b.value, nnz));
+  }
+}
 }  // namespace difacto
 
 #endif  // DIFACTO_TEST_CPP_UTILS_H_

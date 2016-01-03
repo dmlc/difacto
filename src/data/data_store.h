@@ -20,15 +20,15 @@ class DataStore {
   /**
    * \brief create a data store
    *
-   * @param store_prefix the prefix to store the data store, such as /tmp/store_
-   * @param max_mem_capacity the maximal memory it can used
+   * @param store_prefix the prefix to store the data store, such as
+   * /tmp/store_. If not specified, then keep all things in memory
+   * @param max_mem_capacity the maximal memory it can used. in default no limits
    */
-  DataStore(const std::string& store_prefix, size_t max_mem_capacity) {
+  DataStore(const std::string& store_prefix = "", size_t max_mem_capacity = -1) {
     store_ = new DataStoreMemory();
   }
-
+  /** \brief deconstructor */
   ~DataStore() { delete store_; }
-
   /**
    * \brief copy data into the store, overwrite the previous data if key exists.
    *
@@ -42,18 +42,18 @@ class DataStore {
     Push(key, sdata);
   }
 
-  /**
-   * \brief push data into the store. no data copy. overwrite the previous data
-   * if key exists.
-   *
-   * @param key the unique key
-   * @param data the data
-   */
-  template <typename V>
-  void Push(int key, const std::shared_ptr<std::vector<V>>& data) {
-    ps::SArray<V> sdata(data);
-    Push(key, sdata);
-  }
+  // /**
+  //  * \brief push data into the store. no data copy. overwrite the previous data
+  //  * if key exists.
+  //  *
+  //  * @param key the unique key
+  //  * @param data the data
+  //  */
+  // template <typename V>
+  // void Push(int key, const std::shared_ptr<std::vector<V>>& data) {
+  //   ps::SArray<V> sdata(data);
+  //   Push(key, sdata);
+  // }
 
   /**
    * \brief push data into the store.no data copy. overwrite the previous data
@@ -64,13 +64,8 @@ class DataStore {
    */
   template <typename V>
   void Push(int key, const SArray<V>& data) {
-    DataType type;
-    type.code = typeid(V).hash_code();
-    type.size = sizeof(V);
-    data_types_[key] = type;
-    store_->Push(std::to_string(key), data);
+    Push_(std::to_string(key), data);
   }
-
   /**
    * \brief pull data from the store
    *
@@ -89,14 +84,8 @@ class DataStore {
    */
   template <typename V>
   void Pull(int key, SArray<V>* data, Range range = Range::All()) {
-    auto it = data_types_.find(key);
-    CHECK(it != data_types_.end()) << "key " << key << " dosen't exist";
-    CHECK_EQ(it->second.code, typeid(V).hash_code());
-    SArray<char> cdata;
-    store_->Pull(std::to_string(key), GetCharRange(key, range), &cdata);
-    *CHECK_NOTNULL(data) = cdata;
+    Pull_(std::to_string(key), range, data);
   }
-
   /**
    * \brief give a hit to the store what will be pulled next.
    *
@@ -111,18 +100,17 @@ class DataStore {
                   : Range(range.begin, range.end+1) * sizeof(size_t);
       store_->Prefetch(keys[0], rg1, [this, key, keys, range](const SArray<char>& data) {
           SArray<size_t> offset(data);
-          Range rg3 = Range(offset[0], offset.back());
-          store_->Prefetch(keys[3], GetCharRange(key, rg3));
-          store_->Prefetch(keys[4], rg3 * sizeof(real_t));
+          Range rg = Range(offset.front(), offset.back());
+          store_->Prefetch(keys[3], GetCharRange(keys[3], rg));
+          store_->Prefetch(keys[4], GetCharRange(keys[4], rg));
         });
-      Range rg2 = range == Range::All() ? range : range * sizeof(real_t);
-      store_->Prefetch(keys[1], rg2);
-      store_->Prefetch(keys[2], rg2);
+      store_->Prefetch(keys[1], GetCharRange(keys[1], range));
+      store_->Prefetch(keys[2], GetCharRange(keys[2], range));
     } else {
-      store_->Prefetch(std::to_string(key), GetCharRange(key, range));
+      auto skey = std::to_string(key);
+      store_->Prefetch(skey, GetCharRange(skey, range));
     }
   }
-
   /**
    * \brief remove data from the store
    * \param key the unique key of the data
@@ -136,7 +124,6 @@ class DataStore {
       store_->Remove(std::to_string(key));
     }
   }
-
   /**
    * \brief copy a rowblock into the store
    *
@@ -148,7 +135,6 @@ class DataStore {
     SharedRowBlockContainer<T> blk(data);
     Push(key, blk);
   }
-
   /**
    * \brief push a shared rowblock container into the store (no memory copy)
    *
@@ -157,20 +143,15 @@ class DataStore {
    */
   template <typename T>
   void Push(int key, const SharedRowBlockContainer<T>& data) {
-    DataType type;
-    type.code = typeid(T).hash_code();
-    type.size = sizeof(T);
-    data_types_[key] = type;
     rowblk_keys_.insert(key);
     CHECK_EQ(data.offset[0], 0);
     auto keys = GetRowBlockKeys(key);
-    store_->Push(keys[0], data.offset);
-    store_->Push(keys[1], data.label);
-    store_->Push(keys[2], data.weight);
-    store_->Push(keys[3], data.index);
-    store_->Push(keys[4], data.value);
+    Push_(keys[0], data.offset);
+    Push_(keys[1], data.label);
+    Push_(keys[2], data.weight);
+    Push_(keys[3], data.index);
+    Push_(keys[4], data.value);
   }
-
   /**
    * \brief pull rowblock from the store
    *
@@ -184,30 +165,48 @@ class DataStore {
     CHECK(IsRowBlockKey(key));
     auto keys = GetRowBlockKeys(key);
     Range rg1 = range == Range::All() ? range
-                : Range(range.begin, range.end+1) * sizeof(size_t);
-    store_->Pull(keys[0], rg1, &data->offset);
-    Range rg2 = range == Range::All() ? range : range * sizeof(real_t);
-    store_->Pull(keys[1], rg2, &data->label);
-    store_->Pull(keys[2], rg2, &data->weight);
+                : Range(range.begin, range.end+1);
+    Pull_(keys[0], rg1, &data->offset);
+    Pull_(keys[1], range, &data->label);
+    Pull_(keys[2], range, &data->weight);
     Range rg3 = Range(data->offset[0], data->offset.back());
-    store_->Pull(keys[3], rg3 * sizeof(T), &data->index);
-    store_->Pull(keys[4], rg3 * sizeof(real_t), &data->value);
+    Pull_(keys[3], rg3, &data->index);
+    Pull_(keys[4], rg3, &data->value);
   }
 
  private:
+  template <typename V>
+  void Push_(const std::string& key, const SArray<V>& data) {
+    DataType type;
+    type.code = typeid(V).hash_code();
+    type.size = sizeof(V);
+    data_types_[key] = type;
+    store_->Push(key, SArray<char>(data));
+  }
+  template <typename V>
+  void Pull_(const std::string& key, Range range, SArray<V>* data) {
+    auto char_range = GetCharRange(key, range);
+    CHECK_EQ(data_types_[key].code, typeid(V).hash_code());
+    SArray<char> char_data;
+    store_->Pull(key, char_range, &char_data);
+    *CHECK_NOTNULL(data) = char_data;
+  }
+
   std::vector<std::string> GetRowBlockKeys(int key) {
     std::string skey = std::to_string(key) + "_";
     return {skey+"offset", skey+"label", skey+"weight", skey+"index", skey+"value"};
   }
+
   inline bool IsRowBlockKey(int key) { return rowblk_keys_.count(key) != 0; }
-  inline Range GetCharRange(int key, Range range) {
+
+  inline Range GetCharRange(const std::string& key, Range range) {
     auto it = data_types_.find(key);
     CHECK(it != data_types_.end()) << "key " << key << " dosen't exist";
     return (range == Range::All() ? range : range * it->second.size);
   }
   std::unordered_set<int> rowblk_keys_;
   struct DataType { size_t code; size_t size; };
-  std::unordered_map<int, DataType> data_types_;
+  std::unordered_map<std::string, DataType> data_types_;
   DataStoreImpl* store_;
 };
 
