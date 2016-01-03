@@ -178,7 +178,7 @@ size_t KVMatch(
   // shorten the matching range
   Range range = FindRange(dst_key, src_key.front(), src_key.back()+1);
   size_t grainsize = std::max(range.Size() * val_len / num_threads + 5,
-                              (size_t)1024*1024);
+                              (uint64_t)1024*1024);
   size_t n = 0;
   KVMatch<K, V>(
       src_key.data(), src_key.data() + src_key.size(), src_val.data(),

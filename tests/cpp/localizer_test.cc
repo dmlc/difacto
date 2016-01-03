@@ -20,8 +20,8 @@ TEST(Localizer, Base) {
 
   for (auto& i : uidx) i = ReverseBytes(i);
 
-  EXPECT_EQ(norm1(uidx.data(), uidx.size()), 65111856);
-  EXPECT_EQ(norm1(freq.data(), freq.size()), 9648);
+  EXPECT_EQ(norm1(uidx.data(), uidx.size()), (uint32_t)65111856);
+  EXPECT_EQ(norm1(freq.data(), freq.size()), (real_t)9648);
   EXPECT_EQ(norm1(iter.Value().offset, size+1),
             norm1(batch.offset, size+1));
   EXPECT_EQ(norm2(iter.Value().value, batch.offset[size]),
@@ -42,7 +42,7 @@ TEST(Localizer, BaseHash) {
 
   for (auto& i : uidx) i = ReverseBytes(i);
 
-  EXPECT_EQ(norm1(uidx.data(), uidx.size()), 478817);
+  EXPECT_EQ(norm1(uidx.data(), uidx.size()), (uint32_t)478817);
   EXPECT_EQ(norm1(freq.data(), freq.size()), 9648);
   EXPECT_EQ(norm1(iter.Value().offset, size+1),
             norm1(batch.offset, size+1));

@@ -33,7 +33,8 @@ struct JobArgs {
   /** \brief the order to process feature blocks */
   std::vector<int> fea_blks;
 
-  std::vector<std::pair<int, int>> fea_grps;
+  /** \brief the ID range of each feature block */
+  std::vector<Range> fea_blk_ranges;
 };
 
 struct PrepDataRets {

@@ -1,5 +1,6 @@
 #ifndef _BCD_UTILS_H_
 #define _BCD_UTILS_H_
+#include "difacto/sarray.h"
 namespace difacto {
 namespace bcd {
 
@@ -23,7 +24,7 @@ void PartitionFeatureSpace(int fea_grp_nbits,
  * @param fea_blks
  * @param positions
  */
-void FindPosition(const std::vector<feaid_t>& fea_ids,
+void FindPosition(const SArray<feaid_t>& fea_ids,
                   const std::vector<Range>& fea_blks,
                   std::vector<Range>* positions) {
 

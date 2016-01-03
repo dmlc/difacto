@@ -9,6 +9,7 @@
 #include "./base.h"
 #include "dmlc/io.h"
 #include "dmlc/parameter.h"
+#include "./sarray.h"
 namespace difacto {
 
 struct StoreParam : public dmlc::Parameter<StoreParam> {
@@ -76,6 +77,13 @@ class Store {
                    const std::shared_ptr<std::vector<int>>& lens,
                    const std::function<void()>& on_complete = nullptr) = 0;
 
+  virtual int Push(int sync_type,
+                   const SArray<feaid_t>& fea_ids,
+                   const SArray<real_t>& vals,
+                   const SArray<int>& lens,
+                   const std::function<void()>& on_complete = nullptr)  {
+
+  }
   /**
    * \brief pull the values for a list of feature ids
    *
@@ -93,6 +101,14 @@ class Store {
                    std::vector<int>* lens,
                    const std::function<void()>& on_complete = nullptr) = 0;
 
+  virtual int Pull(int sync_type,
+                   const SArray<feaid_t>& fea_ids,
+                   SArray<real_t>* vals,
+                   SArray<int>* lens,
+                   const std::function<void()>& on_complete = nullptr) {
+
+  }
+  /**
   /**
    * \brief wait until a push or a pull is actually finished
    *

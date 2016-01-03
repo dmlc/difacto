@@ -9,6 +9,7 @@
 #include "common/spmt.h"
 #include "./bcd_param.h"
 #include "./bcd_job.h"
+#include "./bcd_utils.h"
 namespace difacto {
 
 class BCDLearner : public Learner {
@@ -103,7 +104,8 @@ class BCDLearner : public Learner {
 
     std::vector<real_t> feablk_occur(1<<nbit);
     real_t row_counted = 0;
-    bool first = true;
+    SArray<feaid_t> all_feaids;
+    SArray<real_t> all_feacnts;
     while (reader.Next()) {
       // count statistic infos
       auto rowblk = reader.Value();
@@ -140,21 +142,26 @@ class BCDLearner : public Learner {
       delete transposed;
 
       // merge ids and counts
-      SArray<real_t> sfeacnt(feacnt);
-      if (!first) {
-        SArray<feaid_t> prev_feaids, cur_feaids = sfeaids;
-        SArray<real_t> prev_feacnt, cur_feacnt = sfeacnt;
-        data_store_->Pull("feaids", &prev_feaids);
-        data_store_->Pull("feacnt", &prev_feacnt);
-        // TODO
-        // KVUNion(prev_feaids, prev_feacnt, cur_feaids, cur_feacnt,
-        // &sfeaids, &sfeacnt, 1, PLUS, 2);
+      SArray<real_t> sfeacnts(feacnt);
+      if (all_feaids.empty()) {
+        all_feaids = sfeaids;
+        all_feacnts = sfeacnts;
       } else {
-        first = false;
+        SArray<feaid_t> new_feaids;
+        SArray<real_t> new_feacnts;
+        // TODO
+        // KVUNion(sfeaids, sfeacnts, all_feaids, all_feacnts,
+        // &new_feaids, &new_feacnts, 1, PLUS, 2);
+        all_feaids = new_feaids;
+        all_feacnts = new_feacnts;
       }
-      data_store_->Push("feaids", sfeaids);
-      data_store_->Push("feacnt", sfeacnt);
     }
+
+    // push the feature ids and feature counts to the servers
+    data_store_->Push("feaids", all_feaids);
+    int t = model_store_->Push(
+        Store::kFeaCount, all_feaids, all_feacnts, SArray<int>());
+    model_store_->Wait(t);
 
     // report statistics to the scheduler
     if (row_counted) {
@@ -164,47 +171,51 @@ class BCDLearner : public Learner {
   }
 
   void BuildFeatureMap(const bcd::JobArgs& job) {
-    // // pull the feature count from the servers
-    // std::vector<real_t> cnts;
-    // std::vector<int> lens;
-    // int t = model_store_->Pull(Store::kFeaCount, fea_ids_, &cnts, &lens);
-    // model_store_->Wait(t);
+    // pull the aggregated feature counts from the servers
+    SArray<feaid_t> feaids;
+    data_store_->Pull("feaids", &feaids);
+    SArray<real_t> feacnt;
+    int t = model_store_->Pull(Store::kFeaCount, feaids, &feacnt, nullptr);
+    model_store_->Wait(t);
 
-    // // remove the filtered features
-    // std::vector<feaid_t>* filtered = new std::vector<feaid_t>();
-    // CHECK_EQ(cnts.size(), fea_ids_->size());
-    // for (size_t i = 0; i < fea_ids_->size(); ++i) {
-    //   if (cnts[i] > param_.tail_feature_filter) {
-    //     filtered->push_back(fea_ids_->at(i));
-    //   }
-    // }
-    // // fea_ids_.reset(filtered);
-    // std::vector<int> map_idx(filtered->size());
-    // for (size_t i = 0; i < map_idx.size(); ++i) {
-    //   map_idx[i] = i + 1;
-    // }
+    // remove the filtered features
+    SArray<feaid_t> filtered;
+    CHECK_EQ(feacnt.size(), feaids.size());
+    for (size_t i = 0; i < feaids.size(); ++i) {
+      if (feacnt[i] > param_.tail_feature_filter) {
+        filtered.push_back(feaids[i]);
+      }
+    }
+    data_store_->Push("feaids", filtered);
 
-    // // build the map for each data block
-    // for (int b = 0; b < num_data_blks_; ++b) {
-    //   int id = b * kDataBOS_ + 1;
-    //   data_store_->NextPullHint(id);
-    // }
-    // for (int b = 0; b < num_data_blks_; ++b) {
-    //   int id = b * kDataBOS_ + 1;
-    //   feaid_t* tmp;
-    //   size_t n = data_store_->Pull(id, &tmp);
-    //   std::vector<int> blk_map(n);
-    //   std::vector<feaid_t> blk_fea(n);
-    //   memcpy(blk_fea.data(), tmp, n * sizeof(feaid_t));
-    //   data_store_->Remove(id);
+    // partition feature space and save the feature block locations
+    int nbit = param_.num_feature_group_bits;
+    feablk_pos_.resize(num_data_blks_ + 1);
+    CHECK(job.fea_blk_ranges.size());
+    bcd::FindPosition(filtered, job.fea_blk_ranges, &feablk_pos_[0]);
 
-    //   KVMatch(*filtered, map_idx, blk_fea, &blk_map, 1, ASSIGN, 2);
-    //   for (int& m : blk_map) --m;
-    //   // data_store_->Push(id, blk_map.data());
-    // }
+    // build the map for each data block
+    SArray<int> map_idx(filtered.size());
+    for (size_t i = 0; i < map_idx.size(); ++i) {
+      map_idx[i] = i + 1;
+    }
+    for (int b = 0; b < num_data_blks_; ++b) {
+      auto id = std::to_string(b) + "_";
+      data_store_->NextPullHint(id + "feaids");
+    }
+    for (int b = 0; b < num_data_blks_; ++b) {
+      auto id = std::to_string(b) + "_";
+      SArray<feaid_t> blk_feaids;
+      data_store_->Pull(id + "feaids", &blk_feaids);
+      data_store_->Remove(id + "feaids");
+      bcd::FindPosition(blk_feaids, job.fea_blk_ranges, &feablk_pos_[b+1]);
 
-    // // store the feature block positions
-
+      SArray<int> blk_feamap;
+      // TODO
+      // KVMatch(filtered, map_idx, blk_feaids, &blk_feamap, 1, ASSIGN, 2);
+      for (int& m : blk_feamap) --m;
+      data_store_->Push(id + "feamap", blk_feamap);
+    }
   }
 
   void IterateFeatureBlocks(const bcd::JobArgs& job, bcd::IterFeaBlkRets* rets) {
@@ -228,8 +239,7 @@ class BCDLearner : public Learner {
   /** \brief parameters */
   BCDLearnerParam param_;
 
-  std::vector<Range> feablk_range_;
-  std::shared_ptr<std::vector<feaid_t>> fea_ids_;
+  std::vector<std::vector<Range>> feablk_pos_;
 };
 
 }  // namespace difacto
