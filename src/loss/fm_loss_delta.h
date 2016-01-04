@@ -1,6 +1,6 @@
 #ifndef _FM_LOSS_DELTA_H_
 #define _FM_LOSS_DELTA_H_
-
+#include "difacto/loss.h"
 #include "difacto/sarray.h"
 namespace difacto {
 
@@ -8,7 +8,7 @@ namespace difacto {
  * \brief the FM loss, different to \ref FMLoss, \ref FMLossDelta is feeded with
  * delta weight, and tranpose of X, each time
  */
-class FMLossDelta {
+class FMLossDelta : public Loss {
  public:
   /** \brief constructor */
   FMLossDelta() { }
@@ -16,7 +16,7 @@ class FMLossDelta {
   virtual ~FMLossDelta() { }
 
 
-  KWArgs Init(const KWArgs& kwargs) {
+  KWArgs Init(const KWArgs& kwargs) override {
   }
 
   /**
@@ -29,7 +29,7 @@ class FMLossDelta {
    */
   void CalcGrad(const dmlc::RowBlock<unsigned>& data,
                 const std::vector<SArray<char>>& param,
-                SArray<real_t>* grad) {
+                SArray<real_t>* grad) override {
 
   }
 
@@ -44,7 +44,7 @@ class FMLossDelta {
    */
   void Predict(const dmlc::RowBlock<unsigned>& data,
                const std::vector<SArray<char>>& param,
-               SArray<real_t>* pred) {
+               SArray<real_t>* pred) override {
 
   }
 

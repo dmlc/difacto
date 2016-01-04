@@ -9,8 +9,8 @@
 #include <vector>
 #include "./base.h"
 #include "dmlc/data.h"
+#include "./sarray.h"
 namespace difacto {
-
 /**
  * \brief the basic class of a loss function
  */
@@ -25,7 +25,6 @@ class Loss {
   Loss() { }
   /** \brief deconstructor */
   virtual ~Loss() { }
-
   /**
    * \brief init the loss function
    *
@@ -33,43 +32,25 @@ class Loss {
    * @return the unknown kwargs
    */
   virtual KWArgs Init(const KWArgs& kwargs) = 0;
-
   /**
-   * \brief init the loss with data
+   * \brief predict given the data and model weights. often known as "forward"
    *
-   * @param data X and Y
-   * @param weights the weight entries
-   * @param weight_lens the weight entry size. the i-th element is the length of
-   * the i-th weight. could be empty
+   * @param data the data
+   * @param param model weights
+   * @return pred the predict results
    */
-  virtual void InitData(const dmlc::RowBlock<unsigned>& data,
-                        const std::vector<real_t>& weights,
-                        const std::vector<int>& weight_lens) = 0;
+  virtual void Predict(const dmlc::RowBlock<unsigned>& data,
+                       const std::vector<SArray<char>>& param,
+                       SArray<real_t>* pred) = 0;
   /**
-   * \brief evaluate the progress
-   * \param prog the output progress
+   * \brief calculate gradient given the data and model weights. often known as "backward"
+   * @param data the data
+   * @param param model weights
+   * @return grad the gradients
    */
-  // virtual void Evaluate(Progress* prog) = 0;
-
-  /*!
-   * \brief compute the gradients
-   * \param grad the output gradients. grad could be empty.
-   */
-  virtual void CalcGrad(std::vector<real_t>* grad) = 0;
-
-  /**
-   * \brief predict
-   * \return the prediction results, whose length should be equal to the
-   * number of examples in \ref data
-   */
-  virtual const std::vector<real_t>& Predict() = 0;
-
-  /**
-   * \brief Clear internal data
-   */
-  virtual void Clear() = 0;
+  virtual void CalcGrad(const dmlc::RowBlock<unsigned>& data,
+                        const std::vector<SArray<char>>& param,
+                        SArray<real_t>* grad) = 0;
 };
-
 }  // namespace difacto
-
 #endif  // DIFACTO_LOSS_H_

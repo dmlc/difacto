@@ -5,7 +5,7 @@
 #include "./fm_loss.h"
 namespace difacto {
 
-DMLC_REGISTER_PARAMETER(FMParam);
+DMLC_REGISTER_PARAMETER(FMLossParam);
 
 Loss* Loss::Create(const std::string& type) {
   if (type == "fm") {

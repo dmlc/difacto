@@ -7,32 +7,53 @@
 #include <unordered_map>
 #include "common/range.h"
 #include "dmlc/data.h"
+#include "dmlc/parameter.h"
 #include "./data_store_impl.h"
 #include "./shared_row_block_container.h"
 #include "difacto/sarray.h"
 namespace difacto {
+
+/** \brief parameters for data store */
+struct DataStoreParam : public dmlc::Parameter<DataStoreParam> {
+  /** \brief the prefix to store the data cache */
+  std::string data_cache_prefix;
+  /** \brief the maximal memory data store can used. in default no limits */
+  std::string max_data_store_memory;
+  DMLC_DECLARE_PARAMETER(DataStoreParam) {
+    DMLC_DECLARE_FIELD(data_cache_prefix);
+    DMLC_DECLARE_FIELD(max_data_store_memory);
+  }
+};
+
 /**
  * \brief data store can be used to store and fetch data. Once the stored data
  * exceed the maximal memory cacapcity, it will dump data into disks
  *
- * We use \ref Store and \ref Fetch rather than \ref Push and \ref Pull, because
- * all functions are synchronous. To improve the performance, we can use \ref
- * Fefetch before a Fetch.
+ * Instead of using Push and Pull, we use \ref Store and \ref Fetch here to
+ * differential that here all functions are synchronous. To improve the
+ * performance, we can use \ref Fefetch before a Fetch.
  */
 class DataStore {
  public:
   /**
    * \brief create a data store
    *
-   * @param store_prefix the prefix to store the data store, such as
+   * @param store_prefix , such as
    * /tmp/store_. If not specified, then keep all things in memory
-   * @param max_mem_capacity the maximal memory it can used. in default no limits
+   * @param max_mem_capacity  in default no limits
    */
-  DataStore(const std::string& store_prefix = "", size_t max_mem_capacity = -1) {
-    store_ = new DataStoreMemory();
-  }
+  DataStore() { store_ = new DataStoreMemory(); }
   /** \brief deconstructor */
   ~DataStore() { delete store_; }
+  /**
+   * \brief init
+   *
+   * @param kwargs keyword arguments
+   * @return the unknown kwargs
+   */
+  KWArgs Init(const KWArgs& kwargs) {
+    return kwargs;
+  }
   /**
    * \brief copy data into the store, overwrite the previous data if key exists.
    *
@@ -45,7 +66,6 @@ class DataStore {
     ps::SArray<V> sdata; sdata.CopyFrom(data, size);
     Store(key, sdata);
   }
-
   /**
    * \brief store data without data copy. overwrite the previous data
    * if key exists.

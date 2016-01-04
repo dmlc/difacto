@@ -24,30 +24,32 @@ class SpMV {
    * @param x length m vector
    * @param y length n vector, should be pre-allocated
    * @param nthreads optional number of threads
+   * @tparam Vec can be either std::vector<T> or SArray<T>
    */
-  template<typename V>
-  static void Times(const SpMat& D, const std::vector<V>& x,
-                    std::vector<V>* y, int nthreads = DEFAULT_NTHREADS) {
+  template<typename Vec>
+  static void Times(const SpMat& D, const Vec& x,
+                    Vec* y, int nthreads = DEFAULT_NTHREADS) {
     CHECK_NOTNULL(y);
     CHECK_EQ(y->size(), D.size);
-    Times<V>(D, x.data(), y->data(), nthreads);
+    Times(D, x.data(), y->data(), nthreads);
   }
+
   /**
    * \brief y = D^T * x
    * @param D n * m sparse matrix
    * @param x length n vector
    * @param y length m vector, should be pre-allocated
    * @param nthreads optional number of threads
+   * @tparam Vec can be either std::vector<T> or SArray<T>
    */
-  template<typename V>
-  static void TransTimes(const SpMat& D, const std::vector<V>& x,
-                    std::vector<V>* y, int nthreads = DEFAULT_NTHREADS) {
+  template<typename Vec>
+  static void TransTimes(const SpMat& D, const Vec& x,
+                    Vec* y, int nthreads = DEFAULT_NTHREADS) {
     CHECK_EQ(x.size(), D.size);
     CHECK_NOTNULL(y);
-    TransTimes<V>(D, x.data(), y->data(), y->size(), nthreads);
+    TransTimes(D, x.data(), y->data(), y->size(), nthreads);
   }
 
- private:
   /** \brief y = D * x */
   template<typename V>
   static void Times(const SpMat& D,  const V* const x, V* y,

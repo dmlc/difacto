@@ -3,11 +3,12 @@
 #include "./utils.h"
 #include "loss/fm_loss.h"
 #include "common/localizer.h"
+#include "loss/bin_class_eval.h"
 
 using namespace difacto;
 
 TEST(FMLoss, NoV) {
-  std::vector<real_t> weight(47149);
+  SArray<real_t> weight(47149);
   for (size_t i = 0; i < weight.size(); ++i) {
     weight[i] = i / 5e4;
     // weight[i] = 1;
@@ -20,7 +21,7 @@ TEST(FMLoss, NoV) {
   Localizer lc;
   lc.Compact(iter.Value(), &compact, &uidx);
 
-  std::vector<real_t> compact_w(uidx.size());
+  SArray<real_t> compact_w(uidx.size());
   for (size_t i = 0; i < uidx.size(); ++i) {
     compact_w[i] = weight[ReverseBytes(uidx[i])];
   }
@@ -28,15 +29,21 @@ TEST(FMLoss, NoV) {
   KWArgs args = {{"V_dim", "0"}};
   FMLoss loss;
   loss.Init(args);
-  loss.InitData(compact.GetBlock(), compact_w, std::vector<int>());
+  SArray<real_t> pred;
+  auto data = compact.GetBlock();
+  loss.Predict(data,
+               {SArray<char>(compact_w), SArray<char>()},
+               &pred);
+
+  BinClassEval eval(data.label, pred.data(), data.size);
 
   // Progress prog;
-  // loss.Evaluate(&prog);
-  // EXPECT_LT(fabs(prog.objv() - 147.4672), 1e-3);
+  EXPECT_LT(fabs(eval.LogitObjv() - 147.4672), 1e-3);
 
-  std::vector<real_t> grad;
-  loss.CalcGrad(&grad);
-  EXPECT_LT(fabs(norm2(grad.data(), grad.size()) - 90.5817), 1e-3);
+  SArray<real_t> grad;
+  loss.CalcGrad(data, {SArray<char>(compact_w), SArray<char>(),
+          SArray<char>(pred)}, &grad);
+  EXPECT_LT(fabs(norm2(grad) - 90.5817), 1e-3);
 }
 
 
@@ -58,8 +65,8 @@ TEST(FMLoss, HasV) {
   Localizer lc;
   lc.Compact(iter.Value(), &compact, &uidx);
 
-  std::vector<int> len(uidx.size());
-  std::vector<real_t> compact_w(uidx.size()*(V_dim+1));
+  SArray<int> len(uidx.size());
+  SArray<real_t> compact_w(uidx.size()*(V_dim+1));
   for (size_t i = 0; i < uidx.size(); ++i) {
     for (int j = 0; j < V_dim+1; ++j) {
       compact_w[i*(V_dim+1)+j] = w[ReverseBytes(uidx[i])*(V_dim+1)+j];
@@ -70,13 +77,16 @@ TEST(FMLoss, HasV) {
   KWArgs args = {{"V_dim", std::to_string(V_dim)}};
   FMLoss loss;
   loss.Init(args);
-  loss.InitData(compact.GetBlock(), compact_w, len);
+  auto data = compact.GetBlock();
+  SArray<real_t> pred;
+  loss.Predict(data, {SArray<char>(compact_w), SArray<char>(len)}, &pred);
 
   // Progress prog;
-  // loss.Evaluate(&prog);
-  // EXPECT_LT(fabs(prog.objv() - 330.628), 1e-3);
+  BinClassEval eval(data.label, pred.data(), data.size);
+  EXPECT_LT(fabs(eval.LogitObjv() - 330.628), 1e-3);
 
-  std::vector<real_t> grad(compact_w.size());
-  loss.CalcGrad(&grad);
-  EXPECT_LT(fabs(norm2(grad.data(), grad.size()) - 1.2378e+03), 1e-1);
+  SArray<real_t> grad(compact_w.size());
+  loss.CalcGrad(data, {SArray<char>(compact_w), SArray<char>(len),
+          SArray<char>(pred)}, &grad);
+  EXPECT_LT(fabs(norm2(grad) - 1.2378e+03), 1e-1);
 }

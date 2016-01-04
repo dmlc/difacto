@@ -4,9 +4,9 @@
 #ifndef DIFACTO_COMMON_SPMM_H_
 #define DIFACTO_COMMON_SPMM_H_
 #include <cstring>
-#include <vector>
 #include "dmlc/data.h"
 #include "dmlc/omp.h"
+#include "difacto/sarray.h"
 #include "./range.h"
 namespace difacto {
 
@@ -23,16 +23,17 @@ class SpMM {
    * @param x m * k length vector
    * @param y n * k length vector, should be pre-allocated
    * @param nthreads optional number of threads
+   * @tparam Vec can be either std::vector<T> or SArray<T>
    */
-  template<typename V>
+  template<typename Vec>
   static void Times(const SpMat& D,
-                    const std::vector<V>& x,
-                    std::vector<V>* y,
+                    const Vec& x,
+                    Vec* y,
                     int nt = DEFAULT_NTHREADS) {
     if (x.empty()) return;
     CHECK_NOTNULL(y);
     int dim = static_cast<int>(y->size() / D.size);
-    Times<V>(D, x.data(), y->data(), dim, nt);
+    Times(D, x.data(), y->data(), dim, nt);
   }
   /**
    * \brief y = D^T * x
@@ -40,13 +41,14 @@ class SpMM {
    * @param x n * k length vector
    * @param y m * k length vector, should be pre-allocated
    * @param nthreads optional number of threads
+   * @tparam Vec can be either std::vector<T> or SArray<T>
    */
-  template<typename V>
+  template<typename Vec>
   static void TransTimes(const SpMat& D,
-                         const std::vector<V>& x,
-                         std::vector<V>* y,
+                         const Vec& x,
+                         Vec* y,
                          int nt = DEFAULT_NTHREADS) {
-    TransTimes<V>(D, x, 0, std::vector<V>(), y, nt);
+    TransTimes(D, x, 0, Vec(0), y, nt);
   }
   /**
    * \brief y = D^T * x + p * z
@@ -57,19 +59,20 @@ class SpMM {
    * @param y m * k length vector, should be pre-allocated
    * @param nthreads optional number of threads
    */
-  template<typename V>
+  template<typename Vec>
   static void TransTimes(const SpMat& D,
-                         const std::vector<V>& x,
-                         V p,
-                         const std::vector<V>& z,
-                         std::vector<V>* y,
+                         const Vec& x,
+                         real_t p,
+                         const Vec& z,
+                         Vec* y,
                          int nt = DEFAULT_NTHREADS) {
     if (x.empty()) return;
     int dim = x.size() / D.size;
     if (z.size() == y->size() && p != 0) {
-      TransTimes<V>(D, x.data(), z.data(), p, y->data(), y->size(), dim, nt);
+      TransTimes(D, x.data(), z.data(), p, y->data(), y->size(), dim, nt);
     } else {
-      TransTimes<V>(D, x.data(), NULL, 0, y->data(), y->size(), dim, nt);
+      auto zero = x.data(); zero = NULL;
+      TransTimes(D, x.data(), zero, static_cast<real_t>(0.0), y->data(), y->size(), dim, nt);
     }
   }
 
@@ -106,7 +109,7 @@ class SpMM {
   // y = D' * x
   template<typename V>
   static void TransTimes(const SpMat& D, const V* const x,
-                         const V* const z, V p,
+                         const V* const z, real_t p,
                          V* y, size_t y_size, int dim,
                          int nt = DEFAULT_NTHREADS) {
     if (z) {

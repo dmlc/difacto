@@ -25,7 +25,7 @@ class BinClassEval {
    */
   BinClassEval(const real_t* const label,
                const real_t* const predict,
-               size_t n, int nthreads)
+               size_t n, int nthreads = DEFAULT_NTHREADS)
       : label_(label), predict_(predict), size_(n), nt_(nthreads) { }
   ~BinClassEval() { }
 

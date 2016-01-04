@@ -10,33 +10,31 @@
 #include "difacto/loss.h"
 #include "common/spmv.h"
 #include "common/spmm.h"
-#include "./bin_class_eval.h"
 namespace difacto {
-
 /**
- * \brief parameters for FM
+ * \brief parameters for FM loss
  */
-struct FMParam : public dmlc::Parameter<FMParam> {
-  /** \brief the embedding dimension */
+struct FMLossParam : public dmlc::Parameter<FMLossParam> {
+  /**
+   * \brief the embedding dimension
+   */
   int V_dim;
   /**
-   * \brief the probability to set gradient of :math:`V` to 0
-   * 0 in default
+   * \brief the probability to set gradient of :math:`V` to 0. In default is 0
    */
   float V_dropout;
   /**
-   * \brief project the gradient of :math:`V` into :math:`[-c c]`.
-   * No in default
+   * \brief project the gradient of :math:`V` into :math:`[-c c]`. No projection
+   * in default
    */
   float V_grad_clipping;
   /**
-   * \brief normalize the gradient of :math:`V`
-   * No in default
+   * \brief normalize the gradient of :math:`V`. No normalizationin default
    */
   float V_grad_normalization;
   /** \brief number of threads */
   int nthreads;
-  DMLC_DECLARE_PARAMETER(FMParam) {
+  DMLC_DECLARE_PARAMETER(FMLossParam) {
     DMLC_DECLARE_FIELD(V_dim).set_range(0, 10000);
     DMLC_DECLARE_FIELD(V_dropout).set_range(0, 1).set_default(0);
     DMLC_DECLARE_FIELD(V_grad_clipping).set_range(0, 1000.0).set_default(0);
@@ -44,9 +42,9 @@ struct FMParam : public dmlc::Parameter<FMParam> {
     DMLC_DECLARE_FIELD(nthreads).set_range(1, 20).set_default(2);
   }
 };
-
 /**
- * \brief the FM loss
+ * \brief the factonization machine loss
+ * :math:`f(x) = \langle w, x \rangle + \frac{1}{2} \|V x\|_2^2 - \sum_{i=1}^d x_i^2 \|V_i\|^2_2`
  */
 class FMLoss : public Loss {
  public:
@@ -56,41 +54,95 @@ class FMLoss : public Loss {
   KWArgs Init(const KWArgs& kwargs) override {
     return param_.InitAllowUnknown(kwargs);
   }
-
   /**
-   * note: do not clear \ref data before call \ref Evaluate or \ref CalcGrad
+   * \brief perform prediction
+   *
+   *  pred = X * w + .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
+   *
+   * where
+   * - sum(A, 2) : sum the rows of A
+   * - .* : elemenetal-wise times
+   *
+   * @data data the data
+   * @param param the weights
+   * - param[0], real_t, the weights
+   * - param[1], int, the weight lenghs
+   * @param pred the prediction
    */
-  void InitData(const dmlc::RowBlock<unsigned>& data,
-                const std::vector<real_t>& weights,
-                const std::vector<int>& weight_lens) override {
-    w.Load(data, weights, weight_lens);
-    V.Load(param_.V_dim, data, weights, weight_lens);
-  }
+  void Predict(const dmlc::RowBlock<unsigned>& data,
+               const std::vector<SArray<char>>& param,
+               SArray<real_t>* pred) override {
+    // init data
+    SArray<real_t> weights(param[0]);
+    SArray<int> weight_lens(param[1]);
+    InitData(data, weights, weight_lens);
+    int nt = param_.nthreads;
+    int V_dim = param_.V_dim;
+    pred->resize(w.X.size);
 
-  void Clear() override {
-    w.Clear();
-    V.Clear();
-    py_.clear();
+    // pred = X * w
+    SpMV::Times(w.X, w.weight.data(), pred->data(), nt);
+
+    // pred += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
+    if (V.weight.size()) {
+      // tmp = (X.*X)*(V.*V)
+      std::vector<real_t> vv = V.weight;
+      for (auto& v : vv) v *= v;
+      CHECK_EQ(vv.size(), V.pos.size() * V_dim);
+      std::vector<real_t> xxvv(V.X.size * V_dim);
+      SpMM::Times(V.XX, vv, &xxvv, nt);
+
+      // V.XV = X*V
+      V.XV.resize(xxvv.size());
+      SpMM::Times(V.X, V.weight, &V.XV, nt);
+
+      // py += .5 * sum((V.XV).^2 - xxvv)
+#pragma omp parallel for num_threads(nt)
+      for (size_t i = 0; i < pred->size(); ++i) {
+        real_t* t = V.XV.data() + i * V_dim;
+        real_t* tt = xxvv.data() + i * V_dim;
+        real_t s = 0;
+        for (int j = 0; j < V_dim; ++j) s += t[j] * t[j] - tt[j];
+        (*pred)[i] += .5 * s;
+      }
+    }
   }
 
   /*!
    * \brief compute the gradients
-   * p = - y ./ (1 + exp (y .* py));
-   * grad_w = X' * p;
-   * grad_u = X' * diag(p) * X * V  - diag((X.*X)'*p) * V
+   *
+   *   p = - y ./ (1 + exp (y .* pred));
+   *   grad_w = X' * p;
+   *   grad_u = X' * diag(p) * X * V  - diag((X.*X)'*p) * V
+   *
+   * @param data the data
+   * @param param the weights
+   * - param[0], real_t, the weights
+   * - param[1], int, the weight lenghs
+   * - param[2], real_t, the prediction (results of \ref Predict)
+   * @param grad the results
    */
-  void CalcGrad(std::vector<real_t>* grad) {
+  void CalcGrad(const dmlc::RowBlock<unsigned>& data,
+                const std::vector<SArray<char>>& param,
+                SArray<real_t>* grad) override {
+    // init data
+    SArray<real_t> weights(param[0]);
+    SArray<int> weight_lens(param[1]);
+    InitData(data, weights, weight_lens);
     int nt = param_.nthreads;
-    // p = ... (reuse py_)
-    CHECK_EQ(py_.size(), w.X.size) << "call *evaluate* first";
+    SArray<real_t> pred(param[2]);
+    SArray<real_t> p; p.CopyFrom(pred.data(), pred.size());
+
+    // p = ...
+    CHECK_EQ(p.size(), w.X.size);
 #pragma omp parallel for num_threads(nt)
-    for (size_t i = 0; i < py_.size(); ++i) {
+    for (size_t i = 0; i < p.size(); ++i) {
       real_t y = w.X.label[i] > 0 ? 1 : -1;
-      py_[i] = - y/(1 + exp(y * py_[i]));
+      p[i] = - y/(1 + exp(y * p[i]));
     }
 
     // grad_w = ...
-    SpMV::TransTimes(w.X, py_, &w.weight, nt);
+    SpMV::TransTimes(w.X, p.data(), w.weight.data(), nt);
     w.Save(grad);
 
     // grad_u = ...
@@ -99,8 +151,9 @@ class FMLoss : public Loss {
 
       // xxp = (X.*X)'*p
       size_t m = V.pos.size();
-      std::vector<real_t> xxp(m);
-      SpMM::TransTimes(V.XX, py_, &xxp, nt);
+
+      SArray<real_t> xxp(m);
+      SpMM::TransTimes(V.XX, p, &xxp, nt);
 
       // V = - diag(xxp) * V
       CHECK_EQ(V.weight.size(), dim * m);
@@ -111,12 +164,12 @@ class FMLoss : public Loss {
       }
 
       // V.XV = diag(p) * X * V
-      size_t n = py_.size();
+      size_t n = p.size();
       CHECK_EQ(V.XV.size(), n * dim);
 #pragma omp parallel for num_threads(nt)
       for (size_t i = 0; i < n; ++i) {
         real_t* y = V.XV.data() + i * dim;
-        for (int j = 0; j < dim; ++j) y[j] *= py_[i];
+        for (int j = 0; j < dim; ++j) y[j] *= p[i];
       }
 
       // V += X' * V.XV
@@ -146,60 +199,22 @@ class FMLoss : public Loss {
     }
   }
 
-  /**
-   * \brief perform prediction
-   *
-   *  py = X * w + .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
-   *
-   * where
-   * - sum(A, 2) : sum the rows of A
-   * - .* : elemenetal-wise times
-   *
-   * @return py
-   */
-  const std::vector<real_t>& Predict() override {
-    int nt = param_.nthreads;
-    int V_dim = param_.V_dim;
-    py_.resize(w.X.size);
-    BinClassEval eval(w.X.label, py_.data(), py_.size(), nt);
-
-    // py = X * w
-    SpMV::Times(w.X, w.weight, &py_, nt);
-
-    // py += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
-    if (V.weight.size()) {
-      // tmp = (X.*X)*(V.*V)
-      std::vector<real_t> vv = V.weight;
-      for (auto& v : vv) v *= v;
-      CHECK_EQ(vv.size(), V.pos.size() * V_dim);
-      std::vector<real_t> xxvv(V.X.size * V_dim);
-      SpMM::Times(V.XX, vv, &xxvv, nt);
-
-      // V.XV = X*V
-      V.XV.resize(xxvv.size());
-      SpMM::Times(V.X, V.weight, &V.XV, nt);
-
-      // py += .5 * sum((V.XV).^2 - xxvv)
-#pragma omp parallel for num_threads(nt)
-      for (size_t i = 0; i < py_.size(); ++i) {
-        real_t* t = V.XV.data() + i * V_dim;
-        real_t* tt = xxvv.data() + i * V_dim;
-        real_t s = 0;
-        for (int j = 0; j < V_dim; ++j) s += t[j] * t[j] - tt[j];
-        py_[i] += .5 * s;
-      }
-    }
-    return py_;
+ private:
+  void InitData(const dmlc::RowBlock<unsigned>& data,
+                const SArray<real_t>& weights,
+                const SArray<int>& weight_lens) {
+    w.Load(data, weights, weight_lens);
+    V.Load(param_.V_dim, data, weights, weight_lens);
   }
 
- private:
   struct W {
     void Load(const dmlc::RowBlock<unsigned>& data,
-              const std::vector<real_t>& model,
-              const std::vector<int>& model_siz) {
+              const SArray<real_t>& model,
+              const SArray<int>& model_siz) {
       X = data;
       if (model_siz.empty()) {
-        weight = model;
+        weight.resize(model.size());
+        memcpy(weight.data(), model.data(), model.size()*sizeof(real_t));
       } else {
         pos.resize(model_siz.size());
         weight.resize(model_siz.size());
@@ -215,9 +230,9 @@ class FMLoss : public Loss {
       }
     }
 
-    void Save(std::vector<real_t>* grad) const {
+    void Save(SArray<real_t>* grad) const {
       if (pos.empty()) {
-        *CHECK_NOTNULL(grad) = weight;
+        grad->CopyFrom(weight.data(), weight.size());
       } else {
         for (int i = static_cast<int>(pos.size()); i > 0; --i) {
           if (pos[i-1] != static_cast<unsigned>(-1)) {
@@ -228,12 +243,10 @@ class FMLoss : public Loss {
         }
         for (size_t i = 0; i < pos.size(); ++i) {
           if (pos[i] == static_cast<unsigned>(-1)) continue;
-          grad->at(pos[i]) = weight[i];
+          (*grad)[pos[i]] = weight[i];
         }
       }
     }
-
-    void Clear() { weight.clear(); pos.clear(); }
     std::vector<real_t> weight;
     std::vector<unsigned> pos;
     dmlc::RowBlock<unsigned> X;
@@ -243,9 +256,8 @@ class FMLoss : public Loss {
   struct Embedding {
     void Load(int d,
               const dmlc::RowBlock<unsigned>& data,
-              const std::vector<real_t>& model,
-              const std::vector<int>& model_siz) {
-      Clear();
+              const SArray<real_t>& model,
+              const SArray<int>& model_siz) {
       dim = d;
       if (dim == 0) return;
       std::vector<unsigned> col_map(model_siz.size());
@@ -293,7 +305,7 @@ class FMLoss : public Loss {
       }
     }
 
-    void Save(std::vector<real_t>* grad) const {
+    void Save(SArray<real_t>* grad) const {
       if (dim == 0) return;
       CHECK_EQ(weight.size(), pos.size()*dim);
       size_t n = pos.back() + dim;
@@ -304,10 +316,6 @@ class FMLoss : public Loss {
       }
     }
 
-    void Clear() {
-      weight.clear(); pos.clear(); XV.clear();
-      val_.clear(); idx_.clear(); os_.clear(); val2_.clear();
-    }
     std::vector<real_t> weight, XV;
     std::vector<unsigned> pos;
     dmlc::RowBlock<unsigned> X, XX;
@@ -323,10 +331,8 @@ class FMLoss : public Loss {
     std::vector<unsigned> idx_;
   } V;
 
-  // predict_y
-  std::vector<real_t> py_;
   // parameters
-  FMParam param_;
+  FMLossParam param_;
 };
 
 }  // namespace difacto
