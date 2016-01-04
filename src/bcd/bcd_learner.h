@@ -137,9 +137,9 @@ class BCDLearner : public Learner {
       SArray<feaid_t> sfeaids(feaids);
       auto id = std::to_string(num_data_blks_++) + "_";
       SharedRowBlockContainer<unsigned> data(&transposed);
-      data_store_->Push(id + "data", data);
-      data_store_->Push(id + "feaids", sfeaids);
-      data_store_->Push(id + "label", rowblk.label, rowblk.size);
+      data_store_->Store(id + "data", data);
+      data_store_->Store(id + "feaids", sfeaids);
+      data_store_->Store(id + "label", rowblk.label, rowblk.size);
       delete transposed;
 
       // merge ids and counts
@@ -158,11 +158,11 @@ class BCDLearner : public Learner {
       }
 
       // init predict
-      data_store_->Push(id + "predict", SArray<real_t>(rowblk.size, 0));
+      data_store_->Store(id + "predict", SArray<real_t>(rowblk.size, 0));
     }
 
     // push the feature ids and feature counts to the servers
-    data_store_->Push("feaids", all_feaids);
+    data_store_->Store("feaids", all_feaids);
     int t = model_store_->Push(
         Store::kFeaCount, all_feaids, all_feacnts, SArray<int>());
     model_store_->Wait(t);
@@ -179,7 +179,7 @@ class BCDLearner : public Learner {
   void BuildFeatureMap(const bcd::JobArgs& job) {
     // pull the aggregated feature counts from the servers
     SArray<feaid_t> feaids;
-    data_store_->Pull("feaids", &feaids);
+    data_store_->Fetch("feaids", &feaids);
     SArray<real_t> feacnt;
     int t = model_store_->Pull(Store::kFeaCount, feaids, &feacnt, nullptr);
     model_store_->Wait(t);
@@ -192,7 +192,7 @@ class BCDLearner : public Learner {
         filtered.push_back(feaids[i]);
       }
     }
-    data_store_->Push("feaids", filtered);
+    data_store_->Store("feaids", filtered);
 
     // partition feature space and save the feature block locations
     int nbit = param_.num_feature_group_bits;
@@ -207,12 +207,12 @@ class BCDLearner : public Learner {
     }
     for (int b = 0; b < num_data_blks_; ++b) {
       auto id = std::to_string(b) + "_";
-      data_store_->NextPullHint(id + "feaids");
+      data_store_->Prefetch(id + "feaids");
     }
     for (int b = 0; b < num_data_blks_; ++b) {
       auto id = std::to_string(b) + "_";
       SArray<feaid_t> blk_feaids;
-      data_store_->Pull(id + "feaids", &blk_feaids);
+      data_store_->Fetch(id + "feaids", &blk_feaids);
       data_store_->Remove(id + "feaids");
       bcd::FindPosition(blk_feaids, job.fea_blk_ranges, &feablk_pos_[b+1]);
 
@@ -220,7 +220,7 @@ class BCDLearner : public Learner {
       // TODO
       // KVMatch(filtered, map_idx, blk_feaids, &blk_feamap, 1, ASSIGN, 2);
       for (int& m : blk_feamap) --m;
-      data_store_->Push(id + "feamap", blk_feamap);
+      data_store_->Store(id + "feamap", blk_feamap);
     }
   }
 
@@ -228,13 +228,13 @@ class BCDLearner : public Learner {
     CHECK(job.fea_blks.size());
     // hint for data prefetch
     for (int f : job.fea_blks) {
-      data_store_->NextPullHint("feaids", feablk_pos_[0][f]);
-      data_store_->NextPullHint(std::to_string(f) + "_len");
+      data_store_->Prefetch("feaids", feablk_pos_[0][f]);
+      data_store_->Prefetch(std::to_string(f) + "_len");
       for (int d = 0; d < num_data_blks_; ++d) {
         auto id = std::to_string(d) + "_";
-        data_store_->NextPullHint(id + "data", feablk_pos_[d+1][f]);
-        data_store_->NextPullHint(id + "feamap", feablk_pos_[d+1][f]);
-        data_store_->NextPullHint(id + "predict");
+        data_store_->Prefetch(id + "data", feablk_pos_[d+1][f]);
+        data_store_->Prefetch(id + "feamap", feablk_pos_[d+1][f]);
+        data_store_->Prefetch(id + "predict");
       }
     }
 
@@ -259,14 +259,14 @@ class BCDLearner : public Learner {
 
       // 1. calculate gradient
       SArray<int> grad_len;
-      data_store_->Pull(std::to_string(f) + "_len", &grad_len);
+      data_store_->Fetch(std::to_string(f) + "_len", &grad_len);
       size_t n = 0; for (int l : grad_len) n += l;
       SArray<real_t> grad(n);
       CalcGrad(f, grad_len, &grad);
 
       // fetech id for communication
       SArray<feaid_t> feaids;
-      data_store_->Pull("feaids", &feaids, feablk_pos_[0][f]);
+      data_store_->Fetch("feaids", &feaids, feablk_pos_[0][f]);
 
       // 3. once push is done, pull the changes for the weights
       // this callback will be called when the push is finished
@@ -277,7 +277,7 @@ class BCDLearner : public Learner {
         // 4. once the pull is done, update the prediction
         // the callback will be called when the pull is finished
         auto pull_callback = [this, f, w_delta, w_delta_len, i, &feablk_tracker]() {
-          data_store_->Push(std::to_string(f) + "_len", *w_delta_len);
+          data_store_->Store(std::to_string(f) + "_len", *w_delta_len);
           UpdtPred(f, *w_delta, *w_delta_len);
           delete w_delta;
           delete w_delta_len;
@@ -301,7 +301,7 @@ class BCDLearner : public Learner {
       Range fea_blk_pos = feablk_pos_[d+1][fea_blk_id];
       auto id = std::to_string(d) + "_";
       SArray<int> fea_map;
-      data_store_->Pull(id + "feamap", &fea_map, fea_blk_pos);
+      data_store_->Fetch(id + "feamap", &fea_map, fea_blk_pos);
 
       SArray<int> blk_grad_len(fea_map.size());
       for (size_t i = 0; i < fea_map.size(); ++i) {
@@ -309,12 +309,12 @@ class BCDLearner : public Learner {
       }
 
       SharedRowBlockContainer<unsigned> data;
-      data_store_->Pull(id + "data", &data, fea_blk_pos);
+      data_store_->Fetch(id + "data", &data, fea_blk_pos);
 
       FMLossDelta* loss = new FMLossDelta();
       // loss->Init();
       SArray<real_t> pred;
-      data_store_->Pull(id + "predict", &pred);
+      data_store_->Fetch(id + "predict", &pred);
 
       // calc grad
       SArray<real_t> blk_grad;
@@ -344,7 +344,7 @@ class BCDLearner : public Learner {
       Range fea_blk_pos = feablk_pos_[d+1][fea_blk_id];
       auto id = std::to_string(d) + "_";
       SArray<int> fea_map;
-      data_store_->Pull(id + "feamap", &fea_map, fea_blk_pos);
+      data_store_->Fetch(id + "feamap", &fea_map, fea_blk_pos);
 
       size_t n = 0;
       SArray<int> blk_w_len(fea_map.size());
@@ -367,16 +367,16 @@ class BCDLearner : public Learner {
       CHECK(cur_blk_w == blk_w.end());
 
       SharedRowBlockContainer<unsigned> data;
-      data_store_->Pull(id + "data", &data, fea_blk_pos);
+      data_store_->Fetch(id + "data", &data, fea_blk_pos);
 
       FMLossDelta* loss = new FMLossDelta();
       // loss->Init();
       SArray<real_t> old_pred, pred;
-      data_store_->Pull(id + "predict", &old_pred);
+      data_store_->Fetch(id + "predict", &old_pred);
 
       loss->Predict(data.GetBlock(), {SArray<char>(old_pred), SArray<char>(blk_w),
               SArray<char>(blk_w_len)}, &pred);
-      data_store_->Push(id + "predict", pred);
+      data_store_->Store(id + "predict", pred);
     }
   }
 

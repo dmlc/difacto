@@ -20,7 +20,7 @@ class DataStoreImpl {
    * @param key the unique key
    * @param data the data buff
    */
-  virtual void Push(const std::string& key, const SArray<char>& data) = 0;
+  virtual void Store(const std::string& key, const SArray<char>& data) = 0;
   /**
    * \brief pull data from the store
    *
@@ -29,7 +29,7 @@ class DataStoreImpl {
    * the whole data
    * @param data the pulled data
    */
-  virtual void Pull(const std::string& key, Range range, SArray<char>* data) = 0;
+  virtual void Fetch(const std::string& key, Range range, SArray<char>* data) = 0;
 
   typedef std::function<void(const SArray<char>& data)> Callback;
   /**
@@ -56,11 +56,11 @@ class DataStoreMemory : public DataStoreImpl {
   DataStoreMemory() { }
   virtual ~DataStoreMemory() { }
 
-  void Push(const std::string& key, const SArray<char>& data) override {
+  void Store(const std::string& key, const SArray<char>& data) override {
     store_[key] = data;
   }
 
-  void Pull(const std::string& key, Range range, SArray<char>* data) override {
+  void Fetch(const std::string& key, Range range, SArray<char>* data) override {
     auto it = store_.find(key);
     CHECK(it != store_.end());
     if (range == Range::All() || it->second.empty()) {
@@ -72,7 +72,7 @@ class DataStoreMemory : public DataStoreImpl {
   void Prefetch(const std::string& key, Range range, Callback on_complete) override {
     if (on_complete) {
       SArray<char> data;
-      Pull(key, range, &data);
+      Fetch(key, range, &data);
       on_complete(data);
     }
   }

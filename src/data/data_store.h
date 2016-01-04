@@ -12,8 +12,12 @@
 #include "difacto/sarray.h"
 namespace difacto {
 /**
- * \brief data store can be used to store and fetch data. Once the pushed data
+ * \brief data store can be used to store and fetch data. Once the stored data
  * exceed the maximal memory cacapcity, it will dump data into disks
+ *
+ * We use \ref Store and \ref Fetch rather than \ref Push and \ref Pull, because
+ * all functions are synchronous. To improve the performance, we can use \ref
+ * Fefetch before a Fetch.
  */
 class DataStore {
  public:
@@ -37,33 +41,33 @@ class DataStore {
    * @param size the data size
    */
   template <typename V>
-  void Push(const std::string& key, const V* data, size_t size) {
+  void Store(const std::string& key, const V* data, size_t size) {
     ps::SArray<V> sdata; sdata.CopyFrom(data, size);
-    Push(key, sdata);
+    Store(key, sdata);
   }
 
   /**
-   * \brief push data into the store.no data copy. overwrite the previous data
+   * \brief store data without data copy. overwrite the previous data
    * if key exists.
    *
    * @param key the unique key
    * @param data the data
    */
   template <typename V>
-  void Push(const std::string& key, const SArray<V>& data) {
+  void Store(const std::string& key, const SArray<V>& data) {
     DataType type;
     type.code = typeid(V).hash_code();
     type.size = sizeof(V);
     data_types_[key] = type;
-    store_->Push(key, SArray<char>(data));
+    store_->Store(key, SArray<char>(data));
   }
   /**
    * \brief pull data from the store
    *
    * \code
    * int data[] = {0,1,2,3};
-   * Push(0, data, 4);
-   * auto ret = Pull(Range(1,3));
+   * Store(0, data, 4);
+   * auto ret = Fetch(Range(1,3));
    * EXPECT_EQ(ret[0], 1);
    * EXPECT_EQ(ret[0], 2);
    * \endcode
@@ -74,11 +78,11 @@ class DataStore {
    * @return the data
    */
   template <typename V>
-  void Pull(const std::string& key, SArray<V>* data, Range range = Range::All()) {
+  void Fetch(const std::string& key, SArray<V>* data, Range range = Range::All()) {
     auto char_range = GetCharRange(key, range);
     CHECK_EQ(data_types_[key].code, typeid(V).hash_code());
     SArray<char> char_data;
-    store_->Pull(key, char_range, &char_data);
+    store_->Fetch(key, char_range, &char_data);
     *CHECK_NOTNULL(data) = char_data;
   }
   /**
@@ -88,7 +92,7 @@ class DataStore {
    * @param key the unique key
    * @param range an optional range
    */
-  virtual void NextPullHint(const std::string& key, Range range = Range::All()) {
+  virtual void Prefetch(const std::string& key, Range range = Range::All()) {
     if (IsRowBlockKey(key)) {
       auto keys = GetRowBlockKeys(key);
       Range rg1 = range == Range::All() ? range
@@ -125,9 +129,9 @@ class DataStore {
    * @param data the rowblock
    */
   template <typename T>
-  void Push(const std::string& key, const dmlc::RowBlock<T>& data) {
+  void Store(const std::string& key, const dmlc::RowBlock<T>& data) {
     SharedRowBlockContainer<T> blk(data);
-    Push(key, blk);
+    Store(key, blk);
   }
   /**
    * \brief push a shared rowblock container into the store (no memory copy)
@@ -136,15 +140,15 @@ class DataStore {
    * @param data the rowblock container
    */
   template <typename T>
-  void Push(const std::string& key, const SharedRowBlockContainer<T>& data) {
+  void Store(const std::string& key, const SharedRowBlockContainer<T>& data) {
     rowblk_keys_.insert(key);
     CHECK_EQ(data.offset[0], 0);
     auto keys = GetRowBlockKeys(key);
-    Push(keys[0], data.offset);
-    Push(keys[1], data.label);
-    Push(keys[2], data.weight);
-    Push(keys[3], data.index);
-    Push(keys[4], data.value);
+    Store(keys[0], data.offset);
+    Store(keys[1], data.label);
+    Store(keys[2], data.weight);
+    Store(keys[3], data.index);
+    Store(keys[4], data.value);
   }
   /**
    * \brief pull rowblock from the store
@@ -154,19 +158,19 @@ class DataStore {
    * @param data the pulled data
    */
   template <typename T>
-  void Pull(const std::string& key, SharedRowBlockContainer<T>* data,
+  void Fetch(const std::string& key, SharedRowBlockContainer<T>* data,
             Range range = Range::All()) {
     CHECK_NOTNULL(data);
     CHECK(IsRowBlockKey(key));
     auto keys = GetRowBlockKeys(key);
     Range rg1 = range == Range::All() ? range
                 : Range(range.begin, range.end+1);
-    Pull(keys[0], &data->offset, rg1);
-    Pull(keys[1], &data->label, range);
-    Pull(keys[2], &data->weight, range);
+    Fetch(keys[0], &data->offset, rg1);
+    Fetch(keys[1], &data->label, range);
+    Fetch(keys[2], &data->weight, range);
     Range rg3 = Range(data->offset[0], data->offset.back());
-    Pull(keys[3], &data->index, rg3);
-    Pull(keys[4], &data->value, rg3);
+    Fetch(keys[3], &data->index, rg3);
+    Fetch(keys[4], &data->value, rg3);
   }
 
  private:
