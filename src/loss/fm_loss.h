@@ -10,6 +10,7 @@
 #include "difacto/loss.h"
 #include "common/spmv.h"
 #include "common/spmm.h"
+#include "./fm_loss_utils.h"
 namespace difacto {
 /**
  * \brief parameters for FM loss
@@ -78,23 +79,24 @@ class FMLoss : public Loss {
     InitData(data, weights, weight_lens);
     int nt = param_.nthreads;
     int V_dim = param_.V_dim;
-    pred->resize(w.X.size);
+    auto X = data;
+    pred->resize(X.size, 0.0);
 
     // pred = X * w
-    SpMV::Times(w.X, w.weight.data(), pred->data(), nt);
+    SpMV::Times(X, w.value, pred, nt);
 
     // pred += .5 * sum((X*V).^2 - (X.*X)*(V.*V), 2);
-    if (V.weight.size()) {
+    if (V.value.size()) {
       // tmp = (X.*X)*(V.*V)
-      std::vector<real_t> vv = V.weight;
+      SArray<real_t> vv; vv.CopyFrom(V.value);
       for (auto& v : vv) v *= v;
       CHECK_EQ(vv.size(), V.pos.size() * V_dim);
-      std::vector<real_t> xxvv(V.X.size * V_dim);
+      SArray<real_t> xxvv(V.X.size * V_dim, 0.0);
       SpMM::Times(V.XX, vv, &xxvv, nt);
 
       // V.XV = X*V
       V.XV.resize(xxvv.size());
-      SpMM::Times(V.X, V.weight, &V.XV, nt);
+      SpMM::Times(V.X, V.value, &V.XV, nt);
 
       // py += .5 * sum((V.XV).^2 - xxvv)
 #pragma omp parallel for num_threads(nt)
@@ -130,36 +132,36 @@ class FMLoss : public Loss {
     SArray<int> weight_lens(param[1]);
     InitData(data, weights, weight_lens);
     int nt = param_.nthreads;
-    SArray<real_t> pred(param[2]);
-    SArray<real_t> p; p.CopyFrom(pred.data(), pred.size());
+    SArray<real_t> p; p.CopyFrom(SArray<real_t>(param[2]));
+    auto X = data;
 
     // p = ...
-    CHECK_EQ(p.size(), w.X.size);
+    CHECK_EQ(p.size(), X.size);
 #pragma omp parallel for num_threads(nt)
     for (size_t i = 0; i < p.size(); ++i) {
-      real_t y = w.X.label[i] > 0 ? 1 : -1;
+      real_t y = X.label[i] > 0 ? 1 : -1;
       p[i] = - y/(1 + exp(y * p[i]));
     }
 
     // grad_w = ...
-    SpMV::TransTimes(w.X, p.data(), w.weight.data(), nt);
+    SpMV::TransTimes(X, p, &w.value, nt);
     w.Save(grad);
 
     // grad_u = ...
-    if (!V.weight.empty()) {
+    if (!V.value.empty()) {
       int dim = param_.V_dim;
 
       // xxp = (X.*X)'*p
       size_t m = V.pos.size();
 
-      SArray<real_t> xxp(m);
+      SArray<real_t> xxp(m, 0.0);
       SpMM::TransTimes(V.XX, p, &xxp, nt);
 
       // V = - diag(xxp) * V
-      CHECK_EQ(V.weight.size(), dim * m);
+      CHECK_EQ(V.value.size(), dim * m);
 #pragma omp parallel for num_threads(nt)
       for (size_t i = 0; i < m; ++i) {
-        real_t* v = V.weight.data() + i * dim;
+        real_t* v = V.value.data() + i * dim;
         for (int j = 0; j < dim; ++j) v[j] *= - xxp[i];
       }
 
@@ -173,27 +175,27 @@ class FMLoss : public Loss {
       }
 
       // V += X' * V.XV
-      SpMM::TransTimes(V.X, V.XV, (real_t)1.0, V.weight, &V.weight, nt);
+      SpMM::TransTimes(V.X, V.XV, (real_t)1.0, V.value, &V.value, nt);
 
       // some preprocessing
       real_t gc = param_.V_grad_clipping;
       if (gc > 0) {
-        for (real_t& g : V.weight) g = g > gc ? gc : ( g < -gc ? -gc : g);
+        for (real_t& g : V.value) g = g > gc ? gc : ( g < -gc ? -gc : g);
       }
 
       real_t dp = param_.V_dropout;
       if (dp > 0) {
-        for (real_t& g : V.weight) {
+        for (real_t& g : V.value) {
           if ((real_t)rand() / RAND_MAX > 1 - dp) g = 0;
         }
       }
 
       if (param_.V_grad_normalization) {
         real_t norm = 0;
-        for (real_t g : V.weight) norm += g * g;
+        for (real_t g : V.value) norm += g * g;
         if (norm < 1e-10) return;
         norm = sqrt(norm);
-        for (real_t& g : V.weight) g = g / norm;
+        for (real_t& g : V.value) g = g / norm;
       }
       V.Save(grad);
     }
@@ -203,136 +205,16 @@ class FMLoss : public Loss {
   void InitData(const dmlc::RowBlock<unsigned>& data,
                 const SArray<real_t>& weights,
                 const SArray<int>& weight_lens) {
-    w.Load(data, weights, weight_lens);
-    V.Load(param_.V_dim, data, weights, weight_lens);
+    if (data_inited_) return;
+    w.Init(weights, weight_lens);
+    V.Init(param_.V_dim, data, weights, weight_lens);
+    data_inited_ = true;
   }
 
-  struct W {
-    void Load(const dmlc::RowBlock<unsigned>& data,
-              const SArray<real_t>& model,
-              const SArray<int>& model_siz) {
-      X = data;
-      if (model_siz.empty()) {
-        weight.resize(model.size());
-        memcpy(weight.data(), model.data(), model.size()*sizeof(real_t));
-      } else {
-        pos.resize(model_siz.size());
-        weight.resize(model_siz.size());
-        unsigned p = 0;
-        for (size_t i = 0; i < model_siz.size(); ++i) {
-          if (model_siz[i] == 0) {
-            pos[i] = (unsigned)-1;
-          } else {
-            pos[i] = p; weight[i] = model[p]; p += model_siz[i];
-          }
-        }
-        CHECK_EQ((size_t)p, model.size());
-      }
-    }
-
-    void Save(SArray<real_t>* grad) const {
-      if (pos.empty()) {
-        grad->CopyFrom(weight.data(), weight.size());
-      } else {
-        for (int i = static_cast<int>(pos.size()); i > 0; --i) {
-          if (pos[i-1] != static_cast<unsigned>(-1)) {
-            size_t n = pos[i-1]+1;
-            if (grad->size() < n) grad->resize(n);
-            break;
-          }
-        }
-        for (size_t i = 0; i < pos.size(); ++i) {
-          if (pos[i] == static_cast<unsigned>(-1)) continue;
-          (*grad)[pos[i]] = weight[i];
-        }
-      }
-    }
-    std::vector<real_t> weight;
-    std::vector<unsigned> pos;
-    dmlc::RowBlock<unsigned> X;
-  } w;
-
-
-  struct Embedding {
-    void Load(int d,
-              const dmlc::RowBlock<unsigned>& data,
-              const SArray<real_t>& model,
-              const SArray<int>& model_siz) {
-      dim = d;
-      if (dim == 0) return;
-      std::vector<unsigned> col_map(model_siz.size());
-      unsigned k = 0, p = 0;
-      for (size_t i = 0; i < model_siz.size(); ++i) {
-        if (model_siz[i] > 1) {
-          CHECK_EQ(model_siz[i], dim + 1);
-          pos.push_back(p+1);  // skip the first dim
-          col_map[i] = ++k;
-        }
-        p += model_siz[i];
-      }
-      CHECK_EQ((size_t)p, model.size());
-
-      weight.resize(pos.size() * dim);
-      for (size_t i = 0; i < pos.size(); ++i) {
-        memcpy(weight.data()+i*dim, model.data()+pos[i], dim*sizeof(real_t));
-      }
-
-      // pick the columns of data with model_siz = dim + 1
-      os_.push_back(0);
-      for (size_t i = 0; i < data.size; ++i) {
-        for (size_t j = data.offset[i]; j < data.offset[i+1]; ++j) {
-          unsigned d = data.index[j];
-          unsigned k = col_map[d];
-          if (k > 0) {
-            idx_.push_back(k-1);
-            if (data.value) val_.push_back(data.value[j]);
-          }
-        }
-        os_.push_back(idx_.size());
-      }
-      X.size = data.size;
-      X.offset = BeginPtr(os_);
-      X.value = BeginPtr(val_);
-      X.index = BeginPtr(idx_);
-
-      XX = X;
-      if (X.value) {
-        val2_.resize(X.offset[X.size]);
-        for (size_t i = 0; i < val2_.size(); ++i) {
-          val2_[i] = X.value[i] * X.value[i];
-        }
-        XX.value = BeginPtr(val2_);
-      }
-    }
-
-    void Save(SArray<real_t>* grad) const {
-      if (dim == 0) return;
-      CHECK_EQ(weight.size(), pos.size()*dim);
-      size_t n = pos.back() + dim;
-      if (grad->size() < n) grad->resize(n);
-      for (size_t i = 0; i < pos.size(); ++i) {
-        CHECK_LE(static_cast<size_t>(pos[i] + dim), grad->size());
-        memcpy(grad->data()+pos[i], weight.data()+i*dim, dim*sizeof(real_t));
-      }
-    }
-
-    std::vector<real_t> weight, XV;
-    std::vector<unsigned> pos;
-    dmlc::RowBlock<unsigned> X, XX;
-    int dim;
-
-   private:
-    template <typename T>
-    const T* BeginPtr(const std::vector<T>& vec) {
-      return vec.empty() ? nullptr : vec.data();
-    }
-    std::vector<real_t> val_, val2_;
-    std::vector<size_t> os_;
-    std::vector<unsigned> idx_;
-  } V;
-
-  // parameters
+  fmloss::Linear w;
+  fmloss::Embedding V;
   FMLossParam param_;
+  bool data_inited_ = false;
 };
 
 }  // namespace difacto

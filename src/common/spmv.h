@@ -50,6 +50,7 @@ class SpMV {
     TransTimes(D, x.data(), y->data(), y->size(), nthreads);
   }
 
+ private:
   /** \brief y = D * x */
   template<typename V>
   static void Times(const SpMat& D,  const V* const x, V* y,
