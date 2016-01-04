@@ -10,6 +10,7 @@
 #include "./bcd_param.h"
 #include "./bcd_job.h"
 #include "./bcd_utils.h"
+#include "loss/fm_loss_delta.h"
 namespace difacto {
 
 class BCDLearner : public Learner {
@@ -155,6 +156,9 @@ class BCDLearner : public Learner {
         all_feaids = new_feaids;
         all_feacnts = new_feacnts;
       }
+
+      // init predict
+      data_store_->Push(id + "predict", SArray<real_t>(rowblk.size, 0));
     }
 
     // push the feature ids and feature counts to the servers
@@ -168,6 +172,8 @@ class BCDLearner : public Learner {
       for (real_t& o : feablk_occur) o /= row_counted;
     }
     CHECK_NOTNULL(rets)->feablk_avg = feablk_occur;
+
+
   }
 
   void BuildFeatureMap(const bcd::JobArgs& job) {
@@ -223,38 +229,157 @@ class BCDLearner : public Learner {
     // hint for data prefetch
     for (int f : job.fea_blks) {
       data_store_->NextPullHint("feaids", feablk_pos_[0][f]);
+      data_store_->NextPullHint(std::to_string(f) + "_len");
       for (int d = 0; d < num_data_blks_; ++d) {
         auto id = std::to_string(d) + "_";
         data_store_->NextPullHint(id + "data", feablk_pos_[d+1][f]);
         data_store_->NextPullHint(id + "feamap", feablk_pos_[d+1][f]);
+        data_store_->NextPullHint(id + "predict");
       }
     }
 
-    std::vector<int> push_time;
-    //
-
-    for (size_t i = 0; i < job.fea_blks.size(); ++i) {
+    size_t nfeablk = job.fea_blks.size();
+    int tau = 0;
+    FeatureBlockTracker feablk_tracker(nfeablk);
+    for (size_t i = 0; i < nfeablk; ++i) {
+      // the logic is as following
+      //
+      // 1. calculate gradident
+      // 2. push gradients to servers, so servers will update the weight
+      // 3. once the push is done, pull the changes for the weights back from
+      //    the servers
+      // 4. once the pull is done update the prediction
+      //
+      // however, two things make the implementation is not so intuitive.
+      //
+      // 1. we need to iterate the data block one by one for both calcluating
+      // gradient and update prediction
+      // 2. we used callbacks to avoid to be blocked by the push and pull.
       int f = job.fea_blks[i];
+
+      // 1. calculate gradient
+      SArray<int> grad_len;
+      data_store_->Pull(std::to_string(f) + "_len", &grad_len);
+      size_t n = 0; for (int l : grad_len) n += l;
+      SArray<real_t> grad(n);
+      CalcGrad(f, grad_len, &grad);
+
+      // fetech id for communication
       SArray<feaid_t> feaids;
-      SArray<real_t>* val = new SArray<real_t>();
-      SArray<int>* len  = new SArray<int>();
       data_store_->Pull("feaids", &feaids, feablk_pos_[0][f]);
-      model_store_->Pull(Store::kWeight, feaids, val, len, [val, len]() {
 
-        });
-      // read data
-      int b = job.fea_blks[i];
-      auto id = std::to_string(b) + "_";
-      SArray<int> feamap;
-      data_store_->Pull(id + "feamap", &feamap, feablk_pos_[b+1]);
-      SharedRowBlockContainer<unsigned> blk;
-      data_store_->Pull(id + "data", &blk, feablk_pos_[b+1]);
+      // 3. once push is done, pull the changes for the weights
+      // this callback will be called when the push is finished
+      auto push_callback = [this, f, feaids, i, &feablk_tracker]() {
+        // must use pointer here
+        SArray<real_t>* w_delta = new SArray<real_t>();
+        SArray<int>* w_delta_len = new SArray<int>();
+        // 4. once the pull is done, update the prediction
+        // the callback will be called when the pull is finished
+        auto pull_callback = [this, f, w_delta, w_delta_len, i, &feablk_tracker]() {
+          data_store_->Push(std::to_string(f) + "_len", *w_delta_len);
+          UpdtPred(f, *w_delta, *w_delta_len);
+          delete w_delta;
+          delete w_delta_len;
+          feablk_tracker.Finish(i);
+        };
+        // pull the changes of w from the servers
+        int t = model_store_->Pull(Store::kWeight, feaids, w_delta, w_delta_len, pull_callback);
+      };
+      // 2. push gradient to the servers
+      model_store_->Push(Store::kGradient, feaids, grad, grad_len, push_callback);
 
+
+      if (i >= tau) feablk_tracker.Wait(i - tau);
+    }
+    for (int i = nfeablk - tau; i < nfeablk ; ++i) feablk_tracker.Wait(i);
+  }
+
+  void CalcGrad(int fea_blk_id, const SArray<int>& grad_len, SArray<real_t>* grad) {
+    for (int d = 0; d < num_data_blks_; ++d) {
+      // load data
+      Range fea_blk_pos = feablk_pos_[d+1][fea_blk_id];
+      auto id = std::to_string(d) + "_";
+      SArray<int> fea_map;
+      data_store_->Pull(id + "feamap", &fea_map, fea_blk_pos);
+
+      SArray<int> blk_grad_len(fea_map.size());
+      for (size_t i = 0; i < fea_map.size(); ++i) {
+        blk_grad_len[i] = grad_len[fea_map[i]];
+      }
+
+      SharedRowBlockContainer<unsigned> data;
+      data_store_->Pull(id + "data", &data, fea_blk_pos);
+
+      FMLossDelta* loss = new FMLossDelta();
+      // loss->Init();
+      SArray<real_t> pred;
+      data_store_->Pull(id + "predict", &pred);
+
+      // calc grad
+      SArray<real_t> blk_grad;
+      loss->CalcGrad(data.GetBlock(),
+                     {SArray<char>(pred), SArray<char>(blk_grad_len)},
+                     &blk_grad);
+
+      real_t const* cur_blk_grad = blk_grad.data();
+      real_t* cur_grad = grad->data();
+      for (size_t i = 0; i < blk_grad_len.size(); ++i) {
+        if (i > 0 && fea_map[i] > fea_map[i-1]+1) {
+          for (int j = fea_map[i-1]+1; j < fea_map[i]; ++j) cur_grad += grad_len[j];
+        }
+        memcpy(cur_grad, cur_blk_grad, blk_grad_len[i]*sizeof(real_t));
+        cur_grad += blk_grad_len[i];
+        cur_blk_grad += blk_grad_len[i];
+      }
+      CHECK(cur_grad == grad->end());
+      CHECK(cur_blk_grad == blk_grad.end());
     }
   }
 
+  void UpdtPred(int fea_blk_id, const SArray<real_t>& w_delta,
+                const SArray<int>& w_delta_len) {
+    for (int d = 0; d < num_data_blks_; ++d) {
+      // load data
+      Range fea_blk_pos = feablk_pos_[d+1][fea_blk_id];
+      auto id = std::to_string(d) + "_";
+      SArray<int> fea_map;
+      data_store_->Pull(id + "feamap", &fea_map, fea_blk_pos);
 
-  static const int kDataBOS_ = 5;
+      size_t n = 0;
+      SArray<int> blk_w_len(fea_map.size());
+      for (size_t i = 0; i < fea_map.size(); ++i) {
+        blk_w_len[i] = w_delta_len[fea_map[i]];
+        n += blk_w_len[i];
+      }
+      SArray<real_t> blk_w(n);
+      real_t* cur_blk_w = blk_w.data();
+      real_t const* cur_w = w_delta.data();
+      for (size_t i = 0; i < blk_w_len.size(); ++i) {
+        if (i > 0 && fea_map[i] > fea_map[i-1]+1) {
+          for (int j = fea_map[i-1]+1; j < fea_map[i]; ++j) cur_w += w_delta_len[j];
+        }
+        memcpy(cur_blk_w, cur_w, blk_w_len[i]*sizeof(real_t));
+        cur_blk_w += blk_w_len[i];
+        cur_w += blk_w_len[i];
+      }
+      CHECK(cur_w == w_delta.end());
+      CHECK(cur_blk_w == blk_w.end());
+
+      SharedRowBlockContainer<unsigned> data;
+      data_store_->Pull(id + "data", &data, fea_blk_pos);
+
+      FMLossDelta* loss = new FMLossDelta();
+      // loss->Init();
+      SArray<real_t> old_pred, pred;
+      data_store_->Pull(id + "predict", &old_pred);
+
+      loss->Predict(data.GetBlock(), {SArray<char>(old_pred), SArray<char>(blk_w),
+              SArray<char>(blk_w_len)}, &pred);
+      data_store_->Push(id + "predict", pred);
+    }
+  }
+
   /** \brief the current epoch */
   int epoch_;
   /** \brief the current job type */
@@ -264,12 +389,35 @@ class BCDLearner : public Learner {
   Store* model_store_ = nullptr;
   /** \brief data store */
   DataStore* data_store_ = nullptr;
-  /** \brief the loss*/
-  Loss* loss_ = nullptr;
   /** \brief parameters */
   BCDLearnerParam param_;
 
   std::vector<std::vector<Range>> feablk_pos_;
+
+  /**
+   * \brief monitor if or not a feature block is finished
+   */
+  class FeatureBlockTracker {
+   public:
+    FeatureBlockTracker(int num_blks) : done_(num_blks) { }
+    /** \brief mark id as finished */
+    void Finish(int id) {
+      mu_.lock();
+      done_[id] = 1;
+      mu_.unlock();
+      cond_.notify_all();
+    }
+    /** \brief block untill id is finished */
+    void Wait(int id) {
+      std::unique_lock<std::mutex> lk(mu_);
+      cond_.wait(lk, [this, id] {return done_[id] == 1; });
+    }
+   private:
+    std::mutex mu_;
+    std::condition_variable cond_;
+    std::vector<int> done_;
+  };
+
 };
 
 }  // namespace difacto
