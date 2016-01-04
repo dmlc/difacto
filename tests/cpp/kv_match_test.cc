@@ -8,12 +8,12 @@ using namespace difacto;
 // a referance impl based std::map
 template <typename K, typename V>
 size_t KVMatchRefer (
-  const std::vector<K>& src_key,
-  const std::vector<V>& src_val,
-  const std::vector<K>& dst_key,
-  std::vector<V>* dst_val,
+  const SArray<K>& src_key,
+  const SArray<V>& src_val,
+  const SArray<K>& dst_key,
+  SArray<V>* dst_val,
   int val_len = 1) {
-  std::unordered_map<K, std::vector<V>> data;
+  std::unordered_map<K, SArray<V>> data;
   for (size_t i = 0; i < src_key.size(); ++i) {
     auto& v = data[src_key[i]];
     v.resize(val_len);
@@ -28,15 +28,15 @@ size_t KVMatchRefer (
     if (it == data.end()) continue;
     matched += val_len;
     for (int j = 0; j < val_len; ++j) {
-      dst_val->at(i*val_len+j) = it->second[j];
+      (*dst_val)[i*val_len+j] = it->second[j];
     }
   }
   return matched;
 }
 
 void test(int n, int k) {
-  std::vector<uint32_t> key1, key2;
-  std::vector<real_t> val1, val2, val3;
+  SArray<uint32_t> key1, key2;
+  SArray<real_t> val1, val2, val3;
 
   gen_keys(n, n*10, &key1);
   gen_keys(n, n*10, &key2);
@@ -47,8 +47,7 @@ void test(int n, int k) {
 
   EXPECT_EQ(ret1, ret2);
   EXPECT_EQ(val2.size(), val3.size());
-  EXPECT_EQ(norm1(val2.data(), val2.size()),
-            norm1(val3.data(), val3.size()));
+  EXPECT_EQ(norm2(val2), norm2(val3));
 }
 
 

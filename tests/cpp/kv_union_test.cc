@@ -8,14 +8,14 @@ using namespace difacto;
 // a referance impl based std::map
 template <typename K, typename V>
 void KVUnionRefer (
-    const std::vector<K>& keys_a,
-    const std::vector<V>& vals_a,
-    const std::vector<K>& keys_b,
-    const std::vector<V>& vals_b,
-    std::vector<K>* joined_keys,
-    std::vector<V>* joined_vals,
+    const SArray<K>& keys_a,
+    const SArray<V>& vals_a,
+    const SArray<K>& keys_b,
+    const SArray<V>& vals_b,
+    SArray<K>* joined_keys,
+    SArray<V>* joined_vals,
     int val_len = 1) {
-  std::map<K, std::vector<V>> data;
+  std::map<K, SArray<V>> data;
   for (size_t i = 0; i < keys_a.size(); ++i) {
     auto& v = data[keys_a[i]];
     v.resize(val_len);
@@ -47,8 +47,8 @@ void KVUnionRefer (
 }
 
 void test(int n, int k) {
-  std::vector<uint32_t> key1, key2, jkey1, jkey2;
-  std::vector<real_t> val1, val2, jval1, jval2;
+  SArray<uint32_t> key1, key2, jkey1, jkey2;
+  SArray<real_t> val1, val2, jval1, jval2;
   gen_keys(n, n*10, &key1);
   gen_keys(n, n*10, &key2);
   gen_vals(key1.size()*k, -100, 100, &val1);

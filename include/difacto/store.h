@@ -109,7 +109,6 @@ class Store {
 
   }
   /**
-  /**
    * \brief wait until a push or a pull is actually finished
    *
    * @param time

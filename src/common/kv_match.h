@@ -100,32 +100,6 @@ void KVMatch(
   }
 }
 
-
-/**
- * \brief Find the index range of a segment of a sorted array such that the
- * entries in this segment is within [lower, upper). Assume
- * array values are ordered.
- *
- * An example
- * \code{cpp}
- * SArray<int> a{1 3 5 7 9};
- * CHECK_EQ(Range(1,3), FindRange(a, 2, 7);
- * \endcode
- *
- * \param arr the source array
- * \param lower the lower bound
- * \param upper the upper bound
- *
- * \return the index range
- */
-template<typename V>
-Range FindRange(const std::vector<V>& arr, V lower, V upper) {
-  if (upper <= lower) return Range(0,0);
-  auto lb = std::lower_bound(arr.begin(), arr.end(), lower);
-  auto ub = std::lower_bound(arr.begin(), arr.end(), upper);
-  return Range(lb - arr.begin(), ub - arr.begin());
-}
-
 }  // namespace
 
 
@@ -162,10 +136,10 @@ Range FindRange(const std::vector<V>& arr, V lower, V upper) {
  */
 template <typename K, typename V>
 size_t KVMatch(
-    const std::vector<K>& src_key,
-    const std::vector<V>& src_val,
-    const std::vector<K>& dst_key,
-    std::vector<V>* dst_val,
+    const SArray<K>& src_key,
+    const SArray<V>& src_val,
+    const SArray<K>& dst_key,
+    SArray<V>* dst_val,
     int val_len = 1,
     AssignOp op = ASSIGN,
     int num_threads = DEFAULT_NTHREADS) {
@@ -176,29 +150,16 @@ size_t KVMatch(
   if (dst_key.empty()) return 0;
 
   // shorten the matching range
-  Range range = FindRange(dst_key, src_key.front(), src_key.back()+1);
-  size_t grainsize = std::max(range.Size() * val_len / num_threads + 5,
-                              (uint64_t)1024*1024);
+  auto range = ps::FindRange(dst_key, src_key.front(), src_key.back()+1);
+  size_t grainsize = std::max(range.size() * val_len / num_threads + 5,
+                              static_cast<uint64_t>(1024*1024));
   size_t n = 0;
   KVMatch<K, V>(
       src_key.data(), src_key.data() + src_key.size(), src_val.data(),
-      dst_key.data() + range.begin, dst_key.data() + range.end,
-      dst_val->data() + range.begin * val_len, val_len, op, grainsize, &n);
+      dst_key.data() + range.begin(), dst_key.data() + range.end(),
+      dst_val->data() + range.begin() * val_len, val_len, op, grainsize, &n);
   return n;
 }
-
-
-// template <typename K, typename V>
-// size_t KVMatch(
-//    const K* src_key_begin, const K* src_key_end,
-//    const V* src_val_begin, const V* src_val_end,
-//    const K* dst_key_begin, const K* dst_key_end,
-//    V* dst_val_begin,
-//    int val_len = 1,
-//    AssignOp op = ASSIGN,
-//    int num_threads = DEFAULT_NTHREADS) {
-//   // TODO
-// }
 
 
 }  // namespace difacto

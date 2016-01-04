@@ -7,6 +7,7 @@
 #include <sstream>
 #include "dmlc/data.h"
 #include "difacto/base.h"
+#include "difacto/sarray.h"
 namespace difacto {
 
 template <typename T>
@@ -56,12 +57,12 @@ std::default_random_engine generator;
  * \param key_len the expected key length
  * \param max_key the maximal key size
  */
-void gen_keys(int key_len, uint32_t max_key, std::vector<uint32_t>* key) {
+void gen_keys(int key_len, uint32_t max_key, SArray<uint32_t>* key) {
   key->resize(key_len);
   std::uniform_int_distribution<uint32_t> distribution(
       0, max_key);
   for (int i = 0; i < key_len; ++i) {
-    key->at(i) = distribution(generator);
+    (*key)[i] = distribution(generator);
   }
   std::sort(key->begin(), key->end());
   auto end = std::unique(key->begin(), key->end());
@@ -76,11 +77,11 @@ void gen_keys(int key_len, uint32_t max_key, std::vector<uint32_t>* key) {
  * @param val results
  */
 template <typename V>
-void gen_vals(int len, real_t min_val, real_t max_val, std::vector<V>* val) {
+void gen_vals(int len, real_t min_val, real_t max_val, SArray<V>* val) {
   val->resize(len);
   std::uniform_real_distribution<real_t> dis(min_val, max_val);
   for (int i = 0; i < len; ++i) {
-    val->at(i) = static_cast<V>(dis(generator));
+    (*val)[i] = static_cast<V>(dis(generator));
   }
 }
 

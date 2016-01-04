@@ -8,9 +8,9 @@ using namespace difacto;
 TEST(DataStore, MemBase) {
   DataStore store;
   int n = 1000;
-  std::vector<real_t> val1;
-  std::vector<int> val2;
-  std::vector<uint64_t> val3;
+  SArray<real_t> val1;
+  SArray<int> val2;
+  SArray<uint64_t> val3;
 
   gen_vals(n, -100, 100, &val1);
   gen_vals(n, -100, 100, &val2);

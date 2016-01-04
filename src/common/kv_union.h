@@ -31,19 +31,20 @@ namespace difacto {
  */
 template <typename K, typename V>
 void KVUnion(
-    const std::vector<K>& keys_a,
-    const std::vector<V>& vals_a,
-    const std::vector<K>& keys_b,
-    const std::vector<V>& vals_b,
-    std::vector<K>* joined_keys,
-    std::vector<V>* joined_vals,
+    const SArray<K>& keys_a,
+    const SArray<V>& vals_a,
+    const SArray<K>& keys_b,
+    const SArray<V>& vals_b,
+    SArray<K>* joined_keys,
+    SArray<V>* joined_vals,
     int val_len = 1,
     AssignOp op = PLUS,
     int num_threads = DEFAULT_NTHREADS) {
   // merge keys
-  CHECK_NOTNULL(joined_keys)->clear();
-  std::set_union(keys_a.begin(), keys_a.end(), keys_b.begin(), keys_b.end(),
-      std::back_inserter(*joined_keys));
+  CHECK_NOTNULL(joined_keys)->resize(keys_a.size() + keys_b.size());
+  auto end = std::set_union(keys_a.begin(), keys_a.end(), keys_b.begin(), keys_b.end(),
+                            joined_keys->begin());
+  joined_keys->resize(end - joined_keys->begin());
 
   // merge value of list a
   CHECK_NOTNULL(joined_vals)->clear();
