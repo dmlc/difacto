@@ -9,22 +9,22 @@
 #include <vector>
 #include "dmlc/logging.h"
 namespace difacto {
-
 /*!
  * \brief use float as the weight and gradient type
  */
 typedef float real_t;
-
 /*!
  * \brief use uint64_t as the feature index type
  */
 typedef uint64_t feaid_t;
-
+/*!
+ * \brief use uint16_t as the a single value length type
+ */
+typedef uint16_t len_t;
 /**
  * \brief a list of keyword arguments
  */
 typedef std::vector<std::pair<std::string, std::string>> KWArgs;
-
 /**
  * \brief reverse the bytes of x to make it more uniformly spanning the space
  */
@@ -39,24 +39,20 @@ inline feaid_t ReverseBytes(feaid_t x) {
       (x & 0xF0F0F0F0F0F0F0F0ULL) >> 4;
   return x;
 }
-
 /**
  * \brief the default number of threads
  */
 #define DEFAULT_NTHREADS 2
-
 /**
  * \brief returns true if it is currently under distributed running
  */
 inline bool IsDistributed() {
   return getenv("DMLC_ROLE") != nullptr;
 }
-
 /**
  * \brief for debug printing
  */
 #define LL LOG(ERROR)
-
 /**
  * \brief return a debug string of a vector
  */
@@ -73,7 +69,6 @@ inline std::string DebugStr(const V* data, int n, int m = 5) {
   }
   return ss.str();
 }
-
 /**
  * \brief return a debug string of a vector
  */

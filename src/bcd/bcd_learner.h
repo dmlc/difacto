@@ -10,7 +10,7 @@
 #include "./bcd_param.h"
 #include "./bcd_job.h"
 #include "./bcd_utils.h"
-#include "loss/fm_loss_delta.h"
+#include "loss/logit_loss_delta.h"
 namespace difacto {
 
 class BCDLearner : public Learner {
@@ -311,7 +311,7 @@ class BCDLearner : public Learner {
       SharedRowBlockContainer<unsigned> data;
       data_store_->Fetch(id + "data", &data, fea_blk_pos);
 
-      FMLossDelta* loss = new FMLossDelta();
+      LogitLossDelta* loss = new LogitLossDelta();
       // loss->Init();
       SArray<real_t> pred;
       data_store_->Fetch(id + "predict", &pred);
@@ -369,7 +369,7 @@ class BCDLearner : public Learner {
       SharedRowBlockContainer<unsigned> data;
       data_store_->Fetch(id + "data", &data, fea_blk_pos);
 
-      FMLossDelta* loss = new FMLossDelta();
+      LogitLossDelta* loss = new LogitLossDelta();
       // loss->Init();
       SArray<real_t> old_pred, pred;
       data_store_->Fetch(id + "predict", &old_pred);

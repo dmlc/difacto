@@ -4,6 +4,7 @@
 #ifndef DIFACTO_LOSS_FM_LOSS_H_
 #define DIFACTO_LOSS_FM_LOSS_H_
 #include <vector>
+#include <cmath>
 #include "difacto/base.h"
 #include "dmlc/data.h"
 #include "dmlc/io.h"
@@ -140,7 +141,7 @@ class FMLoss : public Loss {
 #pragma omp parallel for num_threads(nt)
     for (size_t i = 0; i < p.size(); ++i) {
       real_t y = X.label[i] > 0 ? 1 : -1;
-      p[i] = - y/(1 + exp(y * p[i]));
+      p[i] = - y/(1 + std::exp(y * p[i]));
     }
 
     // grad_w = ...

@@ -8,6 +8,8 @@
 #include "dmlc/data.h"
 #include "difacto/base.h"
 #include "difacto/sarray.h"
+#include "common/localizer.h"
+#include "data/batch_iter.h"
 namespace difacto {
 
 template <typename T>
@@ -32,7 +34,6 @@ T norm1(T const* data, int len) {
   for (int i = 0; i < len; ++i) norm += fabs(data[i]);
   return norm;
 }
-
 
 /**
  * \brief return l2 norm of a vector
@@ -104,6 +105,19 @@ void check_equal(RowBlock<T> a, RowBlock<T> b) {
     EXPECT_EQ(norm2(a.value, nnz), norm2(b.value, nnz));
   }
 }
+
+void load_data(dmlc::data::RowBlockContainer<unsigned>* data,
+               std::vector<feaid_t>* uidx) {
+  CHECK_NOTNULL(data);
+  BatchIter iter("../tests/data", "libsvm", 0, 1, 100);
+  CHECK(iter.Next());
+  Localizer lc;
+  lc.Compact(iter.Value(), data, uidx);
+  if (uidx) {
+    for (auto& idx : *uidx) idx = ReverseBytes(idx);
+  }
+}
+
 }  // namespace difacto
 
 #endif  // DIFACTO_TEST_CPP_UTILS_H_
