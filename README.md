@@ -6,6 +6,7 @@
 
 Fast and memory efficient library for factorization machines (FM).
 
+
 - Supports both ℓ1 regularized logistic regression and factorization
   machines.
 - Runs on local machine and distributed clusters.
