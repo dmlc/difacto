@@ -6,21 +6,33 @@
 #include "loss/logit_loss_delta.h"
 
 using namespace difacto;
+
+// void comp_grad(RowBlock<unsigned> data,
+//                SArray<real_t> weight,
+//                LogitLossDelta loss) {
+
+// }
+
 TEST(LogitLossDelt, Basic) {
   // SArray<real_t> weight(47149);
   // for (size_t i = 0; i < weight.size(); ++i) {
   //   weight[i] = i / 5e4;
   // }
 
-  // dmlc::data::RowBlockContainer<unsigned> rowblk;
+  // dmlc::data::RowBlockContainer<unsigned> rowblk, transposed;
   // std::vector<feaid_t> uidx;
   // load_data(&rowblk, &uidx);
+  // SpMT::Transpose(rowblk->GetBlock(), &transposed, udix.size());
+
+
   // SArray<real_t> w(uidx.size());
   // for (size_t i = 0; i < uidx.size(); ++i) {
   //   w[i] = weight[uidx[i]];
   // }
 
+  // KWArgs args = {{"num_threads", "2"}};
   // LogitLossDelta loss; loss.Init(args);
+
   // SArray<real_t> pred;
   // auto data = rowblk.GetBlock();
   // loss.Predict(data,

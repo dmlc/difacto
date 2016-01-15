@@ -12,7 +12,7 @@
 namespace difacto {
 
 /**
- * \brief sparse matrix transpose
+ * \brief multi-thread sparse matrix transpose
  */
 class SpMT {
  public:

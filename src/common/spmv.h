@@ -21,8 +21,8 @@ class SpMV {
    * \brief y = D * x
    *
    * @param D n * m sparse matrix
-   * @param x length m vector
-   * @param y length n vector, should be pre-allocated
+   * @param x m-length vector
+   * @param y n-length vector, should be pre-allocated
    * @param nthreads optional number of threads
    * @tparam Vec can be either std::vector<T> or SArray<T>
    */
@@ -33,6 +33,70 @@ class SpMV {
     CHECK_EQ(y->size(), D.size);
     Times(D, x.data(), y->data(), nthreads);
   }
+
+  /**
+   * \brief y += D * x
+   *
+   * both x and y are vectors. beside the normal vector format, one can specify
+   * an optional entry position to slice a vector from another vector. the
+   * following two representation are equal
+   *
+   * \code
+   * a = {1, 3, 0, 5};
+   * \endcode
+   *
+   * \code
+   * a = {1, 2, 3, 4, 5, 6};
+   * a_pos = {0, 2, -1, 4};
+   * \endcode
+   *
+   * here position -1 means empty
+   * - if a is x, then means value 0
+   * - if a is y, the result will be not written into y
+   *
+   * @param D n * m sparse matrix
+   * @param x vector x
+   * @param y vector y, should be pre-allocated
+   * @param nthreads optional, number of threads
+   * @param x_pos optional, the position of x
+   * @param y_pos optional, the position of y
+   * @tparam Vec can be either std::vector<T> or SArray<T>
+   * @tparam Pos can be either std::vector<int> or SArray<int>
+   */
+  template<typename Vec, typename Pos>
+  static void Times(const SpMat& D,
+                    const Vec& x,
+                    Vec* y,
+                    int nthreads = DEFAULT_NTHREADS,
+                    const Pos& x_pos = Vec(),
+                    const Pos& y_pos = Vec()) {
+    CHECK_NOTNULL(y);
+    CHECK_EQ(y->size(), D.size);
+    Times(D, x.data(), y->data(), nthreads);
+  }
+
+  /**
+   * \brief y += D^T * x
+   *
+   * @param D n * m sparse matrix
+   * @param x vector x
+   * @param y vector y, should be pre-allocated
+   * @param nthreads optional, number of threads
+   * @param x_pos optional, the position of x
+   * @param y_pos optional, the position of y
+   * @tparam Vec can be either std::vector<T> or SArray<T>
+   * @tparam Pos can be either std::vector<int> or SArray<int>
+   */
+  template<typename Vec, typename Pos>
+  static void TransTimes(const SpMat& D,
+                         const Vec& x,
+                         Vec* y,
+                         int nthreads = DEFAULT_NTHREADS,
+                         const Pos& x_pos = Vec(),
+                         const Pos& y_pos = Vec()) {
+  }
+
+
 
   /**
    * \brief y = D^T * x

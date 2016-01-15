@@ -34,7 +34,7 @@ struct LogitLossDeltaParam : public dmlc::Parameter<LogitLossDeltaParam> {
  * format) and delta w each time, and is able to compute the second order
  * gradients.
  *
- * Note: Once can use \ref FMLoss with V_dim = 0 for ordinary logitis loss, namely given
+ * Note: One can use \ref FMLoss with V_dim = 0 for ordinary logitis loss, namely given
  * X and w each time.
  */
 class LogitLossDelta : public Loss {
