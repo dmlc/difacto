@@ -9,13 +9,15 @@ namespace difacto {
 DMLC_REGISTER_PARAMETER(FMLossParam);
 DMLC_REGISTER_PARAMETER(LogitLossDeltaParam);
 
-Loss* Loss::Create(const std::string& type) {
+Loss* Loss::Create(const std::string& type, int nthreads) {
+  Loss* loss = nullptr;
   if (type == "fm") {
-    return new FMLoss();
+    loss = new FMLoss();
   } else {
     LOG(FATAL) << "unknown loss type";
   }
-  return nullptr;
+  loss->set_nthreads(nthreads);
+  return loss;
 }
 
 }  // namespace difacto

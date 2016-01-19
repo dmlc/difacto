@@ -19,10 +19,11 @@ class Loss {
   /**
    * \brief the factory function
    * \param type the loss type such as "fm"
+   * \param num_threads number of threads
    */
-  static Loss* Create(const std::string& type);
+  static Loss* Create(const std::string& type, int nthreads = DEFAULT_NTHREADS);
   /** \brief constructor */
-  Loss() { }
+  Loss() : nthreads_(DEFAULT_NTHREADS) { }
   /** \brief deconstructor */
   virtual ~Loss() { }
   /**
@@ -51,6 +52,15 @@ class Loss {
   virtual void CalcGrad(const dmlc::RowBlock<unsigned>& data,
                         const std::vector<SArray<char>>& param,
                         SArray<real_t>* grad) = 0;
+  /**
+   * \brief set the number of threads
+   */
+  void set_nthreads(int nthreads) {
+    CHECK_GT(nthreads, 1); CHECK_LT(nthreads, 50);
+    nthreads_ = nthreads;
+  }
+ protected:
+  int nthreads_;
 };
 }  // namespace difacto
 #endif  // DIFACTO_LOSS_H_

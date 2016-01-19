@@ -87,7 +87,7 @@ void gen_vals(int len, real_t min_val, real_t max_val, SArray<V>* val) {
 }
 
 /**
- * \brief check a == b
+ * \brief check rowblock a == b
  */
 template <typename T>
 void check_equal(RowBlock<T> a, RowBlock<T> b) {
@@ -106,6 +106,9 @@ void check_equal(RowBlock<T> a, RowBlock<T> b) {
   }
 }
 
+/**
+ * \brief load ../tests/data
+ */
 void load_data(dmlc::data::RowBlockContainer<unsigned>* data,
                std::vector<feaid_t>* uidx) {
   CHECK_NOTNULL(data);

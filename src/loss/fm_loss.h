@@ -65,7 +65,7 @@ class FMLoss : public Loss {
    * - sum(A, 2) : sum the rows of A
    * - .* : elemenetal-wise times
    *
-   * @data data the data
+   * @param data the data
    * @param param the weights
    * - param[0], real_t, the weights
    * - param[1], int, the weight lenghs
