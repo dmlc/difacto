@@ -17,9 +17,11 @@ struct LogitLossDeltaParam : public dmlc::Parameter<LogitLossDeltaParam> {
   int compute_diag_hession;
   /** \brief whether or not compute the upper bound of the diagnal hession */
   int compute_upper_diag_hession;
+  int compute_hession;
   DMLC_DECLARE_PARAMETER(LogitLossDeltaParam) {
     DMLC_DECLARE_FIELD(compute_upper_diag_hession).set_range(0, 1).set_default(1);
     DMLC_DECLARE_FIELD(compute_diag_hession).set_range(0, 1).set_default(0);
+    DMLC_DECLARE_FIELD(compute_hession).set_range(0, 2).set_default(0);
   }
 };
 
