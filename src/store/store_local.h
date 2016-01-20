@@ -44,25 +44,25 @@ class StoreLocal : public Store {
   }
 
   int Push(int sync_type,
-           const std::shared_ptr<std::vector<feaid_t>>& fea_ids,
-           const std::shared_ptr<std::vector<real_t>>& vals,
-           const std::shared_ptr<std::vector<int>>& lens,
+           const SArray<feaid_t>& fea_ids,
+           const SArray<real_t>& vals,
+           const SArray<int>& lens,
            const std::function<void()>& on_complete) override {
     if (sync_type == kFeaCount) {
-      updater_->AddCount(*fea_ids, *vals);
+      updater_->AddCount(fea_ids, vals);
     } else {
-      updater_->Update(*fea_ids, *vals, *lens);
+      updater_->Update(fea_ids, vals, lens);
     }
     if (on_complete) on_complete();
     return time_++;
   }
 
   int Pull(int sync_type,
-           const std::shared_ptr<std::vector<feaid_t>>& fea_ids,
-           std::vector<real_t>* vals,
-           std::vector<int>* lens,
+           const SArray<feaid_t>& fea_ids,
+           SArray<real_t>* vals,
+           SArray<int>* lens,
            const std::function<void()>& on_complete) override {
-    updater_->Get(*fea_ids, vals, lens);
+    updater_->Get(fea_ids, vals, lens);
     if (on_complete) on_complete();
     return time_++;
   }

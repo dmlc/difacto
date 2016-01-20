@@ -17,10 +17,6 @@ typedef float real_t;
  * \brief use uint64_t as the feature index type
  */
 typedef uint64_t feaid_t;
-/*!
- * \brief use uint16_t as the a single value length type
- */
-typedef uint16_t len_t;
 /**
  * \brief a list of keyword arguments
  */

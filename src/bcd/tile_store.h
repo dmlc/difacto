@@ -10,28 +10,34 @@ namespace bcd {
  */
 struct Tile {
   SArray<int> colmap;
-  dmlc::RowBlock<unsigned> data;
+  SharedRowBlockContainer<unsigned> data;
 };
 
 class TileBuilder;
 
 class TileStore {
  public:
+  TileStore(DataStore* data) {
+    data_ = CHECK_NOTNULL(data);
+  }
   friend class TileBuilder;
 
   void Prefetch(int rowblk_id, int colblk_id) {
-
+    auto id = std::to_string(rowblk_id);
+    auto rg = colblk_pos_[rowblk_id][colblk_id];
+    data_->Prefetch(id + "_data", rg);
+    data_->Prefetch(id + "_label");
+    data_->Prefetch(id + "_colmap", rg);
   }
+
   void Fetch(int rowblk_id, int colblk_id, Tile* tile) {
-
+    auto id = std::to_string(rowblk_id);
+    auto rg = colblk_pos_[rowblk_id][colblk_id];
+    CHECK_NOTNULL(tile);
+    data_->Fetch(id + "_data", &tile->data, rg);
+    data_->Fetch(id + "_colmap", &tile->colmap, rg);
+    data_->Fetch(id + "_colmap", &tile->data.label);
   }
-
-
-
-  void StoreColmap(int rowblk_id, const SArray<int>& colmap) {
-
-  }
-
 
  private:
   DataStore* data_;
@@ -41,27 +47,3 @@ class TileStore {
 }  // namespace bcd
 }  // namespace difacto
 #endif  // _TILE_STORE_H_
-
-      // Range fea_blk_pos = feablk_pos_[d+1][fea_blk_id];
-      // auto id = std::to_string(d) + "_";
-      // SArray<int> fea_map;
-      // data_store_->Fetch(id + "feamap", &fea_map, fea_blk_pos);
-
-      // SArray<int> blk_grad_len(fea_map.size());
-      // for (size_t i = 0; i < fea_map.size(); ++i) {
-      //   blk_grad_len[i] = grad_len[fea_map[i]];
-      // }
-
-      // SharedRowBlockContainer<unsigned> data;
-      // data_store_->Fetch(id + "data", &data, fea_blk_pos);
-
-      // LogitLossDelta* loss = new LogitLossDelta();
-      // // loss->Init();
-      // SArray<real_t> pred;
-      // data_store_->Fetch(id + "predict", &pred);
-
-      // // calc grad
-      // SArray<real_t> blk_grad;
-      // loss->CalcGrad(data.GetBlock(),
-      //                {SArray<char>(pred), SArray<char>(blk_grad_len)},
-      //                &blk_grad);

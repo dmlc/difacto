@@ -17,13 +17,32 @@ namespace difacto {
 
 class BCDLearner : public Learner {
  public:
-  BCDLearner() {
-  }
+  BCDLearner() {}
   virtual ~BCDLearner() {
+    delete model_store_;
+    delete data_store_;
+    delete tile_store_;
+    delete loss_;
   }
 
   KWArgs Init(const KWArgs& kwargs) override {
+    // init param
+    auto remain = param_.InitAllowUnknown(kwargs);
+
+    // init model store
+    model_store_ = Store::Create();
+    remain = model_store_->Init(remain);
+
+    // init data stores
+    data_store_ = new DataStore();
+    remain = model_store_->Init(remain);
+    tile_store_ = new bcd::TileStore(data_store_);
+
+    // init loss
+    loss_ = Loss::Create("logit_delta", DEFAULT_NTHREADS);
+    return remain;
   }
+
  protected:
 
   void RunScheduler() override {
@@ -180,7 +199,7 @@ class BCDLearner : public Learner {
     delta_.resize(pos.size());
     model_offset_.resize(pos.size());
 
-    for (int i = 0; i < pos.size(); ++i) {
+    for (size_t i = 0; i < pos.size(); ++i) {
       feaids_[i] = filtered.segment(pos[i].begin, pos[i].end);
       delta_[i].resize(feaids_[i].size());
     }
@@ -197,7 +216,7 @@ class BCDLearner : public Learner {
 
     size_t nfeablk = job.fea_blks.size();
     int tau = 0;
-    FeatureBlockTracker feablk_tracker(nfeablk);
+    bcd::BlockTracker feablk_tracker(nfeablk);
     for (size_t i = 0; i < nfeablk; ++i) {
       auto on_complete = [&feablk_tracker, i]() {
         feablk_tracker.Finish(i);
@@ -283,7 +302,7 @@ class BCDLearner : public Learner {
       delta[i] = delta_[colblk_id][map];
     }
 
-    loss_->CalcGrad(tile.data, {SArray<char>(pred_[rowblk_id]),
+    loss_->CalcGrad(tile.data.GetBlock(), {SArray<char>(pred_[rowblk_id]),
             SArray<char>(grad_pos), SArray<char>(delta)}, grad);
   }
 
@@ -298,19 +317,19 @@ class BCDLearner : public Learner {
       w_pos[i] = delta_w_offset[tile.colmap[i]];
     }
 
-    loss_->Predict(tile.data,
+    loss_->Predict(tile.data.GetBlock(),
                    {SArray<char>(delta_w_offset), SArray<char>(w_pos)},
                    &pred_[rowblk_id]);
   }
 
   /** \brief the current epoch */
-  int epoch_;
+  int epoch_ = 0;
   int ntrain_blks_ = 0;
   int nval_blks_ = 0;
 
   /** \brief the model store*/
   Store* model_store_ = nullptr;
-  Loss* loss_;
+  Loss* loss_ = nullptr;
   /** \brief data store */
   DataStore* data_store_ = nullptr;
   bcd::TileStore* tile_store_ = nullptr;
@@ -322,31 +341,6 @@ class BCDLearner : public Learner {
   std::vector<SArray<feaid_t>> feaids_;
   std::vector<SArray<real_t>> delta_;
   std::vector<SArray<int>> model_offset_;
-
-  /**
-   * \brief monitor if or not a feature block is finished
-   */
-  class FeatureBlockTracker {
-   public:
-    FeatureBlockTracker(int num_blks) : done_(num_blks) { }
-    /** \brief mark id as finished */
-    void Finish(int id) {
-      mu_.lock();
-      done_[id] = 1;
-      mu_.unlock();
-      cond_.notify_all();
-    }
-    /** \brief block untill id is finished */
-    void Wait(int id) {
-      std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this, id] {return done_[id] == 1; });
-    }
-   private:
-    std::mutex mu_;
-    std::condition_variable cond_;
-    std::vector<int> done_;
-  };
-
 };
 
 }  // namespace difacto

@@ -44,8 +44,8 @@ class LogitLoss : public Loss {
     int psize = param.size();
     CHECK_GE(psize, 1); CHECK_LE(psize, 2);
     SArray<real_t> w(param[0]);
-    SArray<int> w_pos = psize == 2 ? param[1] : {};
-    SpMV::Times(data, w, pred, w_pos, {}, nthreads_);
+    SArray<int> w_pos = psize == 2 ? SArray<int>(param[1]) : SArray<int>();
+    SpMV::Times(data, w, pred, nthreads_, w_pos, {});
   }
 
   /*!
@@ -66,21 +66,20 @@ class LogitLoss : public Loss {
     int psize = param.size();
     CHECK_GE(psize, 1);
     CHECK_LE(psize, 2);
-    SArray<real_t> p; p.CopyFrom(param[0]);
-    SArray<int> grad_pos = psize == 2 ? param[1] : {};
+    SArray<real_t> p; p.CopyFrom(SArray<real_t>(param[0]));
+    SArray<int> grad_pos = psize == 2 ? SArray<int>(param[1]) : SArray<int>();
 
     // p = ...
-    CHECK_NOTNULL(X.label);
+    CHECK_NOTNULL(data.label);
 #pragma omp parallel for num_threads(nthreads_)
     for (size_t i = 0; i < p.size(); ++i) {
-      real_t y = X.label[i] > 0 ? 1 : -1;
+      real_t y = data.label[i] > 0 ? 1 : -1;
       p[i] = - y / (1 + std::exp(y * p[i]));
     }
 
     // grad += ...
-    SpMV::TransTimes(data, p, grad, {}, grad_pos, nthreads_);
+    SpMV::TransTimes(data, p, grad, nthreads_, {}, grad_pos);
   }
-};
 };
 
 }  // namespace difacto

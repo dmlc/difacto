@@ -150,16 +150,16 @@ class SGDUpdater : public Updater {
   }
 
   void AddCount(const std::vector<feaid_t>& fea_ids,
-                const std::vector<real_t>& fea_cnts) override;
+                const std::vector<real_t>& fea_cnts);
 
   void Get(const std::vector<feaid_t>& fea_ids,
            std::vector<real_t>* weights,
-           std::vector<int>* weight_lens) override;
+           std::vector<int>* weight_lens);
 
 
   void Update(const std::vector<feaid_t>& fea_ids,
               const std::vector<real_t>& grads,
-              const std::vector<int>& grad_lens) override;
+              const std::vector<int>& grad_lens);
 
 
  private:

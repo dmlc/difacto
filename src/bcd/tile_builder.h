@@ -69,7 +69,7 @@ class TileBuilder {
       map[i] = i+1;
     }
 
-    for (int i = 0; i < blk_feaids_.size(); ++i) {
+    for (size_t i = 0; i < blk_feaids_.size(); ++i) {
       // store position
       std::vector<Range> pos;
       bcd::FindPosition(blk_feaids_[i], feablk_range, &pos);

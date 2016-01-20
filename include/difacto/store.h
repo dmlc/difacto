@@ -49,7 +49,7 @@ class Store {
   /**
    * \brief load the model
    * \param fi input stream
-   * \param has_aux whether the loaded learner has aux data
+   * \param has_aux whether the loaded model has aux data
    */
   virtual void Load(dmlc::Stream* fi, bool* has_aux) = 0;
 
@@ -72,18 +72,10 @@ class Store {
    * @return
    */
   virtual int Push(int sync_type,
-                   const std::shared_ptr<std::vector<feaid_t>>& fea_ids,
-                   const std::shared_ptr<std::vector<real_t>>& vals,
-                   const std::shared_ptr<std::vector<int>>& lens,
-                   const std::function<void()>& on_complete = nullptr) = 0;
-
-  virtual int Push(int sync_type,
                    const SArray<feaid_t>& fea_ids,
                    const SArray<real_t>& vals,
                    const SArray<int>& lens,
-                   const std::function<void()>& on_complete = nullptr)  {
-
-  }
+                   const std::function<void()>& on_complete = nullptr) = 0;
   /**
    * \brief pull the values for a list of feature ids
    *
@@ -96,18 +88,11 @@ class Store {
    * @return
    */
   virtual int Pull(int sync_type,
-                   const std::shared_ptr<std::vector<feaid_t>>& fea_ids,
-                   std::vector<real_t>* vals,
-                   std::vector<int>* lens,
-                   const std::function<void()>& on_complete = nullptr) = 0;
-
-  virtual int Pull(int sync_type,
                    const SArray<feaid_t>& fea_ids,
                    SArray<real_t>* vals,
                    SArray<int>* lens,
-                   const std::function<void()>& on_complete = nullptr) {
+                   const std::function<void()>& on_complete = nullptr) = 0;
 
-  }
   /**
    * \brief wait until a push or a pull is actually finished
    *

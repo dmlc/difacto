@@ -6,27 +6,32 @@
 #include <vector>
 #include <string>
 #include "./base.h"
+#include "./sarray.h"
 #include "dmlc/io.h"
 namespace difacto {
 /**
- * \brief the base class of an updaterer,
+ * \brief the base class of an updater
  *
- * the main job of a updater is to update w based
- * on the input (often gradient)
+ * the main job of a updater is to update model based
+ * on the received data (often gradient)
  */
 class Updater {
  public:
   /**
    * \brief the factory function
-   * \param type the updater type such as "fm"
+   * \param type the updater type
    */
   static Updater* Create(const std::string& type);
+  /**
+   * \brief default constructor
+   */
   Updater() { }
+  /**
+   * \brief default deconstructor
+   */
   virtual ~Updater() { }
-
   /**
    * \brief init the updater
-   *
    * @param kwargs keyword arguments
    * @return the unknown kwargs
    */
@@ -52,34 +57,30 @@ class Updater {
    * @param fea_ids the list of feature ids
    * @param fea_cnts the according counts
    */
-  virtual void AddCount(const std::vector<feaid_t>& fea_ids,
-                        const std::vector<real_t>& fea_cnts) = 0;
+  virtual void AddCount(const SArray<feaid_t>& fea_ids,
+                        const SArray<real_t>& fea_cnts) = 0;
 
   /**
    * \brief get the weights on the given features
    *
    * @param fea_ids the list of feature ids
-   * @param weights the according weight on this feature ids, in format [w_0, V_0,
-   * w_1, V_1, ...]
-   * @param weight_lens the i-th element stores len([w_i, V_i]), could be empty
-   * if there is only w
+   * @param model
+   * @param model_offset could be empty
    */
-  virtual void Get(const std::vector<feaid_t>& fea_ids,
-                   std::vector<real_t>* weights,
-                   std::vector<int>* weight_lens) = 0;
+  virtual void Get(const SArray<feaid_t>& fea_ids,
+                   SArray<real_t>* model,
+                   SArray<int>* model_offset) = 0;
 
   /**
-   * \brief update the weights given the gradients
+   * \brief update the model given a list of key-value pairs
    *
    * @param fea_ids the list of feature ids
-   * @param gradients the according gradients on this feature ids, in format [gw_0, gV_0,
-   * gw_1, gV_1, ...]
-   * @param gradient_lens the i-th element stores len([gw_i, gV_i]), could be empty
-   * if there is only w
+   * @param recv_data
+   * @param recv_data_offset
    */
-  virtual void Update(const std::vector<feaid_t>& fea_ids,
-                      const std::vector<real_t>& grads,
-                      const std::vector<int>& grad_lens) = 0;
+  virtual void Update(const SArray<feaid_t>& fea_ids,
+                      const SArray<real_t>& recv_data,
+                      const SArray<int>& recv_data_offset) = 0;
 };
 
 }  // namespace difacto

@@ -44,7 +44,7 @@ class DataStore {
    */
   DataStore() { store_ = new DataStoreMemory(); }
   /** \brief deconstructor */
-  ~DataStore() { delete store_; }
+  virtual ~DataStore() { delete store_; }
   /**
    * \brief init
    *
@@ -198,7 +198,9 @@ class DataStore {
     return {key+"_offset", key+"_label", key+"_weight", key+"_index", key+"_value"};
   }
 
-  inline bool IsRowBlockKey(const std::string& key) { return rowblk_keys_.count(key) != 0; }
+  inline bool IsRowBlockKey(const std::string& key) {
+    return rowblk_keys_.count(key) != 0;
+  }
 
   inline Range GetCharRange(const std::string& key, Range range) {
     auto it = data_types_.find(key);
