@@ -28,8 +28,7 @@ build/difacto data_in=data/gisette_scale val_data=data/gisette_scale.t lr=.02 V_
 Origins from
 [wormhole/learn/difacto](https://github.com/dmlc/wormhole/tree/master/learn/difacto).
 
-(NOTE: this project is still under developing, we hope to make the first release
-at the end of 2015.)
+(NOTE: this project is still under developing)
 
 ### References
 
