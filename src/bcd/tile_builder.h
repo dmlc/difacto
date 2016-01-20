@@ -20,7 +20,7 @@ class TileBuilder {
   /**
    * \brief add a data block
    */
-  void Add(const dmlc::RowBlock<feaid_t>& rowblk) {
+  void Add(const dmlc::RowBlock<feaid_t>& rowblk, bool merge) {
     // map feature id into continous intergers and transpose to easy slice a
     // column block
     std::shared_ptr<std::vector<feaid_t>> ids(new std::vector<feaid_t>());
@@ -40,8 +40,11 @@ class TileBuilder {
     store_->data_->Store(std::to_string(id) + "_label", rowblk.label, rowblk.size);
     delete transposed;
 
-    // merge ids and counts
     SArray<feaid_t> sids(ids);
+    blk_feaids_.push_back(sids);
+
+    // merge ids and counts
+    if (!merge) return;
     SArray<real_t> scnt(cnt);
     if (feaids.empty()) {
       feaids = sids;
@@ -54,7 +57,6 @@ class TileBuilder {
       feaids = new_feaids;
       feacnts = new_feacnts;
     }
-    blk_feaids_.push_back(sids);
   }
 
 

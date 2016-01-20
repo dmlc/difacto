@@ -1,5 +1,7 @@
 #ifndef DEFACTO_LEARNER_BCD_LEARNER_H_
 #define DEFACTO_LEARNER_BCD_LEARNER_H_
+#include <cmath>
+#include <algorithm>
 #include "difacto/learner.h"
 #include "difacto/node_id.h"
 #include "dmlc/data.h"
@@ -25,40 +27,64 @@ class BCDLearner : public Learner {
  protected:
 
   void RunScheduler() override {
-    // load and convert data
-    bool has_val = param_.data_val.size() != 0;
-    CHECK(param_.data_in.size());
-    IssueJobToWorkers(bcd::JobArgs::kPrepareTrainData, param_.data_in);
+    // load data
+    std::vector<real_t> feagrp_avg;
+    bcd::JobArgs load; load.type = bcd::JobArgs::kPrepareData;
+    IssueJobToWorkers(load, [&feagrp_avg](int node_id, const std::string& rets) {
+        bcd::PrepDataRets prets; prets.ParseFromString(rets);
+        bcd::Add(prets.feagrp_avg, &feagrp_avg);
+      });
 
-    if (has_val) {
-      IssueJobToWorkers(bcd::JobArgs::kPrepareValData, param_.data_val);
+    // partition feature group and build feature map
+    bcd::JobArgs build; build.type = bcd::JobArgs::kBuildFeatureMap;
+    int nworker = model_store_->NumWorkers();
+    std::vector<std::pair<int,int>> feagrp;
+    for (int i = 0; i < static_cast<int>(feagrp_avg.size()); ++i) {
+      int nblk = static_cast<int>(std::ceil(feagrp_avg[i] / nworker));
+      if (nblk > 0) feagrp.push_back(std::make_pair(i, nblk));
     }
+    bcd::PartitionFeatureSpace(
+        param_.num_feature_group_bits, feagrp, &build.fea_blk_ranges);
+    IssueJobToWorkers(build);
 
+    // iterate over data
+    std::vector<int> feablks(build.fea_blk_ranges.size());
+    for (size_t i = 0; i < feablks.size(); ++i) feablks[i] = i;
     epoch_ = 0;
     for (; epoch_ < param_.max_num_epochs; ++epoch_) {
-      IssueJobToWorkers(bcd::JobArgs::kTraining);
-      if (has_val) IssueJobToWorkers(bcd::JobArgs::kValidation);
+      // for (auto& cb : before_epoch_callbacks_) cb();
+
+      bcd::JobArgs iter; iter.type = bcd::JobArgs::kIterateData;
+      std::random_shuffle(feablks.begin(), feablks.end());
+      iter.fea_blks = feablks;
+      std::vector<real_t> progress;
+      IssueJobToWorkers(iter, [&progress](int node_id, const std::string& rets) {
+          bcd::IterDataRets irets; irets.ParseFromString(rets);
+          bcd::Add(irets.progress, &progress);
+        });
+
+      // for (auto& cb : epoch_callbacks_) cb();
     }
   }
 
   void Process(const std::string& args, std::string* rets) {
     bcd::JobArgs job(args);
-
-    if (job.type == bcd::JobArgs::kPrepareValData ||
-        job.type == bcd::JobArgs::kPrepareTrainData) {
+    bcd::TileBuilder* builder = nullptr;
+    if (job.type == bcd::JobArgs::kPrepareData) {
       bcd::PrepDataRets prets;
-      PrepareData(job, &prets);
+      builder = new bcd::TileBuilder(tile_store_);
+      PrepareData(job, builder, &prets);
       prets.SerializeToString(rets);
-    } else if (job.type == bcd::JobArgs::kTraining ||
-               job.type == bcd::JobArgs::kValidation) {
-      // IterateFeatureBlocks(job, rets);
+    } else if (job.type == bcd::JobArgs::kBuildFeatureMap) {
+      BuildFeatureMap(job, CHECK_NOTNULL(builder));
+      delete builder; builder = nullptr;
+    } else if (job.type == bcd::JobArgs::kIterateData) {
+      bcd::IterDataRets irets;
+      IterateData(job, &irets);
+      irets.SerializeToString(rets);
     }
 
-    // if (job.type == kSaveModel) {
-    // } else if (job.type == kLoadModel) {
-    // } else {
-    //   ProcessFile(job);
-    // }
+    // TODO save and load
   }
 
  private:
@@ -73,52 +99,60 @@ class BCDLearner : public Learner {
   /**
    * \brief send jobs to workers and wait them finished.
    */
-  void IssueJobToWorkers(int job_type,
-                         const std::string& filename = "") {
-    // job_type_ = job_type;
-    // for (auto& cb : before_epoch_callbacks_) cb();
-    // int nworker = model_store_->NumWorkers();
-    // std::vector<Job> jobs(nworker);
-    // for (int i = 0; i < nworker; ++i) {
-    //   jobs[i].type = job_type;
-    //   jobs[i].filename = filename;
-    //   jobs[i].num_parts = nworker;
-    //   jobs[i].part_idx = i;
-    //   jobs[i].node_id = NodeID::Encode(NodeID::kWorkerGroup, i);
-    // }
-    // job_tracker_->Add(jobs);
-    // while (job_tracker_->NumRemains() != 0) { Sleep(); }
-    // for (auto& cb : epoch_callbacks_) cb();
+  void IssueJobToWorkers(const bcd::JobArgs& job, Tracker::Monitor monitor = nullptr) {
+    int nworker = model_store_->NumWorkers();
+    std::vector<std::pair<int, std::string>> jobs(nworker);
+    for (int i = 0; i < nworker; ++i) {
+      jobs[i].first = NodeID::Encode(NodeID::kWorkerGroup, i);
+      job.SerializeToString(&(jobs[i].second));
+    }
+    tracker_->SetMonitor(monitor);
+    tracker_->Issue(jobs);
+    while (tracker_->NumRemains() != 0) { Sleep(); }
   }
 
-  void PrepareData(const bcd::JobArgs& job, bcd::PrepDataRets* rets) {
-    // read and process a 512MB chunk each time
-    ChunkIter reader(job.filename, param_.data_format,
-                     job.part_idx, job.num_parts, 1<<28);
-
+  void PrepareData(const bcd::JobArgs& job,
+                   bcd::TileBuilder* builder,
+                   bcd::PrepDataRets* rets) {
+    // read train data
+    int chunk_size = 1<<28;  // read and process a 512MB chunk each time
+    ChunkIter train(param_.data_in, param_.data_format,
+                    model_store_->Rank(), model_store_->NumWorkers(),
+                    chunk_size);
     bcd::FeaGroupStats stats(param_.num_feature_group_bits);
-    bcd::TileBuilder* builder;
-
-    while (reader.Next()) {
-      auto rowblk = reader.Value();
+    while (train.Next()) {
+      auto rowblk = train.Value();
       stats.Add(rowblk);
-      builder->Add(rowblk);
+      builder->Add(rowblk, true);
       pred_.push_back(SArray<real_t>(rowblk.size));
+      ++ntrain_blks_;
     }
-
     // push the feature ids and feature counts to the servers
     int t = model_store_->Push(
         Store::kFeaCount, builder->feaids, builder->feacnts, SArray<int>());
+    // report statistics to the scheduler
+    stats.Get(&(CHECK_NOTNULL(rets)->feagrp_avg));
+
+    // read validation data if any
+    if (param_.data_val.size()) {
+      ChunkIter val(param_.data_val, param_.data_format,
+                    model_store_->Rank(), model_store_->NumWorkers(),
+                    chunk_size);
+
+      while (val.Next()) {
+        auto rowblk = val.Value();
+        builder->Add(rowblk, false);
+        pred_.push_back(SArray<real_t>(rowblk.size));
+        ++nval_blks_;
+      }
+    }
+
+    // wait the previous push finished
     model_store_->Wait(t);
     builder->feacnts.clear();
-
-    // report statistics to the scheduler
-    stats.Get(&(CHECK_NOTNULL(rets)->feablk_avg));
   }
 
-  void BuildFeatureMap(const bcd::JobArgs& job) {
-    bcd::TileBuilder* builder;
-
+  void BuildFeatureMap(const bcd::JobArgs& job, bcd::TileBuilder* builder) {
     // pull the aggregated feature counts from the servers
     SArray<real_t> feacnt;
     int t = model_store_->Pull(
@@ -152,11 +186,11 @@ class BCDLearner : public Learner {
     }
   }
 
-  void IterateFeatureBlocks(const bcd::JobArgs& job, bcd::IterFeaBlkRets* rets) {
+  void IterateData(const bcd::JobArgs& job, bcd::IterDataRets* rets) {
     CHECK(job.fea_blks.size());
     // hint for data prefetch
     for (int f : job.fea_blks) {
-      for (int d = 0; d < num_data_blks_; ++d) {
+      for (int d = 0; d < ntrain_blks_ + nval_blks_; ++d) {
         tile_store_->Prefetch(d, f);
       }
     }
@@ -204,7 +238,7 @@ class BCDLearner : public Learner {
     // we compute both 1st and diagnal 2nd gradients. it's ok to overwrite model_offset_
     for (int& os : grad_offset) os += os;
     SArray<real_t> grad(grad_offset.back());
-    for (int i = 0; i < num_data_blks_; ++i) {
+    for (int i = 0; i < ntrain_blks_; ++i) {
       CalcGrad(i, blk_id, grad_offset, &grad);
     }
 
@@ -218,7 +252,7 @@ class BCDLearner : public Learner {
       // the callback will be called when the pull is finished
       auto pull_callback = [this, blk_id, delta_w, delta_w_offset, on_complete]() {
         model_offset_[blk_id] = *delta_w_offset;
-        for (int i = 0; i < num_data_blks_; ++i) {
+        for (int i = 0; i < ntrain_blks_ + nval_blks_; ++i) {
           UpdtPred(i, blk_id, *delta_w_offset, *delta_w);
         }
         delete delta_w;
@@ -271,9 +305,9 @@ class BCDLearner : public Learner {
 
   /** \brief the current epoch */
   int epoch_;
-  /** \brief the current job type */
-  int job_type_;
-  int num_data_blks_ = 0;
+  int ntrain_blks_ = 0;
+  int nval_blks_ = 0;
+
   /** \brief the model store*/
   Store* model_store_ = nullptr;
   Loss* loss_;

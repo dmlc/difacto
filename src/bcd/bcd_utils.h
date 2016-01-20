@@ -31,6 +31,22 @@ void FindPosition(const SArray<feaid_t>& fea_ids,
 }
 
 /**
+ * \brief y += x
+ *
+ * @param x
+ * @param y
+ */
+template <typename Vec>
+void Add(const Vec& x, Vec* y) {
+  if (y->empty()) {
+    *y = x;
+  } else {
+    CHECK_EQ(y->size(), x.size());
+    for (size_t i = 0; i < x.size(); ++i) (*y)[i] += x[i];
+  }
+}
+
+/**
  * \brief count statistics for feature groups
  */
 class FeaGroupStats {
