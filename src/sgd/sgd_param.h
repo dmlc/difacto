@@ -45,6 +45,8 @@ struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
   int shuffle;
   float neg_sampling;
 
+  int job_size;
+
   DMLC_DECLARE_PARAMETER(SGDLearnerParam) {
     DMLC_DECLARE_FIELD(task).set_default("train");
     DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
@@ -55,6 +57,7 @@ struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
     DMLC_DECLARE_FIELD(pred_out).set_default("");
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
+    DMLC_DECLARE_FIELD(job_size).set_default(4);
   }
 };
 }  // namespace difacto

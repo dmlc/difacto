@@ -149,19 +149,17 @@ class SGDUpdater : public Updater {
     model_.Save(save_aux, fo);
   }
 
-  void AddCount(const std::vector<feaid_t>& fea_ids,
-                const std::vector<real_t>& fea_cnts);
+  void AddCount(const SArray<feaid_t>& fea_ids,
+                const SArray<real_t>& fea_cnts);
 
-  void Get(const std::vector<feaid_t>& fea_ids,
-           std::vector<real_t>* weights,
-           std::vector<int>* weight_lens);
-
-
-  void Update(const std::vector<feaid_t>& fea_ids,
-              const std::vector<real_t>& grads,
-              const std::vector<int>& grad_lens);
+  void Get(const SArray<feaid_t>& fea_ids,
+           SArray<real_t>* weights,
+           SArray<int>* offsets);
 
 
+  void Update(const SArray<feaid_t>& fea_ids,
+              const SArray<real_t>& grads,
+              const SArray<int>& offsets);
  private:
   /** \brief update w by FTRL */
   void UpdateW(real_t gw, SGDEntry* e);

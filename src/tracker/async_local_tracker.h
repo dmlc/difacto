@@ -20,7 +20,7 @@ namespace difacto {
  * 1. Only runs within a process
  * 2. Both arugment and return are templates rather than std::string
  * 3. no node_id is required
- * 4. The consumer can be asynchronous, it calls on_complete when actually finished.
+ * 4. The executor can be asynchronous, it calls on_complete when actually finished.
  *
  * \tparam JobArgs the type of the job arguments
  * \parram JobRets the type of the job returns
@@ -28,7 +28,7 @@ namespace difacto {
 template<typename JobArgs, typename JobRets = std::string>
 class AsyncLocalTracker {
  public:
-  AsyncLocalTracker() : thread_(&AsyncLocalTracker::RunConsumer, this) { }
+  AsyncLocalTracker() : thread_(&AsyncLocalTracker::RunExecutor, this) { }
   ~AsyncLocalTracker() {
     Wait();
     done_ = true;
@@ -41,7 +41,7 @@ class AsyncLocalTracker {
    * \param jobs
    */
   void Issue(const std::vector<JobArgs>& jobs) {
-    CHECK(consumer_) << "set consumer first";
+    CHECK(executor_) << "set executor first";
     {
       std::lock_guard<std::mutex> lk(mu_);
       for (const auto& w : jobs) pending_.push(w);
@@ -79,20 +79,20 @@ class AsyncLocalTracker {
   typedef std::function<void()> Callback;
 
   /**
-   * \brief the asynchronous consumer function
+   * \brief the asynchronous executor function
    *
    * @param args the job argumetns
    * @param on_complete call it when the job is actually finished
    * @param rets  returns of the job
    */
   typedef std::function<void(
-      const JobArgs args, const Callback& on_complete, JobRets* rets)> Consumer;
+      const JobArgs args, const Callback& on_complete, JobRets* rets)> Executor;
 
   /**
-   * \brief set the async consumer function
+   * \brief set the async executor function
    */
-  void SetConsumer(const Consumer& consumer) {
-    consumer_ = consumer;
+  void SetExecutor(const Executor& executor) {
+    executor_ = executor;
   }
 
   /**
@@ -106,7 +106,7 @@ class AsyncLocalTracker {
   }
 
  private:
-  void RunConsumer() {
+  void RunExecutor() {
     while (true) {
       // get a job from the queue
       std::unique_lock<std::mutex> lk(mu_);
@@ -118,10 +118,10 @@ class AsyncLocalTracker {
       lk.unlock();
 
       // run the job
-      CHECK(consumer_);
+      CHECK(executor_);
       int id = it.first->first;
       auto on_complete = [this, id]() { Remove(id); };
-      consumer_(it.first->second.first, on_complete, &(it.first->second.second));
+      executor_(it.first->second.first, on_complete, &(it.first->second.second));
     }
   }
 
@@ -141,7 +141,7 @@ class AsyncLocalTracker {
   std::mutex mu_;
   std::condition_variable run_cond_, fin_cond_;
   std::thread thread_;
-  Consumer consumer_;
+  Executor executor_;
   Monitor monitor_;
   std::queue<JobArgs> pending_;
   std::unordered_map<int, std::pair<JobArgs, JobRets>> running_;

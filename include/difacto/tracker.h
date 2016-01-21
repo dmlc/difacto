@@ -4,22 +4,21 @@
 #include <vector>
 #include <functional>
 #include "./base.h"
-
 namespace difacto {
 /**
  * \brief a thread-safe distributed job tracker
  *
  * A job is a remote procedure call, which takes a string as the argments and
  * returns a string for the results. The tracker can be used by both producer
- * and consumer
+ * and executor
  *
  * the producer can
  *
  * 1. continously add jobs into the tracker, which will send the jobs to the
- * coresponding consumers.
- * 2. set a monitor to process the results returned by the consumers.
+ * coresponding executors.
+ * 2. set a monitor to process the results returned by the executors.
  *
- * the consumer can set a function which will be called if a job is received from the
+ * the executor can set a function which will be called if a job is received from the
  * producer.
  */
 class Tracker {
@@ -40,25 +39,25 @@ class Tracker {
    */
   virtual KWArgs Init(const KWArgs& kwargs) = 0;
 
-  /////////////// functions for the producer /////////////////
+  /////////////// functions for the scheduler node /////////////////
   /**
-   * \brief issue a job to the consumer
+   * \brief issue a job to the executor
    *
-   * If the node ID of the consumer is a group, e.g. kWorkerGroup, then this job
-   * could be sent to any node in that group. Given one consumer, the tracker
+   * If the node ID of the executor is a group, e.g. kWorkerGroup, then this job
+   * could be sent to any node in that group. Given one executor, the tracker
    * sends a job only if the previous one has been finished.
    *
    * This function returns immediately once the job is queued. Use
    * \ref NumRemains to query if or not the job is finished.
    *
-   * \param node_id the node id of the consumer
+   * \param node_id the node id of the executor
    * \param args the job arguments
    */
   void Issue(int node_id, std::string args) {
     Issue({std::make_pair(node_id, args)});
   }
   /**
-   * \brief issue a list of jobs to the consumers
+   * \brief issue a list of jobs to the executors
    * \param jobs the jobs to add
    */
   virtual void Issue(const std::vector<std::pair<int, std::string>>& jobs) = 0;
@@ -69,21 +68,21 @@ class Tracker {
   /**
    * \brief clear all unfinished jobs
    *
-   * stop to assign new jobs to consumers. however, it dose nothing for jobs
+   * stop to assign new jobs to executors. however, it dose nothing for jobs
    * that are running now.
    */
   virtual void Clear() = 0;
   /**
    * \brief stop the tracker
    *
-   * it first wait all jobs are done, and then issue a STOP job to all consumers
+   * it first wait all jobs are done, and then issue a STOP job to all executors
    * and wait they are done
    */
   virtual void Stop() = 0;
   /**
-   * \brief the function to process the results returned by the consumers
+   * \brief the function to process the results returned by the executors
    *
-   * @param node_id the node id of the consumer
+   * @param node_id the node id of the executor
    * @param rets the returned results
    */
   typedef std::function<void(int node_id, const std::string& rets)> Monitor;
@@ -92,17 +91,17 @@ class Tracker {
    */
   virtual void SetMonitor(const Monitor& monitor) = 0;
 
-  /////////////// functions for the consumer /////////////////
+  /////////////// functions for a server/worker node /////////////////
   /**
-   * \brief the definition of the consumer function
+   * \brief the definition of the executor function
    * \param args the accepted job's arguments
    * \param rets the results send back to the producer
    */
-  typedef std::function<void(const std::string& args, std::string* rets)> Consumer;
+  typedef std::function<void(const std::string& args, std::string* rets)> Executor;
   /**
-   * \brief set the consumer function
+   * \brief set the executor function
    */
-  virtual void SetConsumer(const Consumer& consumer) = 0;
+  virtual void SetExecutor(const Executor& executor) = 0;
   /**
    * \brief block until the producer called \ref Stop
    */

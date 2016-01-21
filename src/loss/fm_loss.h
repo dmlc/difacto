@@ -11,7 +11,6 @@
 #include "difacto/loss.h"
 #include "common/spmv.h"
 #include "common/spmm.h"
-#include "./fm_loss_utils.h"
 #include "./logit_loss.h"
 namespace difacto {
 /**
@@ -128,8 +127,8 @@ class FMLoss : public Loss {
    * @param data the data
    * @param param input parameters
    * - param[0], real_t vector, the predict output
-   * - param[1], real_t vector, the weights
-   * - param[2], int vector, the gradient positions
+   * - param[1], int vector, the gradient positions
+   * - param[2], real_t vector, the weights
    * @param grad the results
    */
   void CalcGrad(const dmlc::RowBlock<unsigned>& data,
@@ -145,14 +144,14 @@ class FMLoss : public Loss {
     }
 
     // grad_w = ...
-    SArray<int> w_pos(param[2]);
+    SArray<int> w_pos(param[1]);
     SpMV::TransTimes(data, p, grad, nthreads_, {}, w_pos);
 
     // grad_u = ...
     int V_dim = param_.V_dim;
     if (V_dim == 0) return;
-    SArray<real_t> V(param[0]);
-    SArray<int> V_pos = GetVPos(SArray<int>(param[2]), V.size());
+    SArray<real_t> V(param[2]);
+    SArray<int> V_pos = GetVPos(SArray<int>(param[1]), V.size());
 
     // XXp = (X.*X)'*p
     auto XX = data;

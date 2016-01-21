@@ -6,10 +6,23 @@ namespace difacto {
 namespace bcd {
 
 struct JobArgs {
+  static const int kLoadModel = 1;
+  static const int kSaveModel = 2;
+  static const int kIterateData = 3;
+  static const int kPrepareData = 6;
+  static const int kBuildFeatureMap = 7;
+  /** \brief job type */
+  int type;
+  /** \brief the order to process feature blocks */
+  std::vector<int> fea_blks;
+  /** \brief the ID range of each feature block */
+  std::vector<Range> fea_blk_ranges;
+
   JobArgs() { }
   /** \brief construct from a string */
-  JobArgs(const std::string& str) { ParseFromString(str); }
-
+  JobArgs(const std::string& str) {
+    ParseFromString(str);
+  }
   void SerializeToString(std::string* str) const {
     dmlc::Stream* ss = new dmlc::MemoryStringStream(str);
     ss->Write(type);
@@ -20,7 +33,6 @@ struct JobArgs {
     }
     delete ss;
   }
-
   void ParseFromString(const std::string& str) {
     auto pstr = str;
     dmlc::Stream* ss = new dmlc::MemoryStringStream(&pstr);
@@ -34,18 +46,6 @@ struct JobArgs {
     }
     delete ss;
   }
-
-  static const int kLoadModel = 1;
-  static const int kSaveModel = 2;
-  static const int kIterateData = 3;
-  static const int kPrepareData = 6;
-  static const int kBuildFeatureMap = 7;
-  /** \brief job type */
-  int type;
-  /** \brief the order to process feature blocks */
-  std::vector<int> fea_blks;
-  /** \brief the ID range of each feature block */
-  std::vector<Range> fea_blk_ranges;
 };
 
 struct PrepDataRets {

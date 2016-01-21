@@ -52,13 +52,13 @@ class LocalTracker : public Tracker {
         });
   }
 
-  void SetConsumer(const Consumer& consumer) override {
-    CHECK_NOTNULL(tracker_)->SetConsumer(
-        [consumer](const Job& args,
+  void SetExecutor(const Executor& executor) override {
+    CHECK_NOTNULL(tracker_)->SetExecutor(
+        [executor](const Job& args,
                    const std::function<void()>& on_complete,
                    Job* rets) {
           rets->first = args.first;
-          consumer(args.second, &(rets->second));
+          executor(args.second, &(rets->second));
           on_complete();
         });
   }

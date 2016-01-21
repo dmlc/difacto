@@ -27,7 +27,7 @@ KWArgs Learner::Init(const KWArgs& kwargs) {
   tracker_ = Tracker::Create();
   auto remain = tracker_->Init(kwargs);
   using namespace std::placeholders;
-  tracker_->SetConsumer(std::bind(&Learner::Process, this, _1, _2));
+  tracker_->SetExecutor(std::bind(&Learner::Process, this, _1, _2));
   return remain;
 }
 
