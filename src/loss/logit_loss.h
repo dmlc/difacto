@@ -68,7 +68,6 @@ class LogitLoss : public Loss {
     CHECK_LE(psize, 2);
     SArray<real_t> p; p.CopyFrom(SArray<real_t>(param[0]));
     SArray<int> grad_pos = psize == 2 ? SArray<int>(param[1]) : SArray<int>();
-
     // p = ...
     CHECK_NOTNULL(data.label);
 #pragma omp parallel for num_threads(nthreads_)

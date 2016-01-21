@@ -2,6 +2,7 @@
  * Copyright (c) 2015 by Contributors
  */
 #include "difacto/learner.h"
+#include "./sgd/sgd_param.h"
 #include "./sgd/sgd_learner.h"
 #include "./bcd/bcd_param.h"
 #include "./bcd/bcd_learner.h"

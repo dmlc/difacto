@@ -25,16 +25,20 @@ class SpMM {
    * @param nthreads optional number of threads
    * @tparam Vec can be either std::vector<T> or SArray<T>
    */
-  template<typename Vec>
+  template<typename Vec, typename Pos = std::vector<int>>
   static void Times(const SpMat& D,
                     const Vec& x,
                     Vec* y,
-                    int nt = DEFAULT_NTHREADS) {
-    if (x.empty()) return;
-    CHECK_NOTNULL(y);
-    int dim = static_cast<int>(y->size() / D.size);
-    Times(D, x.data(), y->data(), dim, nt);
+                    int k,
+                    int nt = DEFAULT_NTHREADS,
+                    const Pos& x_pos = Pos(),
+                    const Pos& y_pos = Pos()) {
+    // if (x.empty()) return;
+    // CHECK_NOTNULL(y);
+    // int dim = static_cast<int>(y->size() / D.size);
+    // Times(D, x.data(), y->data(), dim, nt);
   }
+
   /**
    * \brief y = D^T * x
    * @param D n * m sparse matrix
@@ -43,38 +47,42 @@ class SpMM {
    * @param nthreads optional number of threads
    * @tparam Vec can be either std::vector<T> or SArray<T>
    */
-  template<typename Vec>
+  template<typename Vec, typename Pos = std::vector<int>>
   static void TransTimes(const SpMat& D,
                          const Vec& x,
                          Vec* y,
-                         int nt = DEFAULT_NTHREADS) {
-    TransTimes(D, x, 0, Vec(0), y, nt);
+                         int k,
+                         int nt = DEFAULT_NTHREADS,
+                         const Pos& x_pos = Pos(),
+                         const Pos& y_pos = Pos()) {
+    // TransTimes(D, x, 0, Vec(0), y, nt);
   }
-  /**
-   * \brief y = D^T * x + p * z
-   * @param D n * m sparse matrix
-   * @param x n * k length vector
-   * @param p scalar
-   * @param z m * k length vector,
-   * @param y m * k length vector, should be pre-allocated
-   * @param nthreads optional number of threads
-   */
-  template<typename Vec>
-  static void TransTimes(const SpMat& D,
-                         const Vec& x,
-                         real_t p,
-                         const Vec& z,
-                         Vec* y,
-                         int nt = DEFAULT_NTHREADS) {
-    if (x.empty()) return;
-    int dim = x.size() / D.size;
-    if (z.size() == y->size() && p != 0) {
-      TransTimes(D, x.data(), z.data(), p, y->data(), y->size(), dim, nt);
-    } else {
-      auto zero = x.data(); zero = NULL;
-      TransTimes(D, x.data(), zero, static_cast<real_t>(0.0), y->data(), y->size(), dim, nt);
-    }
-  }
+
+  // /**
+  //  * \brief y = D^T * x + p * z
+  //  * @param D n * m sparse matrix
+  //  * @param x n * k length vector
+  //  * @param p scalar
+  //  * @param z m * k length vector,
+  //  * @param y m * k length vector, should be pre-allocated
+  //  * @param nthreads optional number of threads
+  //  */
+  // template<typename Vec>
+  // static void TransTimes(const SpMat& D,
+  //                        const Vec& x,
+  //                        real_t p,
+  //                        const Vec& z,
+  //                        Vec* y,
+  //                        int nt = DEFAULT_NTHREADS) {
+  //   if (x.empty()) return;
+  //   int dim = x.size() / D.size;
+  //   if (z.size() == y->size() && p != 0) {
+  //     TransTimes(D, x.data(), z.data(), p, y->data(), y->size(), dim, nt);
+  //   } else {
+  //     auto zero = x.data(); zero = NULL;
+  //     TransTimes(D, x.data(), zero, static_cast<real_t>(0.0), y->data(), y->size(), dim, nt);
+  //   }
+  // }
 
  private:
   // y = D * x
