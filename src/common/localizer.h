@@ -23,7 +23,7 @@ class Localizer {
    */
 
   Localizer(feaid_t max_index = std::numeric_limits<feaid_t>::max(),
-            int nthreads = 2)
+            int nthreads = DEFAULT_NTHREADS)
       : max_index_(max_index), nt_(nthreads) { }
   ~Localizer() { }
 

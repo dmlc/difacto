@@ -4,9 +4,9 @@
 #ifndef DIFACTO_COMMON_SPMM_H_
 #define DIFACTO_COMMON_SPMM_H_
 #include <cstring>
-#include <vector>
 #include "dmlc/data.h"
 #include "dmlc/omp.h"
+#include "difacto/sarray.h"
 #include "./range.h"
 namespace difacto {
 
@@ -15,47 +15,80 @@ namespace difacto {
  */
 class SpMM {
  public:
-  static const int kDefaultNT = 2;
+  /** \brief row major sparse matrix */
   using SpMat = dmlc::RowBlock<unsigned>;
-
-  /** \brief y = D * x */
-  template<typename V>
-  static void Times(const SpMat& D, const std::vector<V>& x,
-                    std::vector<V>* y, int nt = kDefaultNT) {
-    if (x.empty()) return;
-    CHECK_NOTNULL(y);
-    int dim = static_cast<int>(y->size() / D.size);
-    Times<V>(D, x.data(), y->data(), dim, nt);
+  /**
+   * \brief y = D * x
+   * @param D n * m sparse matrix
+   * @param x m * k length vector
+   * @param y n * k length vector, should be pre-allocated
+   * @param nthreads optional number of threads
+   * @tparam Vec can be either std::vector<T> or SArray<T>
+   */
+  template<typename Vec, typename Pos = std::vector<int>>
+  static void Times(const SpMat& D,
+                    const Vec& x,
+                    Vec* y,
+                    int k,
+                    int nt = DEFAULT_NTHREADS,
+                    const Pos& x_pos = Pos(),
+                    const Pos& y_pos = Pos()) {
+    // if (x.empty()) return;
+    // CHECK_NOTNULL(y);
+    // int dim = static_cast<int>(y->size() / D.size);
+    // Times(D, x.data(), y->data(), dim, nt);
   }
 
-
-  /** \brief y = D^T * x */
-  template<typename V>
-  static void TransTimes(const SpMat& D, const std::vector<V>& x,
-                         std::vector<V>* y, int nt = kDefaultNT) {
-    TransTimes<V>(D, x, 0, std::vector<V>(), y, nt);
+  /**
+   * \brief y = D^T * x
+   * @param D n * m sparse matrix
+   * @param x n * k length vector
+   * @param y m * k length vector, should be pre-allocated
+   * @param nthreads optional number of threads
+   * @tparam Vec can be either std::vector<T> or SArray<T>
+   */
+  template<typename Vec, typename Pos = std::vector<int>>
+  static void TransTimes(const SpMat& D,
+                         const Vec& x,
+                         Vec* y,
+                         int k,
+                         int nt = DEFAULT_NTHREADS,
+                         const Pos& x_pos = Pos(),
+                         const Pos& y_pos = Pos()) {
+    // TransTimes(D, x, 0, Vec(0), y, nt);
   }
 
-  /** \brief y = D^T * x + p * z */
-
-  template<typename V>
-  static void TransTimes(const SpMat& D, const std::vector<V>& x,
-                         V p, const std::vector<V>& z,
-                         std::vector<V>* y, int nt = kDefaultNT) {
-    if (x.empty()) return;
-    int dim = x.size() / D.size;
-    if (z.size() == y->size() && p != 0) {
-      TransTimes<V>(D, x.data(), z.data(), p, y->data(), y->size(), dim, nt);
-    } else {
-      TransTimes<V>(D, x.data(), NULL, 0, y->data(), y->size(), dim, nt);
-    }
-  }
+  // /**
+  //  * \brief y = D^T * x + p * z
+  //  * @param D n * m sparse matrix
+  //  * @param x n * k length vector
+  //  * @param p scalar
+  //  * @param z m * k length vector,
+  //  * @param y m * k length vector, should be pre-allocated
+  //  * @param nthreads optional number of threads
+  //  */
+  // template<typename Vec>
+  // static void TransTimes(const SpMat& D,
+  //                        const Vec& x,
+  //                        real_t p,
+  //                        const Vec& z,
+  //                        Vec* y,
+  //                        int nt = DEFAULT_NTHREADS) {
+  //   if (x.empty()) return;
+  //   int dim = x.size() / D.size;
+  //   if (z.size() == y->size() && p != 0) {
+  //     TransTimes(D, x.data(), z.data(), p, y->data(), y->size(), dim, nt);
+  //   } else {
+  //     auto zero = x.data(); zero = NULL;
+  //     TransTimes(D, x.data(), zero, static_cast<real_t>(0.0), y->data(), y->size(), dim, nt);
+  //   }
+  // }
 
  private:
   // y = D * x
   template<typename V>
   static void Times(const SpMat& D, const V* const x,
-                    V* y, int dim, int nt = kDefaultNT) {
+                    V* y, int dim, int nt = DEFAULT_NTHREADS) {
     memset(y, 0, D.size * dim * sizeof(V));
 #pragma omp parallel num_threads(nt)
     {
@@ -84,9 +117,9 @@ class SpMM {
   // y = D' * x
   template<typename V>
   static void TransTimes(const SpMat& D, const V* const x,
-                         const V* const z, V p,
+                         const V* const z, real_t p,
                          V* y, size_t y_size, int dim,
-                         int nt = kDefaultNT) {
+                         int nt = DEFAULT_NTHREADS) {
     if (z) {
       for (size_t i = 0; i < y_size; ++i) y[i] = z[i] * p;
     } else {

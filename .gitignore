@@ -27,6 +27,6 @@
 *.out
 *.app
 
-deps
-build
-data
+deps/*
+build/*
+data/*

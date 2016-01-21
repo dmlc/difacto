@@ -6,8 +6,8 @@ using namespace difacto;
 int batch_size = 37;
 int label[] = { 11,    15,   10};
 int len[] = { 37,    37,    26};
-int os[] = {     85035 ,      63968     ,  31323 };
-int idx[] = {   95285478 ,   70504854  ,  62972349};
+size_t os[] = {     85035 ,      63968     ,  31323 };
+uint32_t idx[] = {   95285478 ,   70504854  ,  62972349};
 float val[] = {    37.0000 ,  37.0000 ,  26.0000};
 
 TEST(BatchIter, Read) {

@@ -1,85 +1,76 @@
-/*!
- * Copyright (c) 2015 by Contributors
- */
-#ifndef DIFACTO_LEARNER_H_
-#define DIFACTO_LEARNER_H_
-#include <vector>
-#include <string>
-#include "./base.h"
-#include "dmlc/io.h"
-namespace difacto {
 /**
- * \brief the base class of a learnerer.
+ *  Copyright (c) 2015 by Contributors
+ */
+#ifndef DIFACTO_LEARER_H_
+#define DIFACTO_LEARER_H_
+#include <string.h>
+#include <string>
+#include <functional>
+#include <vector>
+#include "dmlc/io.h"
+#include "./base.h"
+#include "./tracker.h"
+namespace difacto {
+
+/**
+ * \brief the base class of a learner
+ *
+ * a learner runs the learning algorithm, such as minibatch sgd
  */
 class Learner {
  public:
-  Learner() { }
-  virtual ~Learner() { }
-
   /**
-   * \brief init the learner
+   * \brief the factory function
+   * \param type the learner type such as "sgd"
+   */
+  static Learner* Create(const std::string& type);
+  /** \brief construct */
+  Learner() { }
+  /** \brief deconstruct */
+  virtual ~Learner() { }
+  /**
+   * \brief init learner
    *
    * @param kwargs keyword arguments
    * @return the unknown kwargs
    */
-  virtual KWArgs Init(const KWArgs& kwargs) = 0;
-
+  virtual KWArgs Init(const KWArgs& kwargs);
   /**
-   * \brief load the learner
-   * \param fi input stream
-   * \param has_aux whether the loaded learner has aux data
+   * \brief Run learner
    */
-  virtual void Load(dmlc::Stream* fi, bool* has_aux) = 0;
-
+  void Run() {
+    if (!IsDistributed() || !strcmp(getenv("DMLC_ROLE"), "scheduler")) {
+      RunScheduler();
+    } else {
+      tracker_->Wait();
+    }
+  }
   /**
-   * \brief save the learner
-   * \param save_aux whether or not save aux data
-   * \param fo output stream
+   * \brief Stop learner. It is often used to stop the training earlier
    */
-  virtual void Save(bool save_aux, dmlc::Stream *fo) const = 0;
+  void Stop() {
+    tracker_->Stop();
+  }
+
+ protected:
+  /**
+   * \brief the function runs on the scheduler, which issues jobs to workers and
+   * servers
+   */
+  virtual void RunScheduler() = 0;
 
   /**
-   * \brief add feature count
+   * \brief the function runs on the worker/server to process jobs issued by the
+   * scheduler
    *
-   * @param fea_ids the list of feature ids
-   * @param fea_cnts the according counts
+   * \param args the job arguments received from the scheduler
+   * \param rets the results send back to the scheduler
    */
-  virtual void AddCount(const std::vector<feaid_t>& fea_ids,
-                        const std::vector<real_t>& fea_cnts) = 0;
+  virtual void Process(const std::string& args, std::string* rets) = 0;
 
-  /**
-   * \brief get the weights on the given features
-   *
-   * @param fea_ids the list of feature ids
-   * @param weights the according weight on this feature ids, in format [w_0, V_0,
-   * w_1, V_1, ...]
-   * @param weight_lens the i-th element stores len([w_i, V_i]), could be empty
-   * if there is only w
-   */
-  virtual void Get(const std::vector<feaid_t>& fea_ids,
-                   std::vector<real_t>* weights,
-                   std::vector<int>* weight_lens) = 0;
-
-  /**
-   * \brief update the weights given the gradients
-   *
-   * @param fea_ids the list of feature ids
-   * @param gradients the according gradients on this feature ids, in format [gw_0, gV_0,
-   * gw_1, gV_1, ...]
-   * @param gradient_lens the i-th element stores len([gw_i, gV_i]), could be empty
-   * if there is only w
-   */
-  virtual void Update(const std::vector<feaid_t>& fea_ids,
-                      const std::vector<real_t>& grads,
-                      const std::vector<int>& grad_lens) = 0;
-
-  /**
-   * \brief the factory function
-   * \param type the learner type such as "fm"
-   */
-  static Learner* Create(const std::string& type);
+  /** \brief the job tracker */
+  Tracker* tracker_;
 };
 
 }  // namespace difacto
-
 #endif  // DIFACTO_LEARNER_H_

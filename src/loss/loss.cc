@@ -3,17 +3,26 @@
  */
 #include "difacto/loss.h"
 #include "./fm_loss.h"
+#include "./logit_loss_delta.h"
+#include "./logit_loss.h"
 namespace difacto {
 
-DMLC_REGISTER_PARAMETER(FMParam);
+DMLC_REGISTER_PARAMETER(FMLossParam);
+DMLC_REGISTER_PARAMETER(LogitLossDeltaParam);
 
-Loss* Loss::Create(const std::string& type) {
+Loss* Loss::Create(const std::string& type, int nthreads) {
+  Loss* loss = nullptr;
   if (type == "fm") {
-    return new FMLoss();
+    loss = new FMLoss();
+  } else if (type == "logit"){
+    loss = new LogitLoss();
+  } else if (type == "logit_delta"){
+    loss = new LogitLossDelta();
   } else {
     LOG(FATAL) << "unknown loss type";
   }
-  return nullptr;
+  loss->set_nthreads(nthreads);
+  return loss;
 }
 
 }  // namespace difacto

@@ -1,18 +1,16 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#include "difacto/job.h"
-#include "./job_tracker_local.h"
+#include "difacto/tracker.h"
+#include "./local_tracker.h"
 namespace difacto {
 
-DMLC_REGISTER_PARAMETER(Job);
-
-JobTracker* JobTracker::Create() {
+Tracker* Tracker::Create() {
   if (IsDistributed()) {
     LOG(FATAL) << "not implemented";
     return nullptr;
   } else {
-    return new JobTrackerLocal();
+    return new LocalTracker();
   }
 }
 

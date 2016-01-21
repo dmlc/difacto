@@ -8,7 +8,21 @@
 #include <string>
 #include "./base.h"
 #include "dmlc/io.h"
+#include "dmlc/parameter.h"
+#include "./sarray.h"
 namespace difacto {
+
+struct StoreParam : public dmlc::Parameter<StoreParam> {
+  /** \brief number of worker nodes */
+  int num_workers;
+  /** \brief number of server nodes */
+  int num_servers;
+
+  DMLC_DECLARE_PARAMETER(StoreParam) {
+    DMLC_DECLARE_FIELD(num_workers);
+    DMLC_DECLARE_FIELD(num_servers);
+  }
+};
 
 /**
  * \brief the store allows workers to get and set and model
@@ -28,12 +42,14 @@ class Store {
    * @param kwargs keyword arguments
    * @return the unknown kwargs
    */
-  virtual KWArgs Init(const KWArgs& kwargs) = 0;
+  virtual KWArgs Init(const KWArgs& kwargs) {
+    return param_.InitAllowUnknown(kwargs);
+  }
 
   /**
    * \brief load the model
    * \param fi input stream
-   * \param has_aux whether the loaded learner has aux data
+   * \param has_aux whether the loaded model has aux data
    */
   virtual void Load(dmlc::Stream* fi, bool* has_aux) = 0;
 
@@ -56,11 +72,10 @@ class Store {
    * @return
    */
   virtual int Push(int sync_type,
-                   const std::shared_ptr<std::vector<feaid_t>>& fea_ids,
-                   const std::shared_ptr<std::vector<real_t>>& vals,
-                   const std::shared_ptr<std::vector<int>>& lens,
+                   const SArray<feaid_t>& fea_ids,
+                   const SArray<real_t>& vals,
+                   const SArray<int>& lens,
                    const std::function<void()>& on_complete = nullptr) = 0;
-
   /**
    * \brief pull the values for a list of feature ids
    *
@@ -73,9 +88,9 @@ class Store {
    * @return
    */
   virtual int Pull(int sync_type,
-                   const std::shared_ptr<std::vector<feaid_t>>& fea_ids,
-                   std::vector<real_t>* vals,
-                   std::vector<int>* lens,
+                   const SArray<feaid_t>& fea_ids,
+                   SArray<real_t>* vals,
+                   SArray<int>* lens,
                    const std::function<void()>& on_complete = nullptr) = 0;
 
   /**
@@ -86,9 +101,27 @@ class Store {
   virtual void Wait(int time) = 0;
 
   /**
+   * \brief return number of workers
+   */
+  int NumWorkers() { return param_.num_workers; }
+
+  /**
+   * \brief return number of servers
+   */
+  int NumServers() { return param_.num_servers; }
+
+  /**
+   * \brief return the rank of this node
+   */
+  virtual int Rank() = 0;
+
+  /**
    * \brief the factory function
    */
   static Store* Create();
+
+ private:
+  StoreParam param_;
 };
 
 }  // namespace difacto

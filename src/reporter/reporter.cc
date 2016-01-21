@@ -1,19 +1,16 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#include "difacto/store.h"
-#include "./store_local.h"
+#include "difacto/reporter.h"
+#include "./local_reporter.h"
 namespace difacto {
 
-DMLC_REGISTER_PARAMETER(StoreLocalParam);
-DMLC_REGISTER_PARAMETER(StoreParam);
-
-Store* Store::Create() {
+Reporter* Reporter::Create() {
   if (IsDistributed()) {
     LOG(FATAL) << "not implemented";
     return nullptr;
   } else {
-    return new StoreLocal();
+    return new LocalReporter();
   }
 }
 
