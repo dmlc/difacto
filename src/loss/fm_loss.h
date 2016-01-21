@@ -189,8 +189,11 @@ class FMLoss : public Loss {
     V_pos.CopyFrom(SArray<int>(pos));
     for (int& p : V_pos) p = p < 0 ? -1 : p + 1;
     int& back = V_pos[V_pos.size()-1];
-    if (back + param_.V_dim > static_cast<int>(value_size)) {
-      back = -1;
+    if (back >= 0) {
+      // one need to resize value properly, otherwise there is no way to check
+      // if or not the last entry contains the embedding term
+      CHECK_GE(back + param_.V_dim, value_size);
+      if (back + param_.V_dim > value_size) back = -1;
     }
     return V_pos;
   }
