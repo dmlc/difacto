@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "loss/logit_loss_delta.h"
 #include "common/localizer.h"
-#include "loss/bin_class_eval.h"
+#include "loss/bin_class_metric.h"
 #include "difacto/sarray.h"
 #include "loss/logit_loss_delta.h"
 

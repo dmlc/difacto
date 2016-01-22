@@ -3,7 +3,7 @@
 #include "./utils.h"
 #include "loss/fm_loss.h"
 #include "common/localizer.h"
-#include "loss/bin_class_eval.h"
+#include "loss/bin_class_metric.h"
 
 using namespace difacto;
 
@@ -29,7 +29,7 @@ TEST(FMLoss, NoV) {
                {SArray<char>(w), SArray<char>()},
                &pred);
 
-  BinClassEval eval(data.label, pred.data(), data.size);
+  BinClassMetric eval(data.label, pred.data(), data.size);
 
   // Progress prog;
   EXPECT_LT(fabs(eval.LogitObjv() - 147.4672), 1e-3);
@@ -72,7 +72,7 @@ TEST(FMLoss, HasV) {
   loss.Predict(data, {SArray<char>(w), SArray<char>(pos)}, &pred);
 
   // Progress prog;
-  BinClassEval eval(data.label, pred.data(), data.size);
+  BinClassMetric eval(data.label, pred.data(), data.size);
   EXPECT_LT(fabs(eval.LogitObjv() - 330.628), 1e-3);
 
   SArray<real_t> grad(w.size());

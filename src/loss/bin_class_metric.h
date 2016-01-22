@@ -8,26 +8,28 @@
 #include "difacto/base.h"
 #include "dmlc/logging.h"
 #include "dmlc/omp.h"
+#include "difacto/sarray.h"
 namespace difacto {
 
 /**
- * \brief binary class evaluation
+ * \brief binary classificatoin metrics
  */
-class BinClassEval {
+class BinClassMetric {
  public:
   /**
-   * \brief create
+   * \brief constructor
    *
    * @param label label vector
    * @param predict predict vector
    * @param n length
    * @param nthreads num threads
    */
-  BinClassEval(const real_t* const label,
-               const real_t* const predict,
-               size_t n, int nthreads = DEFAULT_NTHREADS)
+  BinClassMetric(const real_t* const label,
+                 const real_t* const predict,
+                 size_t n, int nthreads = DEFAULT_NTHREADS)
       : label_(label), predict_(predict), size_(n), nt_(nthreads) { }
-  ~BinClassEval() { }
+
+  ~BinClassMetric() { }
 
   real_t AUC() {
     size_t n = size_;
