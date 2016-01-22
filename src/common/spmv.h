@@ -122,6 +122,7 @@ class SpMV {
         if (!y_i) continue;
         for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j) {
           V x_j = GetVal(x, x_pos, D.index[j]);
+          if (x_j == 0) continue;
           if (D.value) {
             *y_i += x_j * D.value[j];
           } else {
@@ -151,6 +152,7 @@ class SpMV {
       for (size_t i = 0; i < D.size; ++i) {
         if (D.offset[i] == D.offset[i+1]) continue;
         V x_i = GetVal(x, x_pos, i);
+        if (x_i == 0) continue;
         for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j) {
           unsigned k = D.index[j];
           if (rg.Has(k)) {

@@ -9,9 +9,11 @@
 #include "difacto/sarray.h"
 #include "./range.h"
 namespace difacto {
-
 /**
  * \brief multi-thread sparse matrix dense matrix multiplication
+ *
+ * comparing to \ref SpMV, the different is that both x and y are n-by-k matrices
+ * rather than length-n vectors
  */
 class SpMM {
  public:
@@ -20,23 +22,35 @@ class SpMM {
   /**
    * \brief y = D * x
    * @param D n * m sparse matrix
-   * @param x m * k length vector
-   * @param y n * k length vector, should be pre-allocated
+   * @param x m * k matrix
+   * @param y n * k matrix, should be pre-allocated
    * @param nthreads optional number of threads
+   * @param x_pos optional, the position of x's rows
+   * @param y_pos optional, the position of y's rows
    * @tparam Vec can be either std::vector<T> or SArray<T>
+   * @tparam Pos can be either std::vector<int> or SArray<int>
    */
   template<typename Vec, typename Pos = std::vector<int>>
   static void Times(const SpMat& D,
                     const Vec& x,
-                    Vec* y,
                     int k,
-                    int nt = DEFAULT_NTHREADS,
+                    Vec* y,
+                    int nthreads = DEFAULT_NTHREADS,
                     const Pos& x_pos = Pos(),
                     const Pos& y_pos = Pos()) {
-    // if (x.empty()) return;
-    // CHECK_NOTNULL(y);
-    // int dim = static_cast<int>(y->size() / D.size);
-    // Times(D, x.data(), y->data(), dim, nt);
+    CHECK_NOTNULL(y);
+    if (y_pos.size()) {
+      CHECK_EQ(y_pos.size(), D.size);
+    } else {
+      CHECK_EQ(y->size(), D.size * k);
+    }
+    CheckPos(x_pos, x.size(), k);
+    CheckPos(y_pos, y->size(), k);
+
+    Times(D, x.data(), y->data(),
+          (x_pos.empty() ? nullptr : x_pos.data()),
+          (y_pos.empty() ? nullptr : y_pos.data()),
+          k, nthreads);
   }
 
   /**
@@ -50,111 +64,120 @@ class SpMM {
   template<typename Vec, typename Pos = std::vector<int>>
   static void TransTimes(const SpMat& D,
                          const Vec& x,
-                         Vec* y,
                          int k,
-                         int nt = DEFAULT_NTHREADS,
+                         Vec* y,
+                         int nthreads = DEFAULT_NTHREADS,
                          const Pos& x_pos = Pos(),
                          const Pos& y_pos = Pos()) {
-    // TransTimes(D, x, 0, Vec(0), y, nt);
+    if (x_pos.size()) {
+      CHECK_EQ(x_pos.size(), D.size);
+    } else {
+      CHECK_EQ(x.size(), D.size * k);
+    }
+    CHECK_NOTNULL(y);
+    CheckPos(x_pos, x.size(), k);
+    CheckPos(y_pos, y->size(), k);
+    CHECK_GT(k, 0);
+    size_t ncols = y_pos.size() ? y_pos.size() : y->size() / k;
+    TransTimes(D, x.data(), y->data(),
+               (x_pos.empty() ? nullptr : x_pos.data()),
+               (y_pos.empty() ? nullptr : y_pos.data()),
+               k, ncols, nthreads);
   }
 
-  // /**
-  //  * \brief y = D^T * x + p * z
-  //  * @param D n * m sparse matrix
-  //  * @param x n * k length vector
-  //  * @param p scalar
-  //  * @param z m * k length vector,
-  //  * @param y m * k length vector, should be pre-allocated
-  //  * @param nthreads optional number of threads
-  //  */
-  // template<typename Vec>
-  // static void TransTimes(const SpMat& D,
-  //                        const Vec& x,
-  //                        real_t p,
-  //                        const Vec& z,
-  //                        Vec* y,
-  //                        int nt = DEFAULT_NTHREADS) {
-  //   if (x.empty()) return;
-  //   int dim = x.size() / D.size;
-  //   if (z.size() == y->size() && p != 0) {
-  //     TransTimes(D, x.data(), z.data(), p, y->data(), y->size(), dim, nt);
-  //   } else {
-  //     auto zero = x.data(); zero = NULL;
-  //     TransTimes(D, x.data(), zero, static_cast<real_t>(0.0), y->data(), y->size(), dim, nt);
-  //   }
-  // }
-
  private:
-  // y = D * x
-  template<typename V>
-  static void Times(const SpMat& D, const V* const x,
-                    V* y, int dim, int nt = DEFAULT_NTHREADS) {
-    memset(y, 0, D.size * dim * sizeof(V));
-#pragma omp parallel num_threads(nt)
+  /**
+   * \brief y += D * x, C pointer version
+   */
+  template<typename V, typename I>
+  static void Times(const SpMat& D,
+                    V const* x,
+                    V* y,
+                    I const* x_pos,
+                    I const* y_pos,
+                    int k,
+                    int nthreads) {
+#pragma omp parallel num_threads(nthreads)
     {
       Range rg = Range(0, D.size).Segment(
           omp_get_thread_num(), omp_get_num_threads());
 
       for (size_t i = rg.begin; i < rg.end; ++i) {
         if (D.offset[i] == D.offset[i+1]) continue;
-        V* y_i = y + i * dim;
-        if (D.value) {
-          for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j) {
-            V const* x_j = x + D.index[j] * dim;
+        V* y_i = GetPtr(y, y_pos, i, k);
+        if (!y_i) continue;
+        for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j) {
+          V const* x_j = GetPtr(x, x_pos, D.index[j], k);
+          if (!x_j) continue;
+          if (D.value) {
             V v = D.value[j];
-            for (int k = 0; k < dim; ++k) y_i[k] += x_j[k] * v;
-          }
-        } else {
-          for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j) {
-            V const* x_j = x + D.index[j] * dim;
-            for (int k = 0; k < dim; ++k) y_i[k] += x_j[k];
+            for (int l = 0; l < k; ++l) y_i[l] += x_j[l] * v;
+          } else {
+            for (int l = 0; l < k; ++l) y_i[l] += x_j[l];
           }
         }
       }
     }
   }
 
-  // y = D' * x
-  template<typename V>
-  static void TransTimes(const SpMat& D, const V* const x,
-                         const V* const z, real_t p,
-                         V* y, size_t y_size, int dim,
-                         int nt = DEFAULT_NTHREADS) {
-    if (z) {
-      for (size_t i = 0; i < y_size; ++i) y[i] = z[i] * p;
-    } else {
-      memset(y, 0, y_size*sizeof(V));
-    }
-
-#pragma omp parallel num_threads(nt)
+  /**
+   * \brief y += D' * x, C pointer version
+   */
+  template<typename V, typename I>
+  static void TransTimes(const SpMat& D,
+                         V const* x,
+                         V* y,
+                         I const* x_pos,
+                         I const* y_pos,
+                         int k,
+                         size_t ncols,
+                         int nthreads) {
+#pragma omp parallel num_threads(nthreads)
     {
-      Range rg = Range(0, y_size/dim).Segment(
+      Range rg = Range(0, ncols).Segment(
           omp_get_thread_num(), omp_get_num_threads());
 
       for (size_t i = 0; i < D.size; ++i) {
         if (D.offset[i] == D.offset[i+1]) continue;
-        V const * x_i = x + i * dim;
-        if (D.value) {
-          for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j) {
-            unsigned e = D.index[j];
-            if (rg.Has(e)) {
-              V v = D.value[j];
-              V* y_j = y + e * dim;
-              for (int k = 0; k < dim; ++k) y_j[k] += x_i[k] * v;
-            }
-          }
-        } else {
-          for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j) {
-            unsigned e = D.index[j];
-            if (rg.Has(e)) {
-              V* y_j = y + e * dim;
-              for (int k = 0; k < dim; ++k) y_j[k] += x_i[k];
-            }
+        V const* x_i = GetPtr(x, x_pos, i, k);
+        if (!x_i) continue;
+        for (size_t j = D.offset[i]; j < D.offset[i+1]; ++j) {
+          unsigned e = D.index[j];
+          if (!rg.Has(e)) continue;
+          V* y_j = GetPtr(y, y_pos, e, k);
+          if (!y_j) continue;
+          if (D.value) {
+            V v = D.value[j];
+            for (int l = 0; l < k; ++l) y_j[l] += x_i[l] * v;
+          } else {
+            for (int l = 0; l < k; ++l) y_j[l] += x_i[l];
           }
         }
       }
     }
   }
+
+  template <typename V, typename I>
+  static inline V* GetPtr(V* val, I const* pos, size_t idx, int k) {
+    if (pos) {
+      I pos_i = pos[idx];
+      return pos_i == static_cast<I>(-1) ? nullptr : val+pos_i;
+    } else {
+      return val+idx*k;
+    }
+  }
+
+  template<typename Pos>
+  static inline void CheckPos(const Pos& pos, size_t max_len, int k) {
+    for (auto p : pos) {
+      size_t sp = static_cast<size_t>(p);
+      if (sp != static_cast<size_t>(-1)) {
+        CHECK_GE(sp, static_cast<size_t>(0));
+        CHECK_LE(sp + k, max_len);
+      }
+    }
+  }
+
 };
 
 }  // namespace difacto

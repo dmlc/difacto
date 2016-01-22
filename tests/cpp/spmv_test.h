@@ -9,6 +9,32 @@
 namespace difacto {
 namespace test {
 
+void gen_sliced_vec(const SArray<real_t>& x,
+                    SArray<real_t>* x_val,
+                    SArray<int>* x_pos) {
+  x_pos->resize(x.size());
+  SArray<real_t> itv;
+  gen_vals(x.size(), 1, 10, &itv);
+  int cur_pos = 0;
+  for (size_t i = 0; i < x.size(); ++i) {
+    cur_pos += static_cast<int>(itv[i]);
+    (*x_pos)[i] = cur_pos;
+  }
+  gen_vals(cur_pos+1, -10, 10, x_val);
+  for (size_t i = 0; i < x.size(); ++i) {
+    (*x_val)[(*x_pos)[i]] = x[i];
+  }
+}
+
+void slice_vec(const SArray<real_t>& x_val,
+              const SArray<int>& x_pos,
+              SArray<real_t>* x) {
+  x->resize(x_pos.size());
+  for (size_t i = 0; i < x->size(); ++i) {
+    (*x)[i] = x_pos[i] == -1 ? 0 : x_val[x_pos[i]];
+  }
+}
+
 /**
  * \brief multi-thread sparse matrix vector multiplication
  */

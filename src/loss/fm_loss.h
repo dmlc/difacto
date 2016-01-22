@@ -84,7 +84,7 @@ class FMLoss : public Loss {
 
     // XV_ = X*V
     XV_.resize(data.size * V_dim);
-    SpMM::Times(data, V, &XV_, V_dim, nthreads_, V_pos);
+    SpMM::Times(data, V, V_dim, &XV_, nthreads_, V_pos);
 
     // XX = X.*X
     auto XX = data;
@@ -104,7 +104,7 @@ class FMLoss : public Loss {
 
     // XXVV = XX*VV
     SArray<real_t> XXVV(XV_.size());
-    SpMM::Times(XX, VV, &XXVV, V_dim, nthreads_, V_pos);
+    SpMM::Times(XX, VV, V_dim, &XXVV, nthreads_, V_pos);
 
     // py += .5 * sum((V.XV).^2 - xxvv)
 #pragma omp parallel for num_threads(nthreads_)
@@ -160,7 +160,7 @@ class FMLoss : public Loss {
       XX.value = XX_.data();
     }
     SArray<real_t> XXp(V_pos.size());
-    SpMM::TransTimes(XX, p, &XXp, V_dim, nthreads_);
+    SpMM::TransTimes(XX, p, V_dim, &XXp, nthreads_);
 
     // grad_u = - diag(XXp) * V,
 #pragma omp parallel for num_threads(nthreads_)
@@ -179,7 +179,7 @@ class FMLoss : public Loss {
     }
 
     // grad_u += X' * diag(p) * X * V
-    SpMM::TransTimes(data, XV_, grad, V_dim, nthreads_, {}, V_pos);
+    SpMM::TransTimes(data, XV_, V_dim, grad, nthreads_, {}, V_pos);
   }
 
  private:
