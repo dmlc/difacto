@@ -7,7 +7,6 @@
 #include "./bcd_utils.h"
 namespace difacto {
 namespace bcd {
-
 /**
  * \brief preprocess data
  */
@@ -16,7 +15,6 @@ class TileBuilder {
   TileBuilder(TileStore* store) {
     store_ = store;
   }
-
   /**
    * \brief add a data block
    */
@@ -58,8 +56,6 @@ class TileBuilder {
       feacnts = new_feacnts;
     }
   }
-
-
   /**
    * \brief add filtered feature ids
    */
@@ -86,7 +82,6 @@ class TileBuilder {
     }
     feaids.clear();
   }
-
   SArray<feaid_t> feaids;
   SArray<real_t> feacnts;
 

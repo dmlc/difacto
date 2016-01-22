@@ -37,13 +37,10 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
   std::string loss;
   /** \brief the maximal number of data passes, defaut is 20 */
   int max_num_epochs;
-
   /** \brief controls the number of feature blocks, default is 4 */
   float block_ratio;
-
   /** \brief if or not process feature blocks in a random order, default is true */
   int random_block;
-
   /** \brief the number of bit used to encode the feature group, default is 0 */
   int num_feature_group_bits;
   float neg_sampling;

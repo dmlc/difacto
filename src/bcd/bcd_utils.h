@@ -3,7 +3,6 @@
 #include "difacto/sarray.h"
 namespace difacto {
 namespace bcd {
-
 /**
  * \brief partition the whole feature space into blocks
  *

@@ -31,11 +31,9 @@ class Store {
  public:
   Store() { }
   virtual ~Store() { }
-
   static const int kFeaCount = 1;
   static const int kWeight = 2;
   static const int kGradient = 3;
-
   /**
    * \brief init
    *
@@ -71,8 +69,8 @@ class Store {
    *
    * @return
    */
-  virtual int Push(int sync_type,
-                   const SArray<feaid_t>& fea_ids,
+  virtual int Push(const SArray<feaid_t>& fea_ids,
+                   int val_type,
                    const SArray<real_t>& vals,
                    const SArray<int>& lens,
                    const std::function<void()>& on_complete = nullptr) = 0;
@@ -87,8 +85,8 @@ class Store {
    *
    * @return
    */
-  virtual int Pull(int sync_type,
-                   const SArray<feaid_t>& fea_ids,
+  virtual int Pull(const SArray<feaid_t>& fea_ids,
+                   int val_type,
                    SArray<real_t>* vals,
                    SArray<int>* lens,
                    const std::function<void()>& on_complete = nullptr) = 0;

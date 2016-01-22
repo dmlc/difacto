@@ -16,7 +16,7 @@ struct StoreLocalParam : public dmlc::Parameter<StoreLocalParam> {
   /** \brief type of model, default is sgd */
   std::string updater;
   DMLC_DECLARE_PARAMETER(StoreLocalParam) {
-    DMLC_DECLARE_FIELD(updater).set_default("sgd");
+    DMLC_DECLARE_FIELD(updater);
   }
 };
 
@@ -43,26 +43,22 @@ class StoreLocal : public Store {
     updater_->Save(save_aux, fo);
   }
 
-  int Push(int sync_type,
-           const SArray<feaid_t>& fea_ids,
+  int Push(const SArray<feaid_t>& fea_ids,
+           int val_type,
            const SArray<real_t>& vals,
            const SArray<int>& lens,
            const std::function<void()>& on_complete) override {
-    if (sync_type == kFeaCount) {
-      updater_->AddCount(fea_ids, vals);
-    } else {
-      updater_->Update(fea_ids, vals, lens);
-    }
+    updater_->Update(fea_ids, val_type, vals, lens);
     if (on_complete) on_complete();
     return time_++;
   }
 
-  int Pull(int sync_type,
-           const SArray<feaid_t>& fea_ids,
+  int Pull(const SArray<feaid_t>& fea_ids,
+           int val_type,
            SArray<real_t>* vals,
            SArray<int>* lens,
            const std::function<void()>& on_complete) override {
-    updater_->Get(fea_ids, vals, lens);
+    updater_->Get(fea_ids, val_type, vals, lens);
     if (on_complete) on_complete();
     return time_++;
   }

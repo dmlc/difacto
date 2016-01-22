@@ -2,6 +2,7 @@
  * Copyright (c) 2015 by Contributors
  */
 #include "./sgd_updater.h"
+#include "difacto/store.h"
 #include <string.h>
 namespace difacto {
 
@@ -111,9 +112,12 @@ KWArgs SGDUpdater::Init(const KWArgs& kwargs) {
 }
 
 
+
 void SGDUpdater::Get(const SArray<feaid_t>& fea_ids,
+                     int val_type,
                      SArray<real_t>* weights,
                      SArray<int>* offsets) {
+  CHECK_EQ(val_type, Store::kWeight);
   int V_dim = param_.V_dim;
   size_t size = fea_ids.size();
   weights->resize(size * (1 + V_dim));
@@ -132,37 +136,39 @@ void SGDUpdater::Get(const SArray<feaid_t>& fea_ids,
   weights->resize(p);
 }
 
-void SGDUpdater::AddCount(const SArray<feaid_t>& fea_ids,
-                          const SArray<real_t>& fea_cnts) {
-  CHECK_EQ(fea_ids.size(), fea_cnts.size());
-  for (size_t i = 0; i < fea_ids.size(); ++i) {
-    auto& e = model_[fea_ids[i]];
-    e.fea_cnt += fea_cnts[i];
-    if (e.V == nullptr && e.w != 0 && e.fea_cnt > param_.V_threshold) {
-      InitV(&e);
-    }
-  }
-}
-
 void SGDUpdater::Update(const SArray<feaid_t>& fea_ids,
-                        const SArray<real_t>& grads,
+                        int value_type,
+                        const SArray<real_t>& values,
                         const SArray<int>& offsets) {
-  CHECK(has_aux_) << "no aux data";
-  size_t size = fea_ids.size();
-  bool w_only = offsets.empty();
-  if (w_only) {
-    CHECK_EQ(grads.size(), size);
-  } else {
-    CHECK_EQ(offsets.size(), size+1);
-    CHECK_EQ(offsets.back(), static_cast<int>(grads.size()));
-  }
-  for (size_t i = 0; i < size; ++i) {
-    auto& e = model_[fea_ids[i]];
-    UpdateW(grads[offsets[i]], &e);
-    if (!w_only && offsets[i+1] > offsets[i]+1) {
-      CHECK_EQ(offsets[i+1], offsets[i]+1);
-      UpdateV(grads.data() + offsets[i] + 1, &e);
+  if (value_type == Store::kFeaCount) {
+    CHECK_EQ(fea_ids.size(), values.size());
+    for (size_t i = 0; i < fea_ids.size(); ++i) {
+      auto& e = model_[fea_ids[i]];
+      e.fea_cnt += values[i];
+      if (e.V == nullptr && e.w != 0 && e.fea_cnt > param_.V_threshold) {
+        InitV(&e);
+      }
     }
+  } else if (value_type == Store::kGradient) {
+    CHECK(has_aux_) << "no aux data";
+    size_t size = fea_ids.size();
+    bool w_only = offsets.empty();
+    if (w_only) {
+      CHECK_EQ(values.size(), size);
+    } else {
+      CHECK_EQ(offsets.size(), size+1);
+      CHECK_EQ(offsets.back(), static_cast<int>(values.size()));
+    }
+    for (size_t i = 0; i < size; ++i) {
+      auto& e = model_[fea_ids[i]];
+      UpdateW(values[offsets[i]], &e);
+      if (!w_only && offsets[i+1] > offsets[i]+1) {
+        CHECK_EQ(offsets[i+1], offsets[i]+1);
+        UpdateV(values.data() + offsets[i] + 1, &e);
+      }
+    }
+  } else {
+    LOG(FATAL) << ".....";
   }
   // TODO
   // Progress prog;

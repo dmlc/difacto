@@ -167,8 +167,8 @@ class SGDLearner : public Learner {
                 values);
 
             // push the gradient, this task is done only if the push is complete
-            store_->Push(Store::kGradient,
-                         batch.feaids,
+            store_->Push(batch.feaids,
+                         Store::kGradient,
                          *values,
                          *offsets,
                          [on_complete]() { on_complete(); });
@@ -183,7 +183,7 @@ class SGDLearner : public Learner {
           delete offsets;
         };
         // pull the weight back
-        store_->Pull(Store::kWeight, batch.feaids, values, offsets, pull_callback);
+        store_->Pull(batch.feaids, Store::kWeight, values, offsets, pull_callback);
       });
 
     int batch_size = 100;
@@ -212,7 +212,7 @@ class SGDLearner : public Learner {
       // push feature count into the servers
       if (push_cnt) {
         store_->Wait(store_->Push(
-            Store::kFeaCount, batch.feaids, SArray<real_t>(feacnt), {}));
+            batch.feaids, Store::kFeaCount, SArray<real_t>(feacnt), {}));
       }
 
       // avoid too many batches are processing in parallel

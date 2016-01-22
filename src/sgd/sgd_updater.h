@@ -149,17 +149,16 @@ class SGDUpdater : public Updater {
     model_.Save(save_aux, fo);
   }
 
-  void AddCount(const SArray<feaid_t>& fea_ids,
-                const SArray<real_t>& fea_cnts);
-
   void Get(const SArray<feaid_t>& fea_ids,
+           int value_type,
            SArray<real_t>* weights,
-           SArray<int>* offsets);
+           SArray<int>* offsets) override;
 
 
   void Update(const SArray<feaid_t>& fea_ids,
-              const SArray<real_t>& grads,
-              const SArray<int>& offsets);
+              int value_type,
+              const SArray<real_t>& values,
+              const SArray<int>& offsets) override;
  private:
   /** \brief update w by FTRL */
   void UpdateW(real_t gw, SGDEntry* e);

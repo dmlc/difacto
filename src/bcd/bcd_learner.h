@@ -148,7 +148,7 @@ class BCDLearner : public Learner {
     }
     // push the feature ids and feature counts to the servers
     int t = model_store_->Push(
-        Store::kFeaCount, builder->feaids, builder->feacnts, SArray<int>());
+        builder->feaids, Store::kFeaCount, builder->feacnts, SArray<int>());
     // report statistics to the scheduler
     stats.Get(&(CHECK_NOTNULL(rets)->feagrp_avg));
 
@@ -175,7 +175,7 @@ class BCDLearner : public Learner {
     // pull the aggregated feature counts from the servers
     SArray<real_t> feacnt;
     int t = model_store_->Pull(
-        Store::kFeaCount, builder->feaids, &feacnt, nullptr);
+        builder->feaids, Store::kFeaCount, &feacnt, nullptr);
     model_store_->Wait(t);
 
     // remove the filtered features
@@ -280,11 +280,11 @@ class BCDLearner : public Learner {
       };
       // pull the changes of w from the servers
       model_store_->Pull(
-          Store::kWeight, feaids_[blk_id], delta_w, delta_w_offset, pull_callback);
+          feaids_[blk_id], Store::kWeight, delta_w, delta_w_offset, pull_callback);
     };
     // 2. push gradient to the servers
     model_store_->Push(
-        Store::kGradient, feaids_[blk_id], grad, grad_offset, push_callback);
+        feaids_[blk_id], Store::kGradient, grad, grad_offset, push_callback);
   }
 
   void CalcGrad(int rowblk_id, int colblk_id,
