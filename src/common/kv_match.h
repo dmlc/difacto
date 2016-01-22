@@ -5,6 +5,7 @@
 #include "dmlc/logging.h"
 #include "./range.h"
 #include "difacto/base.h"
+#include "difacto/sarray.h"
 namespace difacto {
 
 /**
@@ -75,7 +76,7 @@ void KVMatch(
       if (*src_key < *dst_key) {
         ++ src_key; src_val += k;
       } else {
-        if (!(*dst_key < *src_key)) {
+        if (!(*dst_key < *src_key)) {  // equal
           for (int i = 0; i < k; ++i) {
             AssignFunc(src_val[i], op, &dst_val[i]);
           }
@@ -105,7 +106,7 @@ void KVMatch(
 
 /**
  * \brief Merge \a src_val into \a dst_val by matching keys. Keys must be unique
- * and sorted.
+ * and sorted, and value lenghths are fixed.
  *
  * \code
  * if (dst_key[i] == src_key[j]) {
@@ -160,7 +161,6 @@ size_t KVMatch(
       dst_val->data() + range.begin() * val_len, val_len, op, grainsize, &n);
   return n;
 }
-
 
 }  // namespace difacto
 #endif  // DIFACTO_COMMON_KV_MATCH_H_

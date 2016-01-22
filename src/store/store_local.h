@@ -35,13 +35,13 @@ class StoreLocal : public Store {
     return remain;
   }
 
-  void Load(dmlc::Stream* fi, bool* has_aux) override {
-    updater_->Load(fi, has_aux);
-  }
+  // void Load(dmlc::Stream* fi, bool* has_aux) override {
+  //   updater_->Load(fi, has_aux);
+  // }
 
-  void Save(bool save_aux, dmlc::Stream *fo) const override {
-    updater_->Save(save_aux, fo);
-  }
+  // void Save(bool save_aux, dmlc::Stream *fo) const override {
+  //   updater_->Save(save_aux, fo);
+  // }
 
   int Push(const SArray<feaid_t>& fea_ids,
            int val_type,

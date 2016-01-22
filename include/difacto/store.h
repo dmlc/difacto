@@ -10,6 +10,7 @@
 #include "dmlc/io.h"
 #include "dmlc/parameter.h"
 #include "./sarray.h"
+#include "./updater.h"
 namespace difacto {
 
 struct StoreParam : public dmlc::Parameter<StoreParam> {
@@ -29,8 +30,16 @@ struct StoreParam : public dmlc::Parameter<StoreParam> {
  */
 class Store {
  public:
+  /**
+   * \brief the factory function
+   */
+  static Store* Create();
+
+  /** \brief default constructor */
   Store() { }
+  /** \brief default deconstructor */
   virtual ~Store() { }
+
   static const int kFeaCount = 1;
   static const int kWeight = 2;
   static const int kGradient = 3;
@@ -43,20 +52,6 @@ class Store {
   virtual KWArgs Init(const KWArgs& kwargs) {
     return param_.InitAllowUnknown(kwargs);
   }
-
-  /**
-   * \brief load the model
-   * \param fi input stream
-   * \param has_aux whether the loaded model has aux data
-   */
-  virtual void Load(dmlc::Stream* fi, bool* has_aux) = 0;
-
-  /**
-   * \brief save the model
-   * \param save_aux whether or not save aux data
-   * \param fo output stream
-   */
-  virtual void Save(bool save_aux, dmlc::Stream *fo) const = 0;
 
   /**
    * \brief push a list of (feature id, value) into the store
@@ -113,13 +108,16 @@ class Store {
    */
   virtual int Rank() = 0;
 
-  /**
-   * \brief the factory function
-   */
-  static Store* Create();
+  /** \brief set an updater for the store, only required for a server node */
+  void set_updater(const std::shared_ptr<Updater>& updater) {
+    updater_ = updater;
+  }
+  /** \brief get the updater */
+  std::shared_ptr<Updater> updater() { return updater_; }
 
  private:
   StoreParam param_;
+  std::shared_ptr<Updater> updater_;
 };
 
 }  // namespace difacto
