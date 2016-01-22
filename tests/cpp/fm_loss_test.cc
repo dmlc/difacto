@@ -23,8 +23,8 @@ TEST(FMLoss, NoV) {
 
   KWArgs args = {{"V_dim", "0"}};
   FMLoss loss; loss.Init(args);
-  SArray<real_t> pred;
   auto data = rowblk.GetBlock();
+  SArray<real_t> pred(data.size);
   loss.Predict(data,
                {SArray<char>(w), SArray<char>()},
                &pred);
@@ -34,12 +34,10 @@ TEST(FMLoss, NoV) {
   // Progress prog;
   EXPECT_LT(fabs(eval.LogitObjv() - 147.4672), 1e-3);
 
-  SArray<real_t> grad;
-  loss.CalcGrad(data, {SArray<char>(w), SArray<char>(),
-          SArray<char>(pred)}, &grad);
+  SArray<real_t> grad(w.size());
+  loss.CalcGrad(data, {SArray<char>(pred), SArray<char>(), SArray<char>(w)}, &grad);
   EXPECT_LT(fabs(norm2(grad) - 90.5817), 1e-3);
 }
-
 
 TEST(FMLoss, HasV) {
   int V_dim = 5;
@@ -56,28 +54,28 @@ TEST(FMLoss, HasV) {
   std::vector<feaid_t> uidx;
   load_data(&rowblk, &uidx);
 
-  SArray<int> len(uidx.size());
+  SArray<int> pos(uidx.size());
+  int p = 0;
   SArray<real_t> w(uidx.size()*(V_dim+1));
   for (size_t i = 0; i < uidx.size(); ++i) {
     for (int j = 0; j < V_dim+1; ++j) {
       w[i*(V_dim+1)+j] = weight[uidx[i]*(V_dim+1)+j];
     }
-    len[i] = V_dim+1;
+    pos[i] = p;
+    p += V_dim + 1;
   }
 
   KWArgs args = {{"V_dim", std::to_string(V_dim)}};
-  FMLoss loss;
-  loss.Init(args);
+  FMLoss loss; loss.Init(args);
   auto data = rowblk.GetBlock();
-  SArray<real_t> pred;
-  loss.Predict(data, {SArray<char>(w), SArray<char>(len)}, &pred);
+  SArray<real_t> pred(data.size);
+  loss.Predict(data, {SArray<char>(w), SArray<char>(pos)}, &pred);
 
   // Progress prog;
   BinClassEval eval(data.label, pred.data(), data.size);
   EXPECT_LT(fabs(eval.LogitObjv() - 330.628), 1e-3);
 
   SArray<real_t> grad(w.size());
-  loss.CalcGrad(data, {SArray<char>(w), SArray<char>(len),
-          SArray<char>(pred)}, &grad);
+  loss.CalcGrad(data, {SArray<char>(pred), SArray<char>(pos), SArray<char>(w)}, &grad);
   EXPECT_LT(fabs(norm2(grad) - 1.2378e+03), 1e-1);
 }

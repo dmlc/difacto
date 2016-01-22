@@ -99,7 +99,7 @@ class FMLoss : public Loss {
 #pragma omp parallel for num_threads(nthreads_)
     for (size_t i = 0; i < V_pos.size(); ++i) {
       int p = V_pos[i]; if (p < 0) continue;
-      for (int j = 0; j < V_dim; ++j) VV[p+j] *= V[p+j];
+      for (int j = 0; j < V_dim; ++j) VV[p+j] = V[p+j] * V[p+j];
     }
 
     // XXVV = XX*VV
@@ -160,7 +160,7 @@ class FMLoss : public Loss {
       XX.value = XX_.data();
     }
     SArray<real_t> XXp(V_pos.size());
-    SpMM::TransTimes(XX, p, V_dim, &XXp, nthreads_);
+    SpMV::TransTimes(XX, p, &XXp, nthreads_);
 
     // grad_u = - diag(XXp) * V,
 #pragma omp parallel for num_threads(nthreads_)
