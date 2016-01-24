@@ -68,7 +68,7 @@ class TileBuilder {
     for (size_t i = 0; i < blk_feaids_.size(); ++i) {
       // store position
       std::vector<Range> pos;
-      bcd::FindPosition(blk_feaids_[i], feablk_range, &pos);
+      bcd::FeatureBlock::FindPosition(blk_feaids_[i], feablk_range, &pos);
       store_->colblk_pos_.push_back(pos);
 
       // store colmap

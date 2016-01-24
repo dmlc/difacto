@@ -62,7 +62,7 @@ class BCDLearner : public Learner {
       int nblk = static_cast<int>(std::ceil(feagrp_avg[i] / nworker));
       if (nblk > 0) feagrp.push_back(std::make_pair(i, nblk));
     }
-    bcd::PartitionFeatureSpace(
+    bcd::FeatureBlock::Partition(
         param_.num_feature_group_bits, feagrp, &build.fea_blk_ranges);
     IssueJobToWorkers(build);
 
@@ -194,14 +194,14 @@ class BCDLearner : public Learner {
 
     // init aux data
     std::vector<Range> pos;
-    bcd::FindPosition(filtered, job.fea_blk_ranges, &pos);
+    bcd::FeatureBlock::FindPosition(filtered, job.fea_blk_ranges, &pos);
     feaids_.resize(pos.size());
     delta_.resize(pos.size());
     model_offset_.resize(pos.size());
 
     for (size_t i = 0; i < pos.size(); ++i) {
       feaids_[i] = filtered.segment(pos[i].begin, pos[i].end);
-      delta_[i].resize(feaids_[i].size());
+      bcd::Delta::Init(feaids_[i].size(), &delta_[i]);
     }
   }
 
@@ -314,7 +314,9 @@ class BCDLearner : public Learner {
     size_t n = tile.colmap.size();
     SArray<int> w_pos(n);
     for (size_t i = 0; i < n; ++i) {
-      w_pos[i] = delta_w_offset[tile.colmap[i]];
+      int map = tile.colmap[i];
+      w_pos[i] = delta_w_offset[map];
+      bcd::Delta::Update(delta_w[w_pos[i]], &delta_[colblk_id][map]);
     }
 
     loss_->Predict(tile.data.GetBlock(),

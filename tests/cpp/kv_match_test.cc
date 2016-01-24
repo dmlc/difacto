@@ -2,7 +2,6 @@
 #include <unordered_map>
 #include "./utils.h"
 #include "common/kv_match.h"
-
 using namespace difacto;
 
 // a referance impl based std::map
