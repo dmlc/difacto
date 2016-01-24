@@ -18,11 +18,6 @@ namespace difacto {
 class Updater {
  public:
   /**
-   * \brief the factory function
-   * \param type the updater type
-   */
-  static Updater* Create(const std::string& type);
-  /**
    * \brief default constructor
    */
   Updater() { }

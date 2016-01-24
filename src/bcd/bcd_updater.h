@@ -21,12 +21,14 @@ struct BCDUpdaterParam : public dmlc::Parameter<BCDUpdaterParam> {
   float l1;
   /** \brief the l2 regularizer for :math:`w`: :math:`\lambda_2 \|w\|_2^2` */
   float l2;
-
   /** \brief the learning rate :math:`\eta` (or :math:`\alpha`) for :math:`w` */
   float lr;
 
   DMLC_DECLARE_PARAMETER(BCDUpdaterParam) {
     DMLC_DECLARE_FIELD(tail_feature_filter).set_default(4);
+    DMLC_DECLARE_FIELD(l1).set_default(1);
+    DMLC_DECLARE_FIELD(l2).set_default(.01);
+    DMLC_DECLARE_FIELD(lr).set_default(.9);
   }
 };
 
@@ -40,7 +42,7 @@ class BCDUpdater : public Updater {
   virtual ~BCDUpdater() { }
 
   KWArgs Init(const KWArgs& kwargs) override {
-
+    return param_.InitAllowUnknown(kwargs);
   }
 
   void Load(dmlc::Stream* fi, bool* has_aux) override {

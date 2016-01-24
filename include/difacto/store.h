@@ -115,9 +115,11 @@ class Store {
   /** \brief get the updater */
   std::shared_ptr<Updater> updater() { return updater_; }
 
+ protected:
+  std::shared_ptr<Updater> updater_;
+
  private:
   StoreParam param_;
-  std::shared_ptr<Updater> updater_;
 };
 
 }  // namespace difacto

@@ -11,37 +11,15 @@
 #include "dmlc/parameter.h"
 namespace difacto {
 
-
-struct StoreLocalParam : public dmlc::Parameter<StoreLocalParam> {
-  /** \brief type of model, default is sgd */
-  std::string updater;
-  DMLC_DECLARE_PARAMETER(StoreLocalParam) {
-    DMLC_DECLARE_FIELD(updater);
-  }
-};
-
 /**
  * \brief model sync within a machine
  */
 class StoreLocal : public Store {
  public:
-  StoreLocal() : updater_(nullptr) { }
-  virtual ~StoreLocal() { delete updater_; }
+  StoreLocal() { }
+  virtual ~StoreLocal() { }
 
-  KWArgs Init(const KWArgs& kwargs) {
-    auto remain = param_.InitAllowUnknown(kwargs);
-    updater_ = Updater::Create(param_.updater);
-    remain = updater_->Init(remain);
-    return remain;
-  }
-
-  // void Load(dmlc::Stream* fi, bool* has_aux) override {
-  //   updater_->Load(fi, has_aux);
-  // }
-
-  // void Save(bool save_aux, dmlc::Stream *fo) const override {
-  //   updater_->Save(save_aux, fo);
-  // }
+  KWArgs Init(const KWArgs& kwargs) { return kwargs; }
 
   int Push(const SArray<feaid_t>& fea_ids,
            int val_type,
@@ -68,8 +46,6 @@ class StoreLocal : public Store {
   int Rank() override { return 0; }
  private:
   int time_;
-  Updater* updater_;
-  StoreLocalParam param_;
 };
 }  // namespace difacto
 #endif  // DIFACTO_STORE_STORE_LOCAL_H_
