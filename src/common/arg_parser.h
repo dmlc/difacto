@@ -17,9 +17,7 @@ class ArgParser {
   /**
    * \brief add an arg
    */
-  void AddArg(const char* argv) {
-    data_.append(argv); data_.append(" ");
-  }
+  void AddArg(const char* argv) { data_.append(argv); data_.append(" "); }
 
   /**
    * \brief return parsed kwargs
@@ -39,6 +37,7 @@ class ArgParser {
     }
     KWArgs kwargs;
     for (auto it : *conf) {
+      if (it.first == "argfile") continue;
       kwargs.push_back(it);
     }
     delete conf;

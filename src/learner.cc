@@ -17,7 +17,7 @@ Learner* Learner::Create(const std::string& type) {
   } else if (type == "bcd") {
     return new BCDLearner();
   } else {
-    LOG(FATAL) << "unknown learner type";
+    LOG(FATAL) << "unknown learner type: " << type;
   }
   return nullptr;
 }

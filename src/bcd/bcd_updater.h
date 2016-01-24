@@ -32,10 +32,6 @@ struct BCDUpdaterParam : public dmlc::Parameter<BCDUpdaterParam> {
   }
 };
 
-
-class BCDModel {
-
-};
 class BCDUpdater : public Updater {
  public:
   BCDUpdater() { }

@@ -10,6 +10,7 @@
 #include "./bcd_param.h"
 #include "./bcd_job.h"
 #include "./bcd_utils.h"
+#include "./bcd_updater.h"
 #include "./tile_store.h"
 #include "./tile_builder.h"
 #include "loss/logit_loss_delta.h"
@@ -29,8 +30,13 @@ class BCDLearner : public Learner {
     // init param
     auto remain = param_.InitAllowUnknown(kwargs);
 
+    // init updater
+    std::shared_ptr<Updater> updater(new BCDUpdater());
+    remain = updater->Init(remain);
+
     // init model store
     model_store_ = Store::Create();
+    model_store_->set_updater(updater);
     remain = model_store_->Init(remain);
 
     // init data stores
