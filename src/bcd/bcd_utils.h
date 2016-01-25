@@ -25,21 +25,21 @@ class FeatureBlock {
     feablks->clear();
     feaid_t key_max = std::numeric_limits<feaid_t>::max();
     for (auto f : feagrps) {
-      CHECK_LT(1<<feagrp_nbits, f.first);
+      CHECK_GT(1<<feagrp_nbits, f.first);
       Range g;
-      g.begin = f.first;
-      g.end = (key_max << feagrp_nbits) | f.first;
+      g.begin = ReverseBytes(f.first);
+      g.end = ReverseBytes((key_max << feagrp_nbits) | f.first);
       for (int i = 0; i < f.second; ++i) {
-        auto h = g.Segment(i, f.second);
-        feablks->push_back(Range(ReverseBytes(h.begin), ReverseBytes(h.end)));
+        feablks->push_back(g.Segment(i, f.second));
         CHECK(feablks->back().Valid());
       }
     }
     std::sort(feablks->begin(), feablks->end(),
               [](const Range& a, const Range& b) { return a.begin < b.begin;});
     for (size_t i = 1; i < feablks->size(); ++i) {
-      CHECK_LT(feablks->at(i-1).end, feablks->at(i).begin);
-      ++feablks->at(i-1).end;
+      auto& before = feablks->at(i-1), after = feablks->at(i);
+      if (before.end < after.begin) ++before.end;
+      CHECK_LE(before.end, after.begin);
     }
   }
   /**

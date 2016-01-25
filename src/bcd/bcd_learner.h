@@ -96,15 +96,14 @@ class BCDLearner : public Learner {
 
   void Process(const std::string& args, std::string* rets) {
     bcd::JobArgs job(args);
-    bcd::TileBuilder* builder = nullptr;
     if (job.type == bcd::JobArgs::kPrepareData) {
+      LL << "prepare";
       bcd::PrepDataRets prets;
-      builder = new bcd::TileBuilder(tile_store_);
-      PrepareData(job, builder, &prets);
+      PrepareData(job, &prets);
       prets.SerializeToString(rets);
     } else if (job.type == bcd::JobArgs::kBuildFeatureMap) {
-      BuildFeatureMap(job, CHECK_NOTNULL(builder));
-      delete builder; builder = nullptr;
+      LL << "build";
+      BuildFeatureMap(job);
     } else if (job.type == bcd::JobArgs::kIterateData) {
       bcd::IterDataRets irets;
       IterateData(job, &irets);
@@ -139,7 +138,6 @@ class BCDLearner : public Learner {
   }
 
   void PrepareData(const bcd::JobArgs& job,
-                   bcd::TileBuilder* builder,
                    bcd::PrepDataRets* rets) {
     // read train data
     int chunk_size = 1<<28;  // read and process a 512MB chunk each time
@@ -147,16 +145,17 @@ class BCDLearner : public Learner {
                     model_store_->Rank(), model_store_->NumWorkers(),
                     chunk_size);
     bcd::FeaGroupStats stats(param_.num_feature_group_bits);
+    tile_builder_ = new bcd::TileBuilder(tile_store_);
     while (train.Next()) {
       auto rowblk = train.Value();
       stats.Add(rowblk);
-      builder->Add(rowblk, true);
+      tile_builder_->Add(rowblk, true);
       pred_.push_back(SArray<real_t>(rowblk.size));
       ++ntrain_blks_;
     }
     // push the feature ids and feature counts to the servers
     int t = model_store_->Push(
-        builder->feaids, Store::kFeaCount, builder->feacnts, SArray<int>());
+        tile_builder_->feaids, Store::kFeaCount, tile_builder_->feacnts, SArray<int>());
     // report statistics to the scheduler
     stats.Get(&(CHECK_NOTNULL(rets)->feagrp_avg));
 
@@ -168,7 +167,7 @@ class BCDLearner : public Learner {
 
       while (val.Next()) {
         auto rowblk = val.Value();
-        builder->Add(rowblk, false);
+        tile_builder_->Add(rowblk, false);
         pred_.push_back(SArray<real_t>(rowblk.size));
         ++nval_blks_;
       }
@@ -176,29 +175,31 @@ class BCDLearner : public Learner {
 
     // wait the previous push finished
     model_store_->Wait(t);
-    builder->feacnts.clear();
+    tile_builder_->feacnts.clear();
   }
 
-  void BuildFeatureMap(const bcd::JobArgs& job, bcd::TileBuilder* builder) {
+  void BuildFeatureMap(const bcd::JobArgs& job) {
+    CHECK_NOTNULL(tile_builder_);
     // pull the aggregated feature counts from the servers
     SArray<real_t> feacnt;
     int t = model_store_->Pull(
-        builder->feaids, Store::kFeaCount, &feacnt, nullptr);
+        tile_builder_->feaids, Store::kFeaCount, &feacnt, nullptr);
     model_store_->Wait(t);
 
     // remove the filtered features
     SArray<feaid_t> filtered;
-    size_t n = builder->feaids.size();
+    size_t n = tile_builder_->feaids.size();
     CHECK_EQ(feacnt.size(), n);
     for (size_t i = 0; i < n; ++i) {
       if (feacnt[i] > param_.tail_feature_filter) {
-        filtered.push_back(builder->feaids[i]);
+        filtered.push_back(tile_builder_->feaids[i]);
       }
     }
 
     // build colmap for each rowblk
-    builder->feaids = filtered;
-    builder->BuildColmap(job.fea_blk_ranges);
+    tile_builder_->feaids = filtered;
+    tile_builder_->BuildColmap(job.fea_blk_ranges);
+    delete tile_builder_; tile_builder_ = nullptr;
 
     // init aux data
     std::vector<Range> pos;
@@ -343,6 +344,7 @@ class BCDLearner : public Learner {
   /** \brief data store */
   DataStore* data_store_ = nullptr;
   bcd::TileStore* tile_store_ = nullptr;
+  bcd::TileBuilder* tile_builder_ = nullptr;
 
   /** \brief parameters */
   BCDLearnerParam param_;

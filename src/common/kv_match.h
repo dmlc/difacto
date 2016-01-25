@@ -149,6 +149,7 @@ size_t KVMatch(
   CHECK_EQ(src_key.size() * val_len, src_val.size());
   CHECK_NOTNULL(dst_val)->resize(dst_key.size() * val_len);
   if (dst_key.empty()) return 0;
+  if (src_key.empty()) return 0;
 
   // shorten the matching range
   auto range = ps::FindRange(dst_key, src_key.front(), src_key.back()+1);
