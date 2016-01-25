@@ -42,8 +42,9 @@ class StoreLocal : public Store {
   }
 
   void Wait(int time) override { }
-
   int Rank() override { return 0; }
+  int NumWorkers() override { return 1; }
+  int NumServers() override { return 1; }
  private:
   int time_;
 };

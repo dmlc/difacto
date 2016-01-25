@@ -14,7 +14,9 @@ namespace difacto {
  */
 class LocalTracker : public Tracker {
  public:
-  LocalTracker() { }
+  LocalTracker() {
+    tracker_ = new AsyncLocalTracker<Job, Job>();
+  }
   virtual ~LocalTracker() { delete tracker_; }
 
   KWArgs Init(const KWArgs& kwargs) override { return kwargs; }

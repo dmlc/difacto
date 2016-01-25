@@ -5,8 +5,6 @@
 #include "./store_local.h"
 namespace difacto {
 
-DMLC_REGISTER_PARAMETER(StoreParam);
-
 Store* Store::Create() {
   if (IsDistributed()) {
     LOG(FATAL) << "not implemented";

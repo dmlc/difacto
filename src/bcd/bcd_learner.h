@@ -27,8 +27,10 @@ class BCDLearner : public Learner {
   }
 
   KWArgs Init(const KWArgs& kwargs) override {
+    auto remain = Learner::Init(kwargs);
+
     // init param
-    auto remain = param_.InitAllowUnknown(kwargs);
+    remain = param_.InitAllowUnknown(kwargs);
 
     // init updater
     std::shared_ptr<Updater> updater(new BCDUpdater());

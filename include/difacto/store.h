@@ -13,18 +13,6 @@
 #include "./updater.h"
 namespace difacto {
 
-struct StoreParam : public dmlc::Parameter<StoreParam> {
-  /** \brief number of worker nodes */
-  int num_workers;
-  /** \brief number of server nodes */
-  int num_servers;
-
-  DMLC_DECLARE_PARAMETER(StoreParam) {
-    DMLC_DECLARE_FIELD(num_workers);
-    DMLC_DECLARE_FIELD(num_servers);
-  }
-};
-
 /**
  * \brief the store allows workers to get and set and model
  */
@@ -49,9 +37,7 @@ class Store {
    * @param kwargs keyword arguments
    * @return the unknown kwargs
    */
-  virtual KWArgs Init(const KWArgs& kwargs) {
-    return param_.InitAllowUnknown(kwargs);
-  }
+  virtual KWArgs Init(const KWArgs& kwargs) = 0;
 
   /**
    * \brief push a list of (feature id, value) into the store
@@ -96,13 +82,11 @@ class Store {
   /**
    * \brief return number of workers
    */
-  int NumWorkers() { return param_.num_workers; }
-
+  virtual int NumWorkers() = 0;
   /**
    * \brief return number of servers
    */
-  int NumServers() { return param_.num_servers; }
-
+  virtual int NumServers() = 0;
   /**
    * \brief return the rank of this node
    */
@@ -117,9 +101,6 @@ class Store {
 
  protected:
   std::shared_ptr<Updater> updater_;
-
- private:
-  StoreParam param_;
 };
 
 }  // namespace difacto
