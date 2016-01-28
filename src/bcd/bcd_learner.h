@@ -104,6 +104,7 @@ class BCDLearner : public Learner {
     } else if (job.type == bcd::JobArgs::kBuildFeatureMap) {
       LL << "build";
       BuildFeatureMap(job);
+      LL << "done";
     } else if (job.type == bcd::JobArgs::kIterateData) {
       bcd::IterDataRets irets;
       IterateData(job, &irets);
@@ -182,10 +183,12 @@ class BCDLearner : public Learner {
     CHECK_NOTNULL(tile_builder_);
     // pull the aggregated feature counts from the servers
     SArray<real_t> feacnt;
+    LL << "xxx";
     int t = model_store_->Pull(
         tile_builder_->feaids, Store::kFeaCount, &feacnt, nullptr);
     model_store_->Wait(t);
 
+    LL << "xxx";
     // remove the filtered features
     SArray<feaid_t> filtered;
     size_t n = tile_builder_->feaids.size();
@@ -196,11 +199,13 @@ class BCDLearner : public Learner {
       }
     }
 
+    LL << "xxx";
     // build colmap for each rowblk
     tile_builder_->feaids = filtered;
     tile_builder_->BuildColmap(job.fea_blk_ranges);
     delete tile_builder_; tile_builder_ = nullptr;
 
+    LL << "xxx";
     // init aux data
     std::vector<Range> pos;
     bcd::FeatureBlock::FindPosition(filtered, job.fea_blk_ranges, &pos);
@@ -208,6 +213,7 @@ class BCDLearner : public Learner {
     delta_.resize(pos.size());
     model_offset_.resize(pos.size());
 
+    LL << "xxx";
     for (size_t i = 0; i < pos.size(); ++i) {
       feaids_[i] = filtered.segment(pos[i].begin, pos[i].end);
       bcd::Delta::Init(feaids_[i].size(), &delta_[i]);
@@ -265,7 +271,8 @@ class BCDLearner : public Learner {
     SArray<int> grad_offset = model_offset_[blk_id];
     // we compute both 1st and diagnal 2nd gradients. it's ok to overwrite model_offset_
     for (int& os : grad_offset) os += os;
-    SArray<real_t> grad(grad_offset.back());
+
+    SArray<real_t> grad;
     for (int i = 0; i < ntrain_blks_; ++i) {
       CalcGrad(i, blk_id, grad_offset, &grad);
     }
@@ -303,13 +310,15 @@ class BCDLearner : public Learner {
     tile_store_->Fetch(rowblk_id, colblk_id, &tile);
 
     size_t n = tile.colmap.size();
-    SArray<int> grad_pos(n);
+    // bool no_os = grad_offset.
+    SArray<int> grad_pos(grad_off);
     SArray<real_t> delta(n);
     for (size_t i = 0; i < n; ++i) {
       int map = tile.colmap[i];
       grad_pos[i] = grad_offset[map];
       delta[i] = delta_[colblk_id][map];
     }
+
 
     loss_->CalcGrad(tile.data.GetBlock(), {SArray<char>(pred_[rowblk_id]),
             SArray<char>(grad_pos), SArray<char>(delta)}, grad);

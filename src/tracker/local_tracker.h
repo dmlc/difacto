@@ -50,11 +50,12 @@ class LocalTracker : public Tracker {
   void SetMonitor(const Monitor& monitor) override {
     CHECK_NOTNULL(tracker_)->SetMonitor(
         [monitor](const Job& rets) {
-          monitor(rets.first, rets.second);
+          if (monitor) monitor(rets.first, rets.second);
         });
   }
 
   void SetExecutor(const Executor& executor) override {
+    CHECK_NOTNULL(executor);
     CHECK_NOTNULL(tracker_)->SetExecutor(
         [executor](const Job& args,
                    const std::function<void()>& on_complete,
