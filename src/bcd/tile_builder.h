@@ -26,6 +26,7 @@ class TileBuilder {
     auto compacted = new dmlc::data::RowBlockContainer<unsigned>();
     auto transposed = new dmlc::data::RowBlockContainer<unsigned>();
 
+    LL << rowblk.size;
     Localizer lc(-1, nthreads_);
     lc.Compact(rowblk, compacted, ids.get(), cnt.get());
     SpMT::Transpose(compacted->GetBlock(), transposed, ids->size(), nthreads_);
@@ -34,6 +35,7 @@ class TileBuilder {
     // store into tile store
     int id = blk_feaids_.size();
     SharedRowBlockContainer<unsigned> data(&transposed);
+    LL << data.offset.size() - 1;
     store_->data_->Store(std::to_string(id) + "_data", data);
     store_->data_->Store(std::to_string(id) + "_label", rowblk.label, rowblk.size);
     delete transposed;

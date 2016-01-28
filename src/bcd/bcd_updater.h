@@ -92,7 +92,7 @@ class BCDUpdater : public Updater {
       KVUnion(feaids_, feacnt_, feaids, values, &new_feaids, &new_feacnt);
       feaids_ = new_feaids;
       feacnt_ = new_feacnt;
-    } else if (value_type == Store::kWeight) {
+    } else if (value_type == Store::kGradient) {
       SArray<int> pos; FindPosition(feaids_, feaids, &pos);
       if (offsets.empty()) {
         int k = 2;

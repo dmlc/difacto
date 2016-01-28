@@ -66,12 +66,12 @@ struct SharedRowBlockContainer {
     blk.offset = offset.data();
     blk.label = nullptr;
     if (label.size()) {
-      CHECK_EQ(blk.size, label.size());
+      // CHECK_EQ(blk.size, label.size());
       blk.label = label.data();
     }
     blk.weight = nullptr;
     if (weight.size()) {
-      CHECK_EQ(blk.size, weight.size());
+      // CHECK_EQ(blk.size, weight.size());
       blk.weight = weight.data();
     }
     CHECK_EQ(index.size(), offset.back() - offset.front());

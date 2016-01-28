@@ -22,6 +22,11 @@ class NodeID {
     return group + (rank+1) * 8;
   }
 
+  /* \brief return the node group id */
+  static int GetGroup(int id) {
+    return (id % 8);
+  }
+
 };
 }  // namespace difacto
 

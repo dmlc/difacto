@@ -64,20 +64,31 @@ struct PrepDataRets {
   std::vector<real_t> feagrp_avg;
 };
 
-struct IterDataRets {
+struct Progress {
   void SerializeToString(std::string* str) const {
     dmlc::Stream* ss = new dmlc::MemoryStringStream(str);
-    ss->Write(progress);
+    ss->Write(value);
     delete ss;
   }
 
   void ParseFromString(const std::string& str) {
     auto pstr = str;
     dmlc::Stream* ss = new dmlc::MemoryStringStream(&pstr);
-    ss->Read(&progress);
+    ss->Read(&value);
     delete ss;
   }
-  std::vector<real_t> progress;
+
+  void Add(int node_id, const Progress& other) {
+    if (value.empty()) {
+      value.resize(other.value.size());
+    } else {
+      CHECK_EQ(value.size(), other.value.size());
+    }
+    for (size_t i = 0; i < value.size(); ++i) {
+      value[i] += other.value[i];
+    }
+  }
+  std::vector<real_t> value;
 };
 
 }  // namespace bcd

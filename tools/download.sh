@@ -47,6 +47,14 @@ elif [ $1 == "gisette" ]; then
         fi
         bzip2 -d gisette_scale.t.bz2
     fi
+elif [ $1 == "rcv1" ]; then
+    if [ ! -e rcv1_train.binary ]; then
+        if [ ! -e rcv1_train.binary.bz2 ]; then
+            wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/rcv1_train.binary.bz2
+        fi
+        bzip2 -d rcv1_train.binary.bz2
+    fi
 else
+
     echo "unknown dataset name : $1"
 fi

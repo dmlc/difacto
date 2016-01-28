@@ -36,7 +36,7 @@ class TileStore {
     CHECK_NOTNULL(tile);
     data_->Fetch(id + "_data", &tile->data, rg);
     data_->Fetch(id + "_colmap", &tile->colmap, rg);
-    data_->Fetch(id + "_colmap", &tile->data.label);
+    data_->Fetch(id + "_label", &tile->data.label);
   }
 
  private:

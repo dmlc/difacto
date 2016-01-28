@@ -14,6 +14,7 @@
 #include "./tile_store.h"
 #include "./tile_builder.h"
 #include "loss/logit_loss_delta.h"
+#include "loss/bin_class_metric.h"
 namespace difacto {
 
 class BCDLearner : public Learner {
@@ -57,10 +58,11 @@ class BCDLearner : public Learner {
     // load data
     std::vector<real_t> feagrp_avg;
     bcd::JobArgs load; load.type = bcd::JobArgs::kPrepareData;
-    IssueJobToWorkers(load, [&feagrp_avg](int node_id, const std::string& rets) {
-        bcd::PrepDataRets prets; prets.ParseFromString(rets);
-        bcd::Add(prets.feagrp_avg, &feagrp_avg);
-      });
+    auto load_monitor = [&feagrp_avg](int node_id, const std::string& rets) {
+      bcd::PrepDataRets prets; prets.ParseFromString(rets);
+      bcd::Add(prets.feagrp_avg, &feagrp_avg);
+    };
+    IssueJobAndWait(NodeID::kWorkerGroup, load, load_monitor);
 
     // partition feature group and build feature map
     bcd::JobArgs build; build.type = bcd::JobArgs::kBuildFeatureMap;
@@ -72,25 +74,25 @@ class BCDLearner : public Learner {
     }
     bcd::FeatureBlock::Partition(
         param_.num_feature_group_bits, feagrp, &build.fea_blk_ranges);
-    IssueJobToWorkers(build);
+    IssueJobAndWait(NodeID::kWorkerGroup, build);
 
     // iterate over data
     std::vector<int> feablks(build.fea_blk_ranges.size());
     for (size_t i = 0; i < feablks.size(); ++i) feablks[i] = i;
     epoch_ = 0;
     for (; epoch_ < param_.max_num_epochs; ++epoch_) {
-      // for (auto& cb : before_epoch_callbacks_) cb();
 
       bcd::JobArgs iter; iter.type = bcd::JobArgs::kIterateData;
       std::random_shuffle(feablks.begin(), feablks.end());
       iter.fea_blks = feablks;
-      std::vector<real_t> progress;
-      IssueJobToWorkers(iter, [&progress](int node_id, const std::string& rets) {
-          bcd::IterDataRets irets; irets.ParseFromString(rets);
-          bcd::Add(irets.progress, &progress);
-        });
+      bcd::Progress progress;
+      auto iter_monitor = [&progress](int node_id, const std::string& rets) {
+        bcd::Progress prog; prog.ParseFromString(rets);
+        progress.Add(node_id, prog);
+      };
+      IssueJobAndWait(NodeID::kWorkerGroup | NodeID::kServerGroup, iter, iter_monitor);
 
-      // for (auto& cb : epoch_callbacks_) cb();
+      LL << "objv: " << progress.value[0] << ", auc: " << progress.value[1];
     }
   }
 
@@ -106,9 +108,9 @@ class BCDLearner : public Learner {
       BuildFeatureMap(job);
       LL << "done";
     } else if (job.type == bcd::JobArgs::kIterateData) {
-      bcd::IterDataRets irets;
-      IterateData(job, &irets);
-      irets.SerializeToString(rets);
+      bcd::Progress prog;
+      IterateData(job, &prog);
+      prog.SerializeToString(rets);
     }
 
     // TODO save and load
@@ -124,9 +126,11 @@ class BCDLearner : public Learner {
   }
 
   /**
-   * \brief send jobs to workers and wait them finished.
+   * \brief send jobs to nodes and wait them finished.
    */
-  void IssueJobToWorkers(const bcd::JobArgs& job, Tracker::Monitor monitor = nullptr) {
+  void IssueJobAndWait(int node_group, const bcd::JobArgs& job,
+                       Tracker::Monitor monitor = nullptr) {
+    // TODO
     int nworker = model_store_->NumWorkers();
     std::vector<std::pair<int, std::string>> jobs(nworker);
     for (int i = 0; i < nworker; ++i) {
@@ -183,12 +187,10 @@ class BCDLearner : public Learner {
     CHECK_NOTNULL(tile_builder_);
     // pull the aggregated feature counts from the servers
     SArray<real_t> feacnt;
-    LL << "xxx";
     int t = model_store_->Pull(
         tile_builder_->feaids, Store::kFeaCount, &feacnt, nullptr);
     model_store_->Wait(t);
 
-    LL << "xxx";
     // remove the filtered features
     SArray<feaid_t> filtered;
     size_t n = tile_builder_->feaids.size();
@@ -199,13 +201,11 @@ class BCDLearner : public Learner {
       }
     }
 
-    LL << "xxx";
     // build colmap for each rowblk
     tile_builder_->feaids = filtered;
     tile_builder_->BuildColmap(job.fea_blk_ranges);
     delete tile_builder_; tile_builder_ = nullptr;
 
-    LL << "xxx";
     // init aux data
     std::vector<Range> pos;
     bcd::FeatureBlock::FindPosition(filtered, job.fea_blk_ranges, &pos);
@@ -213,14 +213,13 @@ class BCDLearner : public Learner {
     delta_.resize(pos.size());
     model_offset_.resize(pos.size());
 
-    LL << "xxx";
     for (size_t i = 0; i < pos.size(); ++i) {
       feaids_[i] = filtered.segment(pos[i].begin, pos[i].end);
       bcd::Delta::Init(feaids_[i].size(), &delta_[i]);
     }
   }
 
-  void IterateData(const bcd::JobArgs& job, bcd::IterDataRets* rets) {
+  void IterateData(const bcd::JobArgs& job, bcd::Progress* progress) {
     CHECK(job.fea_blks.size());
     // hint for data prefetch
     for (int f : job.fea_blks) {
@@ -237,7 +236,7 @@ class BCDLearner : public Learner {
         feablk_tracker.Finish(i);
       };
       int f = job.fea_blks[i];
-      IterateFeablk(f, on_complete);
+      IterateFeablk(f, on_complete, progress);
 
       if (i >= tau) feablk_tracker.Wait(i - tau);
     }
@@ -266,29 +265,27 @@ class BCDLearner : public Learner {
    * @param blk_id
    * @param on_complete will be called when actually finished
    */
-  void IterateFeablk(int blk_id, const std::function<void()>& on_complete) {
+  void IterateFeablk(int blk_id,
+                     const std::function<void()>& on_complete,
+                     bcd::Progress* progress) {
     // 1. calculate gradient
-    SArray<int> grad_offset = model_offset_[blk_id];
-    // we compute both 1st and diagnal 2nd gradients. it's ok to overwrite model_offset_
-    for (int& os : grad_offset) os += os;
-
     SArray<real_t> grad;
     for (int i = 0; i < ntrain_blks_; ++i) {
-      CalcGrad(i, blk_id, grad_offset, &grad);
+      CalcGrad(i, blk_id, model_offset_[blk_id], &grad);
     }
 
     // 3. once push is done, pull the changes for the weights
     // this callback will be called when the push is finished
-    auto push_callback = [this, blk_id, on_complete]() {
+    auto push_callback = [this, blk_id, progress, on_complete]() {
       // must use pointer here, since it may be reallocated by model_store_
       SArray<real_t>* delta_w = new SArray<real_t>();
       SArray<int>* delta_w_offset = new SArray<int>();
       // 4. once the pull is done, update the prediction
       // the callback will be called when the pull is finished
-      auto pull_callback = [this, blk_id, delta_w, delta_w_offset, on_complete]() {
+      auto pull_callback = [this, blk_id, delta_w, delta_w_offset, progress, on_complete]() {
         model_offset_[blk_id] = *delta_w_offset;
         for (int i = 0; i < ntrain_blks_ + nval_blks_; ++i) {
-          UpdtPred(i, blk_id, *delta_w_offset, *delta_w);
+          UpdtPred(i, blk_id, *delta_w_offset, *delta_w, progress);
         }
         delete delta_w;
         delete delta_w_offset;
@@ -299,47 +296,83 @@ class BCDLearner : public Learner {
           feaids_[blk_id], Store::kWeight, delta_w, delta_w_offset, pull_callback);
     };
     // 2. push gradient to the servers
+    auto grad_offset = model_offset_[blk_id];
+    for (auto& o : grad_offset) o += o;
     model_store_->Push(
         feaids_[blk_id], Store::kGradient, grad, grad_offset, push_callback);
   }
 
   void CalcGrad(int rowblk_id, int colblk_id,
-                const SArray<int>& grad_offset,
+                const SArray<int>& model_offset,
                 SArray<real_t>* grad) {
+    // load data
     bcd::Tile tile;
     tile_store_->Fetch(rowblk_id, colblk_id, &tile);
 
-    size_t n = tile.colmap.size();
-    // bool no_os = grad_offset.
-    SArray<int> grad_pos(grad_off);
+    // build index
+    size_t n = tile.colmap.size();  // n can be 0
+    bool no_os = model_offset.empty();
+    SArray<int> grad_pos(n);
     SArray<real_t> delta(n);
     for (size_t i = 0; i < n; ++i) {
       int map = tile.colmap[i];
-      grad_pos[i] = grad_offset[map];
-      delta[i] = delta_[colblk_id][map];
+      if (map < 0) {
+        grad_pos[i] = -1;
+      } else {
+        grad_pos[i] = no_os ? map * 2 : model_offset[map] * 2;
+        delta[i] = delta_[colblk_id][map];
+      }
     }
+    if (delta.empty()) delta = delta_[colblk_id];
+    grad->resize(no_os ? n * 2 : model_offset.back() * 2);
 
-
+    // calc grad
     loss_->CalcGrad(tile.data.GetBlock(), {SArray<char>(pred_[rowblk_id]),
             SArray<char>(grad_pos), SArray<char>(delta)}, grad);
   }
 
-  void UpdtPred(int rowblk_id, int colblk_id, const SArray<int> delta_w_offset,
-                const SArray<real_t> delta_w) {
+  void UpdtPred(int rowblk_id, int colblk_id,
+                const SArray<int> delta_w_offset,
+                const SArray<real_t> delta_w,
+                bcd::Progress* progress) {
+    // load data
     bcd::Tile tile;
     tile_store_->Fetch(rowblk_id, colblk_id, &tile);
 
+    // build index and update delta_
     size_t n = tile.colmap.size();
+    bool no_os = delta_w_offset.empty();
     SArray<int> w_pos(n);
     for (size_t i = 0; i < n; ++i) {
       int map = tile.colmap[i];
-      w_pos[i] = delta_w_offset[map];
-      bcd::Delta::Update(delta_w[w_pos[i]], &delta_[colblk_id][map]);
+      if (map < 0) {
+        w_pos[i] = -1;
+      } else {
+        w_pos[i] = no_os ? map : delta_w_offset[map];
+        bcd::Delta::Update(delta_w[w_pos[i]], &delta_[colblk_id][map]);
+      }
+    }
+    if (n == 0) {
+      CHECK_EQ(delta_[colblk_id].size(), delta_w.size());
+      for (size_t i = 0; i < delta_w.size(); ++i) {
+        bcd::Delta::Update(delta_w[i], &delta_[colblk_id][i]);
+      }
     }
 
+    // predict
     loss_->Predict(tile.data.GetBlock(),
                    {SArray<char>(delta_w_offset), SArray<char>(w_pos)},
                    &pred_[rowblk_id]);
+
+    // evaluate
+    CHECK_EQ(tile.data.label.size(), pred_[rowblk_id].size());
+    BinClassMetric metric(tile.data.label.data(),
+                          pred_[rowblk_id].data(),
+                          pred_[rowblk_id].size());
+    auto& val = progress->value;
+    if (val.empty()) val.resize(3);
+    val[0] = metric.LogitObjv();
+    val[1] = metric.AUC();
   }
 
   /** \brief the current epoch */
