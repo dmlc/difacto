@@ -63,7 +63,7 @@ class FeatureBlock {
 
     for (size_t i = 0; i < n; ++i) {
       auto lb = std::lower_bound(cur, end, feablks[i].begin);
-      auto ub = std::lower_bound(lb, end, feablks[i].begin);
+      auto ub = std::lower_bound(lb, end, feablks[i].end);
       cur = ub;
       positions->at(i) = Range(lb - begin, ub - begin);
     }

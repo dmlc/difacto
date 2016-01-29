@@ -29,31 +29,25 @@ class BCDLearner : public Learner {
 
   KWArgs Init(const KWArgs& kwargs) override {
     auto remain = Learner::Init(kwargs);
-
     // init param
     remain = param_.InitAllowUnknown(kwargs);
-
     // init updater
     std::shared_ptr<Updater> updater(new BCDUpdater());
     remain = updater->Init(remain);
-
     // init model store
     model_store_ = Store::Create();
     model_store_->set_updater(updater);
     remain = model_store_->Init(remain);
-
     // init data stores
     data_store_ = new DataStore();
     remain = model_store_->Init(remain);
     tile_store_ = new bcd::TileStore(data_store_);
-
     // init loss
     loss_ = Loss::Create("logit_delta", DEFAULT_NTHREADS);
     return remain;
   }
 
  protected:
-
   void RunScheduler() override {
     // load data
     std::vector<real_t> feagrp_avg;
@@ -270,6 +264,7 @@ class BCDLearner : public Learner {
                      bcd::Progress* progress) {
     // 1. calculate gradient
     SArray<real_t> grad;
+    // FIXME allocate grad
     for (int i = 0; i < ntrain_blks_; ++i) {
       CalcGrad(i, blk_id, model_offset_[blk_id], &grad);
     }

@@ -57,6 +57,7 @@ class TileBuilder {
       feaids = new_feaids;
       feacnts = new_feacnts;
     }
+    LL << feaids.size();
   }
   /**
    * \brief add filtered feature ids
