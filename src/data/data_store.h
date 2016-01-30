@@ -191,6 +191,12 @@ class DataStore {
     Range rg3 = Range(data->offset[0], data->offset.back());
     Fetch(keys[3], &data->index, rg3);
     Fetch(keys[4], &data->value, rg3);
+    if (rg3.begin != 0) {
+      SArray<size_t> offset; offset.CopyFrom(data->offset);
+      for (size_t& o : offset) o -= rg3.begin;
+      data->offset = offset;
+    }
+
   }
 
  private:

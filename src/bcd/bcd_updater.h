@@ -93,6 +93,7 @@ class BCDUpdater : public Updater {
       feaids_ = new_feaids;
       feacnt_ = new_feacnt;
     } else if (value_type == Store::kGradient) {
+      if (weights_.empty()) InitWeights();
       SArray<int> pos; FindPosition(feaids_, feaids, &pos);
       if (offsets.empty()) {
         int k = 2;

@@ -35,8 +35,8 @@ class TileStore {
     auto rg = colblk_pos_[rowblk_id][colblk_id];
     CHECK_NOTNULL(tile);
     data_->Fetch(id + "_data", &tile->data, rg);
-    data_->Fetch(id + "_colmap", &tile->colmap, rg);
     data_->Fetch(id + "_label", &tile->data.label);
+    data_->Fetch(id + "_colmap", &tile->colmap, rg);
   }
 
  private:

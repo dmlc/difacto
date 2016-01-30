@@ -211,6 +211,7 @@ class BCDLearner : public Learner {
       feaids_[i] = filtered.segment(pos[i].begin, pos[i].end);
       bcd::Delta::Init(feaids_[i].size(), &delta_[i]);
     }
+    feablk_pos_ = pos;
   }
 
   void IterateData(const bcd::JobArgs& job, bcd::Progress* progress) {
@@ -263,10 +264,12 @@ class BCDLearner : public Learner {
                      const std::function<void()>& on_complete,
                      bcd::Progress* progress) {
     // 1. calculate gradient
-    SArray<real_t> grad;
-    // FIXME allocate grad
+    SArray<int> grad_offset = model_offset_[blk_id];
+    for (int& o : grad_offset) o += o; // it's ok to overwrite model_offset_[blk_id]
+    SArray<real_t> grad(
+        grad_offset.empty() ? feaids_[blk_id].size() * 2 : grad_offset.back());
     for (int i = 0; i < ntrain_blks_; ++i) {
-      CalcGrad(i, blk_id, model_offset_[blk_id], &grad);
+      CalcGrad(i, blk_id, grad_offset, &grad);
     }
 
     // 3. once push is done, pull the changes for the weights
@@ -291,35 +294,33 @@ class BCDLearner : public Learner {
           feaids_[blk_id], Store::kWeight, delta_w, delta_w_offset, pull_callback);
     };
     // 2. push gradient to the servers
-    auto grad_offset = model_offset_[blk_id];
-    for (auto& o : grad_offset) o += o;
     model_store_->Push(
         feaids_[blk_id], Store::kGradient, grad, grad_offset, push_callback);
   }
 
   void CalcGrad(int rowblk_id, int colblk_id,
-                const SArray<int>& model_offset,
+                const SArray<int>& grad_offset,
                 SArray<real_t>* grad) {
     // load data
     bcd::Tile tile;
     tile_store_->Fetch(rowblk_id, colblk_id, &tile);
 
     // build index
-    size_t n = tile.colmap.size();  // n can be 0
-    bool no_os = model_offset.empty();
+    size_t n = tile.colmap.size();
+    bool no_os = grad_offset.empty();
     SArray<int> grad_pos(n);
     SArray<real_t> delta(n);
+    int pos_begin = feablk_pos_[colblk_id].begin;
     for (size_t i = 0; i < n; ++i) {
       int map = tile.colmap[i];
       if (map < 0) {
         grad_pos[i] = -1;
       } else {
-        grad_pos[i] = no_os ? map * 2 : model_offset[map] * 2;
+        map -= pos_begin; CHECK_GE(map, 0);
+        grad_pos[i] = no_os ? map * 2 : grad_offset[map] * 2;
         delta[i] = delta_[colblk_id][map];
       }
     }
-    if (delta.empty()) delta = delta_[colblk_id];
-    grad->resize(no_os ? n * 2 : model_offset.back() * 2);
 
     // calc grad
     loss_->CalcGrad(tile.data.GetBlock(), {SArray<char>(pred_[rowblk_id]),
@@ -338,25 +339,21 @@ class BCDLearner : public Learner {
     size_t n = tile.colmap.size();
     bool no_os = delta_w_offset.empty();
     SArray<int> w_pos(n);
+    int pos_begin = feablk_pos_[colblk_id].begin;
     for (size_t i = 0; i < n; ++i) {
       int map = tile.colmap[i];
       if (map < 0) {
         w_pos[i] = -1;
       } else {
+        map -= pos_begin; CHECK_GE(map, 0);
         w_pos[i] = no_os ? map : delta_w_offset[map];
         bcd::Delta::Update(delta_w[w_pos[i]], &delta_[colblk_id][map]);
-      }
-    }
-    if (n == 0) {
-      CHECK_EQ(delta_[colblk_id].size(), delta_w.size());
-      for (size_t i = 0; i < delta_w.size(); ++i) {
-        bcd::Delta::Update(delta_w[i], &delta_[colblk_id][i]);
       }
     }
 
     // predict
     loss_->Predict(tile.data.GetBlock(),
-                   {SArray<char>(delta_w_offset), SArray<char>(w_pos)},
+                   {SArray<char>(delta_w), SArray<char>(w_pos)},
                    &pred_[rowblk_id]);
 
     // evaluate
@@ -388,6 +385,7 @@ class BCDLearner : public Learner {
 
   std::vector<SArray<real_t>> pred_;
   std::vector<SArray<feaid_t>> feaids_;
+  std::vector<Range> feablk_pos_;
   std::vector<SArray<real_t>> delta_;
   std::vector<SArray<int>> model_offset_;
 };
