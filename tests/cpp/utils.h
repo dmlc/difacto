@@ -93,16 +93,17 @@ template <typename T>
 void check_equal(RowBlock<T> a, RowBlock<T> b) {
   EXPECT_EQ(a.size, b.size);
   EXPECT_EQ(a.label != nullptr, b.label != nullptr);
-  EXPECT_EQ(norm1(a.offset, a.size+1), norm1(b.offset, b.size+1));
+  EXPECT_EQ(norm1(a.offset, a.size+1) - a.offset[0]*(a.size+1),
+            norm1(b.offset, b.size+1) - b.offset[0]*(b.size+1));
   if (a.label) {
     EXPECT_EQ(norm1(a.label, a.size), norm1(b.label, b.size));
   }
   size_t nnz = a.offset[a.size] - a.offset[0];
   EXPECT_EQ(nnz, b.offset[b.size] - b.offset[0]);
-  EXPECT_EQ(norm1(a.index, nnz), norm1(b.index, nnz));
+  EXPECT_EQ(norm1(a.index+a.offset[0], nnz), norm1(b.index+b.offset[0], nnz));
   EXPECT_EQ(a.value != nullptr, b.value != nullptr);
   if (a.value) {
-    EXPECT_EQ(norm2(a.value, nnz), norm2(b.value, nnz));
+    EXPECT_EQ(norm2(a.value+a.offset[0], nnz), norm2(b.value+b.offset[0], nnz));
   }
 }
 
