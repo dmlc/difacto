@@ -72,22 +72,6 @@ class FeatureBlock {
 
 
 /**
- * \brief y += x
- *
- * @param x
- * @param y
- */
-template <typename Vec>
-void Add(const Vec& x, Vec* y) {
-  if (y->empty()) {
-    *y = x;
-  } else {
-    CHECK_EQ(y->size(), x.size());
-    for (size_t i = 0; i < x.size(); ++i) (*y)[i] += x[i];
-  }
-}
-
-/**
  * \brief count statistics for feature groups
  */
 class FeaGroupStats {
@@ -96,34 +80,28 @@ class FeaGroupStats {
     CHECK_EQ(nbit % 4, 0) << "should be 0, 4, 8, ...";
     CHECK_LE(nbit, 16);
     nbit_ = nbit;
-    occur_.resize(1<<nbit);
+    value_.resize((1<<nbit)+2);
   }
 
   void Add(const dmlc::RowBlock<feaid_t>& rowblk) {
     for (size_t i = 0; i < rowblk.size; i+=skip_) {
       for (size_t j = rowblk.offset[i]; j < rowblk.offset[i+1]; ++j) {
         feaid_t f = rowblk.index[j];
-        ++occur_[f-((f>>nbit_)<<nbit_)];
+        ++value_[f-((f>>nbit_)<<nbit_)];
       }
-      ++nrows_;
+      ++value_[1<<nbit_];
     }
+    value_[(1<<nbit_)+1] += rowblk.size;
   }
 
-  /**
-   * \brief get average nonzero features per row for each feature group
-   */
-  void Get(std::vector<real_t>* feagrp_avg) {
-    feagrp_avg->resize(occur_.size());
-    for (size_t i = 0; i < occur_.size(); ++i) {
-      (*feagrp_avg)[i] = occur_[i] / nrows_;
-    }
+  void Get(std::vector<real_t>* value) {
+    *value = value_;
   }
 
  private:
   int nbit_;
   int skip_ = 10; // only count 10% data
-  real_t nrows_ = 0;
-  std::vector<real_t> occur_;
+  std::vector<real_t> value_;
 };
 
 /**

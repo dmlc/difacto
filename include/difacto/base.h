@@ -68,8 +68,8 @@ inline std::string DebugStr(const V* data, int n, int m = 5) {
 /**
  * \brief return a debug string of a vector
  */
-template <typename V>
-inline std::string DebugStr(const std::vector<V>& vec) {
+template <typename Vec>
+inline std::string DebugStr(const Vec& vec) {
   return DebugStr(vec.data(), vec.size());
 }
 

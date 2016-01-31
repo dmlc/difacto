@@ -9,6 +9,7 @@
 #include "dmlc/omp.h"
 #include "./range.h"
 #include "data/row_block.h"
+#include "difacto/base.h"
 namespace difacto {
 
 /**

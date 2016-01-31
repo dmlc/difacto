@@ -13,15 +13,15 @@ namespace difacto {
  * \brief parameters for \ref LogitLossDelta
  */
 struct LogitLossDeltaParam : public dmlc::Parameter<LogitLossDeltaParam> {
-  /** \brief if or not compute the diagnal hession */
-  int compute_diag_hession;
-  /** \brief whether or not compute the upper bound of the diagnal hession */
-  int compute_upper_diag_hession;
+  /**
+   * \brief if or not compute the hession matrix
+   * 0 : no
+   * 1 : diagnal hession matrix
+   * 2 : the upper bound of the diagnal hession
+   */
   int compute_hession;
   DMLC_DECLARE_PARAMETER(LogitLossDeltaParam) {
-    DMLC_DECLARE_FIELD(compute_upper_diag_hession).set_range(0, 1).set_default(1);
-    DMLC_DECLARE_FIELD(compute_diag_hession).set_range(0, 1).set_default(0);
-    DMLC_DECLARE_FIELD(compute_hession).set_range(0, 2).set_default(0);
+    DMLC_DECLARE_FIELD(compute_hession).set_range(0, 2).set_default(1);
   }
 };
 
@@ -80,7 +80,7 @@ class LogitLossDelta : public Loss {
    * - param[0], real_t vector, the predict output
    * - param[1], optional int vector, the gradient positions
    * - param[2], optional real_t vectorreal_t, the delta needed if
-   *   compute_upper_diag_hession is true
+   *   compute_diag_hession == 2
    * @param grad gradient output, should be preallocated
    */
   void CalcGrad(const dmlc::RowBlock<unsigned>& data,
@@ -101,8 +101,9 @@ class LogitLossDelta : public Loss {
 
     // grad = ...
     SArray<int> grad_pos = psize > 1 ? SArray<int>(param[1]) : SArray<int>();
+    if (param_.compute_hession != 0) CHECK(!grad_pos.empty());
     SpMV::Times(data, p, grad, nthreads_, {}, grad_pos);
-    if (!param_.compute_diag_hession && !param_.compute_upper_diag_hession) return;
+    if (param_.compute_hession == 0) return;
 
     // h = ...
     SArray<int> h_pos; h_pos.CopyFrom(grad_pos);
@@ -114,10 +115,9 @@ class LogitLossDelta : public Loss {
     dmlc::RowBlock<unsigned> XX = data;
     SArray<real_t> xx_value;
     if (data.value) {
-      size_t start = data.offset[0];
-      xx_value.resize(data.offset[data.size] - start);
-      for (size_t i = 0; i < xx_value.size(); ++i) {
-        xx_value[i] = data.value[i+start] * data.value[i+start];
+      xx_value.resize(data.offset[data.size]);
+      for (size_t i = data.offset[0]; i < data.offset[data.size]; ++i) {
+        xx_value[i] = data.value[i] * data.value[i];
       }
       XX.value = xx_value.data();
     }
@@ -126,16 +126,18 @@ class LogitLossDelta : public Loss {
 #pragma omp parallel for num_threads(nthreads_)
     for (size_t i = 0; i < p.size(); ++i) {
       real_t y = data.label[i] > 0 ? 1 : -1;
-      real_t tau = - y * p[i];
-      p[i] = tau * (1 - tau);
+      p[i] = - p[i] * (y + p[i]);
     }
 
-    if (param_.compute_diag_hession) {
+    if (param_.compute_hession == 1) {
       SpMV::Times(XX, p, grad, nthreads_, {}, h_pos);
-    } else {
+    } else if (param_.compute_hession == 2) {
+      LOG(FATAL) << "...";
       CHECK_EQ(psize, 3);
       SArray<real_t> delta(param[2]);
       // TODO
+    } else {
+      LOG(FATAL) << "...";
     }
   }
 

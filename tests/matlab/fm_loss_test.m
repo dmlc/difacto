@@ -10,6 +10,9 @@ sum(log(1 + exp ( - y .* (x * w'))))
 g = full(x' * (-y ./ (1  + exp( y .* (x * w')))));
 sum(g.*g)
 
+tau = 1 ./ (1  + exp( y .* (x * w')));
+h = full((x.*x)' * (tau .* (1-tau)));
+sum(h.*h)
 
 %% fm
 

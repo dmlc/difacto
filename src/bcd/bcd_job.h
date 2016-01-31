@@ -5,6 +5,22 @@
 namespace difacto {
 namespace bcd {
 
+/**
+ * \brief y += x
+ *
+ * @param x
+ * @param y
+ */
+template <typename Vec>
+void Add(const Vec& x, Vec* y) {
+  if (y->empty()) {
+    *y = x;
+  } else {
+    CHECK_EQ(y->size(), x.size());
+    for (size_t i = 0; i < x.size(); ++i) (*y)[i] += x[i];
+  }
+}
+
 struct JobArgs {
   static const int kLoadModel = 1;
   static const int kSaveModel = 2;
@@ -51,17 +67,26 @@ struct JobArgs {
 struct PrepDataRets {
   void SerializeToString(std::string* str) const {
     dmlc::Stream* ss = new dmlc::MemoryStringStream(str);
-    ss->Write(feagrp_avg);
+    ss->Write(value);
     delete ss;
   }
   void ParseFromString(const std::string& str) {
     auto pstr = str;
     dmlc::Stream* ss = new dmlc::MemoryStringStream(&pstr);
-    ss->Read(&feagrp_avg);
+    ss->Read(&value);
     delete ss;
   }
-
-  std::vector<real_t> feagrp_avg;
+  void Add(const PrepDataRets& other) {
+    if (value.empty()) {
+      value.resize(other.value.size());
+    } else {
+      CHECK_EQ(value.size(), other.value.size());
+    }
+    for (size_t i = 0; i < value.size(); ++i) {
+      value[i] += other.value[i];
+    }
+  }
+  std::vector<real_t> value;
 };
 
 struct Progress {

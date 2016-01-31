@@ -92,6 +92,8 @@ class BCDUpdater : public Updater {
       KVUnion(feaids_, feacnt_, feaids, values, &new_feaids, &new_feacnt);
       feaids_ = new_feaids;
       feacnt_ = new_feacnt;
+      // LL << DebugStr(feaids_);
+      // LL << DebugStr(feacnt_);
     } else if (value_type == Store::kGradient) {
       if (weights_.empty()) InitWeights();
       SArray<int> pos; FindPosition(feaids_, feaids, &pos);
@@ -110,6 +112,8 @@ class BCDUpdater : public Updater {
           UpdateWeight(pos[i], values.data()+offsets[i], offsets[i+1]-offsets[i]);
         }
       }
+      // LL << DebugStr(offsets);
+      LL << DebugStr(values);
     } else {
       LOG(FATAL) << "...";
     }
