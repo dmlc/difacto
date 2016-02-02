@@ -38,8 +38,12 @@ class BCDUpdater : public Updater {
   virtual ~BCDUpdater() { }
 
   KWArgs Init(const KWArgs& kwargs) override {
-    return param_.InitAllowUnknown(kwargs);
+    auto r = param_.InitAllowUnknown(kwargs);
+    LL << param_.l1 << " " << param_.lr;
+    return r;
   }
+
+  const BCDUpdaterParam& param() const { return param_; }
 
   void Load(dmlc::Stream* fi, bool* has_aux) override {
 
@@ -59,7 +63,7 @@ class BCDUpdater : public Updater {
       if (weights_.empty()) InitWeights();
       values->resize(feaids.size() * (param_.V_dim+1));
       if (param_.V_dim == 0) {
-        KVMatch(feaids_, weights_, feaids, values);
+        KVMatch(feaids_, w_delta_, feaids, values);
       } else {
         offsets->resize(feaids.size());
         SArray<int> pos; FindPosition(feaids_, feaids, &pos);
@@ -70,7 +74,7 @@ class BCDUpdater : public Updater {
           int start = offsets_[pos[i]+1];
           int len = offsets_[pos[i]+1] - start;
           os[1] = os[0] + len;
-          memcpy(val, weights_.data() + start, len * sizeof(real_t));
+          memcpy(val, w_delta_.data() + start, len * sizeof(real_t));
           val += len; ++os;
         }
         values->resize(os[1]);
@@ -113,7 +117,20 @@ class BCDUpdater : public Updater {
         }
       }
       // LL << DebugStr(offsets);
-      LL << DebugStr(values);
+      real_t n1 = 0, n2 =0 ;
+      for (size_t i = 0; i < values.size(); i+=2) {
+        n1 += values[i] * values[i];
+        n2 += values[i+1] * values[i+1];
+      }
+
+      real_t w = 0, d = 0;
+      for (size_t i = 0; i < weights_.size(); ++i) {
+        w += weights_[i] * weights_[i];
+        d += delta_[i] * delta_[i];
+      }
+      LL << values.size() << " " << n1 << " " << n2 <<  " " << w << " " << d;
+      // LL << DebugStr(values);
+      // LL << DebugStr(weights_);
     } else {
       LOG(FATAL) << "...";
     }
@@ -134,6 +151,7 @@ class BCDUpdater : public Updater {
     // init weight
     CHECK_EQ(param_.V_dim, 0);
     weights_.resize(feaids_.size());
+    w_delta_.resize(feaids_.size());
     bcd::Delta::Init(feaids_.size(), &delta_);
   }
 
@@ -142,10 +160,10 @@ class BCDUpdater : public Updater {
     CHECK_GE(grad_len, 2);
 
     real_t g = grad[0];
-    real_t g_pos = g + param_.l2, g_neg = g - param_.l2;
+    real_t g_pos = g + param_.l1, g_neg = g - param_.l1;
     real_t u = grad[1] / param_.lr + 1e-10;
-    real_t* model = weights_.data() + (offsets_.size() ? offsets_[idx] : idx);
-    real_t w = model[0];
+    int i = offsets_.size() ? offsets_[idx] : idx;
+    real_t w = weights_[i];
     real_t d = - w;
 
     if (g_pos <= u * w) {
@@ -155,13 +173,15 @@ class BCDUpdater : public Updater {
     }
     d = std::min(delta_[idx], std::max(- delta_[idx], d));
     bcd::Delta::Update(d, &delta_[idx]);
-    model[0] += d;
+    weights_[i] += d;
+    w_delta_[i] = d;
   }
 
   BCDUpdaterParam param_;
   SArray<feaid_t> feaids_;
   SArray<real_t> feacnt_;
   SArray<real_t> weights_;
+  SArray<real_t> w_delta_;
   SArray<int> offsets_;
   SArray<real_t> delta_;
 };

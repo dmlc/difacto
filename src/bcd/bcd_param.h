@@ -45,7 +45,6 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
   int num_feature_group_bits;
   float neg_sampling;
 
-  int tail_feature_filter;
   DMLC_DECLARE_PARAMETER(BCDLearnerParam) {
     DMLC_DECLARE_FIELD(task).set_default("train");
     DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
@@ -59,9 +58,7 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
     DMLC_DECLARE_FIELD(random_block).set_default(1);
     DMLC_DECLARE_FIELD(num_feature_group_bits).set_default(0);
     DMLC_DECLARE_FIELD(block_ratio).set_default(4);
-    DMLC_DECLARE_FIELD(tail_feature_filter).set_default(4);
     DMLC_DECLARE_FIELD(data_cache).set_default("/tmp/cache_difacto_");
-
   }
 };
 }  // namespace difacto

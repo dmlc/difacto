@@ -93,7 +93,12 @@ void BCDLearner::RunScheduler() {
     };
     IssueJobAndWait(NodeID::kWorkerGroup | NodeID::kServerGroup, iter, iter_monitor);
 
-    LL << "objv: " << progress.value[0]
+    for (const auto& cb : epoch_end_callback_) {
+      cb(epoch_, progress);
+    }
+
+    LL << "epoch: " << epoch_
+       << ", objv: " << progress.value[0]
        << ", auc: " << progress.value[1]
        << ", acc: " << progress.value[2];
   }
@@ -153,8 +158,10 @@ void BCDLearner::BuildFeatureMap(const bcd::JobArgs& job) {
   SArray<feaid_t> filtered;
   size_t n = tile_builder_->feaids.size();
   CHECK_EQ(feacnt.size(), n);
+  int filter = std::static_pointer_cast<BCDUpdater>(
+      model_store_->updater())->param().tail_feature_filter;
   for (size_t i = 0; i < n; ++i) {
-    if (feacnt[i] > param_.tail_feature_filter) {
+    if (feacnt[i] > filter) {
       filtered.push_back(tile_builder_->feaids[i]);
     }
   }
@@ -235,6 +242,7 @@ void BCDLearner::IterateFeablk(int blk_id,
     model_store_->Pull(
         feaids_[blk_id], Store::kWeight, delta_w, delta_w_offset, pull_callback);
   };
+  LL << blk_id << " " << feaids_[blk_id].size() << " " << grad.size();
   // 2. push gradient to the servers
   model_store_->Push(
       feaids_[blk_id], Store::kGradient, grad, grad_offset, push_callback);

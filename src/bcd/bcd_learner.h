@@ -28,6 +28,11 @@ class BCDLearner : public Learner {
 
   KWArgs Init(const KWArgs& kwargs) override;
 
+  void AddEpochEndCallback(
+      const std::function<void(int epoch, const bcd::Progress& prog)>& callback) {
+    epoch_end_callback_.push_back(callback);
+  }
+
  protected:
   void RunScheduler() override;
 
@@ -110,6 +115,7 @@ class BCDLearner : public Learner {
   std::vector<Range> feablk_pos_;
   std::vector<SArray<real_t>> delta_;
   std::vector<SArray<int>> model_offset_;
+  std::vector<std::function<void(int epoch, const bcd::Progress& prog)>> epoch_end_callback_;
 };
 
 }  // namespace difacto
