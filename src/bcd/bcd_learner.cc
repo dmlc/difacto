@@ -242,7 +242,6 @@ void BCDLearner::IterateFeablk(int blk_id,
     model_store_->Pull(
         feaids_[blk_id], Store::kWeight, delta_w, delta_w_offset, pull_callback);
   };
-  LL << blk_id << " " << feaids_[blk_id].size() << " " << grad.size();
   // 2. push gradient to the servers
   model_store_->Push(
       feaids_[blk_id], Store::kGradient, grad, grad_offset, push_callback);

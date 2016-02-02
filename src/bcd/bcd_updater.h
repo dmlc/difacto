@@ -117,18 +117,18 @@ class BCDUpdater : public Updater {
         }
       }
       // LL << DebugStr(offsets);
-      real_t n1 = 0, n2 =0 ;
-      for (size_t i = 0; i < values.size(); i+=2) {
-        n1 += values[i] * values[i];
-        n2 += values[i+1] * values[i+1];
-      }
+      // real_t n1 = 0, n2 =0 ;
+      // for (size_t i = 0; i < values.size(); i+=2) {
+      //   n1 += values[i] * values[i];
+      //   n2 += values[i+1] * values[i+1];
+      // }
 
-      real_t w = 0, d = 0;
-      for (size_t i = 0; i < weights_.size(); ++i) {
-        w += weights_[i] * weights_[i];
-        d += delta_[i] * delta_[i];
-      }
-      LL << values.size() << " " << n1 << " " << n2 <<  " " << w << " " << d;
+      // real_t w = 0, d = 0;
+      // for (size_t i = 0; i < weights_.size(); ++i) {
+      //   w += weights_[i] * weights_[i];
+      //   d += delta_[i] * delta_[i];
+      // }
+      // LL << values.size() << " " << n1 << " " << n2 <<  " " << w << " " << d;
       // LL << DebugStr(values);
       // LL << DebugStr(weights_);
     } else {
