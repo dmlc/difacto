@@ -89,6 +89,7 @@ class LogitLossDelta : public Loss {
     int psize = param.size();
     CHECK_GE(psize, 1);
     CHECK_LE(psize, 3);
+    if (grad->empty()) return;
 
     // p = ...
     SArray<real_t> p; p.CopyFrom(SArray<real_t>(param[0]));

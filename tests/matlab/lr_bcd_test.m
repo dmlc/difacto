@@ -9,8 +9,8 @@ y = Y;
 
 l1 = .1;
 % l2 = .01;
-lr = .05;
-nblk = 1;
+lr = .5;
+nblk = 100;
 
 [n,p] = size(X);
 w = zeros(p,1);
@@ -18,7 +18,7 @@ delta = ones(p,1);
 
 blks = round(linspace(1,p+1,nblk+1))
 
-for i = 1 : 11
+for i = 1 : 1000
   objv = sum(log(1 + exp ( - y .* (X * w))));
   fprintf('iter %d, objv %f, nnz w %d\n', i, objv, nnz(w));
   rdp = randperm(nblk);
@@ -42,7 +42,7 @@ for i = 1 : 11
     d = max(min(d, delta(blk)), -delta(blk));
     delta(blk) = 2*abs(d) + .1;
     w(blk) = w(blk) + d;
-    fprintf('%f %f %f %f\n', norm(g)^2, norm(h*lr)^2, norm(w)^2, norm(delta)^2);
+    % fprintf('%f %f %f %f\n', norm(g)^2, norm(h*lr)^2, norm(w)^2, norm(delta)^2);
   end
 
   delta = max(min(delta, 5), -5);
