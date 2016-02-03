@@ -1,7 +1,8 @@
 #!/bin/bash
 if [ $# -ne 2 ]; then
     echo "usage: $0 dataset_name local_dir"
-    echo "  dataset_name includes rcv1, criteo, ctra, ..."
+    echo "  dataset_name can be rcv1, criteo, ctra, ..."
+    echo "sample: $0 ctra data/"
     exit 0
 fi
 
@@ -9,52 +10,40 @@ dir=$2
 mkdir -p $dir
 cd $dir
 
+# download from http://data.dmlc.ml/difacto/datasets/
+dmlc_download() {
+    url=http://data.dmlc.ml/difacto/datasets/
+    file=$1
+    if [ ! -e $file ]; then
+        if [ ! -e ${file}.gz ]; then
+            wget ${url}/${file}.gz
+            wget ${url}/${file}.gz.md5
+            md5sum -c ${file}.gz.md5
+            rm ${file}.gz.md5
+        fi
+        gunzip ${file}.gz
+    fi
+}
+
+# download from https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/
+libsvm_download() {
+    url=https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/
+    file=$1
+    if [ ! -e $file ]; then
+        if [ ! -e ${file}.bz2 ]; then
+            wget ${url}/${file}.bz2
+        fi
+        bzip2 -d ${file}.bz2
+    fi
+}
 if [ $1 == "ctra" ]; then
-    if [ ! -e ctra_train ] || [ ! -e ctra_test ]; then
-        if [ ! -e ctra.tar.gz ]; then
-            wget https://cmu.box.com/shared/static/tolqotsal8d5whkiks8v8rk9lueqksq3.gz
-            mv tolqotsal8d5whkiks8v8rk9lueqksq3.gz ctra.tar.gz
-        fi
-        tar -zxvf ctra.tar.gz
-    fi
-elif [ $1 == "ctrb" ]; then
-    if [ ! -e ctrb_train ] || [ ! -e ctrb_test ]; then
-        if [ ! -e ctrb.tar.gz ]; then
-            wget https://cmu.box.com/shared/static/uvjuon4h9av3bz0fmai7n44cgar021xa.gz
-            mv uvjuon4h9av3bz0fmai7n44cgar021xa.gz ctrb.tar.gz
-        fi
-        tar -zxvf ctrb.tar.gz
-    fi
-elif [ $1 == "epsilon" ]; then
-    if [ ! -e epsilon_normalized.bz2 ]; then
-        wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/epsilon_normalized.bz2
-    fi
-
-    if [ ! -e epsilon_normalized.t.bz2 ]; then
-        wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/epsilon_normalized.t.bz2
-    fi
+    dmlc_download ctra_train
+    dmlc_download ctra_test
 elif [ $1 == "gisette" ]; then
-    if [ ! -e gisette_scale ]; then
-        if [ ! -e gisette_scale.bz2 ]; then
-            wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/gisette_scale.bz2
-        fi
-        bzip2 -d gisette_scale.bz2
-    fi
-
-    if [ ! -e gisette_scale.t ]; then
-        if [ ! -e gisette_scale.t.bz2 ]; then
-            wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/gisette_scale.t.bz2
-        fi
-        bzip2 -d gisette_scale.t.bz2
-    fi
+    libsvm_download gisette_scale
+    libsvm_download gisette_scale.t
 elif [ $1 == "rcv1" ]; then
-    if [ ! -e rcv1_train.binary ]; then
-        if [ ! -e rcv1_train.binary.bz2 ]; then
-            wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/rcv1_train.binary.bz2
-        fi
-        bzip2 -d rcv1_train.binary.bz2
-    fi
+    libsvm_download rcv1_train.binary
 else
-
     echo "unknown dataset name : $1"
 fi
