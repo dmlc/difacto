@@ -15,7 +15,7 @@ namespace difacto {
 /**
  * \brief the base class of a learner
  *
- * a learner runs the learning algorithm, such as minibatch sgd
+ * a learner runs the learning algorithm to train a model
  */
 class Learner {
  public:
@@ -36,7 +36,7 @@ class Learner {
    */
   virtual KWArgs Init(const KWArgs& kwargs);
   /**
-   * \brief Run learner
+   * \brief train
    */
   void Run() {
     if (!IsDistributed() || !strcmp(getenv("DMLC_ROLE"), "scheduler")) {

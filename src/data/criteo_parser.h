@@ -70,7 +70,8 @@ class CriteoParser : public dmlc::data::ParserImpl<feaid_t> {
         CHECK_NOTNULL(pp);
         if (pp > p) {
           blk.index.push_back(
-              (Hash(p, pp-p)>>10) | ((size_t)i << 54));
+              (Hash(p, pp-p)>>DEFAULT_FEAGRP_NBITS) |
+              (static_cast<size_t>(i) << (FEAID_NBITS - DEFAULT_FEAGRP_NBITS)));
         }
         p = pp + 1;
       }
@@ -82,7 +83,8 @@ class CriteoParser : public dmlc::data::ParserImpl<feaid_t> {
         pp = p + 8; CHECK(isspace(*pp)) << i << " " << end - p << " " << *p;
         size_t len = pp - p;
         if (len) blk.index.push_back(
-                (Hash(p, len)>>10) | ((size_t)(i+13) << 54));
+                (Hash(p, len)>>DEFAULT_FEAGRP_NBITS) |
+                (static_cast<size_t>(i+13) << (FEAID_NBITS - DEFAULT_FEAGRP_NBITS)));
         p = pp + 1;
         if (*pp == '\n' || *pp == '\r') break;
       }

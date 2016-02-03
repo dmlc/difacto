@@ -8,7 +8,7 @@
 #include "dmlc/data.h"
 #include "difacto/base.h"
 #include "difacto/sarray.h"
-#include "common/localizer.h"
+#include "data/localizer.h"
 #include "data/batch_iter.h"
 namespace difacto {
 

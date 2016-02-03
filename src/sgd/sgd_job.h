@@ -13,7 +13,6 @@ struct Job {
   static const int kSaveModel = 2;
   static const int kTraining = 3;
   static const int kValidation = 4;
-  static const int kPrediction = 5;
   int type;
   /** \brief filename  */
   std::string filename;

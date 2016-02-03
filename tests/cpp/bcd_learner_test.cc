@@ -29,7 +29,7 @@ TEST(BCDLearer, DiagNewton) {
   };
 
   auto callback = [objv](int epoch, const bcd::Progress& prog) {
-    EXPECT_LT(abs(prog.value[0] - objv[epoch]), 1e-5);
+    EXPECT_LT(abs(prog.value[1] - objv[epoch]), 1e-5);
   };
   learner.AddEpochEndCallback(callback);
   learner.Run();
@@ -56,7 +56,7 @@ TEST(BCDLearer, Convergence) {
     EXPECT_EQ(remain.size(), 0);
 
     auto callback = [&objv](int epoch, const bcd::Progress& prog) {
-      objv = prog.value[0];
+      objv = prog.value[1];
     };
     learner.AddEpochEndCallback(callback);
     learner.Run();

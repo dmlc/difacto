@@ -2,7 +2,7 @@
 #include "./utils.h"
 #include "difacto/base.h"
 #include "common/spmt.h"
-#include "common/localizer.h"
+#include "data/localizer.h"
 #include "data/batch_iter.h"
 
 using namespace difacto;

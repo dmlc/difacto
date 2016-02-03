@@ -3,7 +3,7 @@
 #include "common/kv_union.h"
 #include "./tile_store.h"
 #include "common/spmt.h"
-#include "common/localizer.h"
+#include "data/localizer.h"
 #include "./bcd_utils.h"
 namespace difacto {
 namespace bcd {
@@ -12,8 +12,10 @@ namespace bcd {
  */
 class TileBuilder {
  public:
-  TileBuilder(TileStore* store) {
+  TileBuilder(TileStore* store, int nthreads, int feagrp_nbits) {
     store_ = store;
+    nthreads_ = nthreads;
+    nbits_ = feagrp_nbits;
   }
   /**
    * \brief add a data block
@@ -26,8 +28,7 @@ class TileBuilder {
     auto compacted = new dmlc::data::RowBlockContainer<unsigned>();
     auto transposed = new dmlc::data::RowBlockContainer<unsigned>();
 
-    LL << rowblk.size;
-    Localizer lc(-1, nthreads_);
+    Localizer lc(-1, nthreads_, nbits_);
     lc.Compact(rowblk, compacted, ids.get(), cnt.get());
     SpMT::Transpose(compacted->GetBlock(), transposed, ids->size(), nthreads_);
     delete compacted;
@@ -35,7 +36,6 @@ class TileBuilder {
     // store into tile store
     int id = blk_feaids_.size();
     SharedRowBlockContainer<unsigned> data(&transposed);
-    LL << data.offset.size() - 1;
     store_->data_->Store(std::to_string(id) + "_data", data);
     store_->data_->Store(std::to_string(id) + "_label", rowblk.label, rowblk.size);
     delete transposed;
@@ -57,7 +57,6 @@ class TileBuilder {
       feaids = new_feaids;
       feacnts = new_feacnts;
     }
-    LL << feaids.size();
   }
   /**
    * \brief add filtered feature ids
@@ -91,7 +90,7 @@ class TileBuilder {
  private:
   std::vector<SArray<feaid_t>> blk_feaids_;
   TileStore* store_;
-  int nthreads_ = DEFAULT_NTHREADS;
+  int nthreads_, nbits_;
 };
 
 }  // namespace bcd

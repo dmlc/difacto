@@ -8,7 +8,7 @@
 #include "difacto/learner.h"
 #include "data/batch_iter.h"
 #include "data/row_block.h"
-#include "common/localizer.h"
+#include "data/localizer.h"
 #include "dmlc/timer.h"
 #include "difacto/loss.h"
 #include "difacto/store.h"
@@ -76,8 +76,7 @@ class SGDLearner : public Learner {
   void Process(const std::string& args, std::string* rets) {
     sgd::Job job(args);
     if (job.type == sgd::Job::kTraining ||
-        job.type == sgd::Job::kValidation ||
-        job.type == sgd::Job::kPrediction) {
+        job.type == sgd::Job::kValidation) {
       IterateData(job);
     }
   }
@@ -173,10 +172,7 @@ class SGDLearner : public Learner {
                          *offsets,
                          [on_complete]() { on_complete(); });
           } else {
-            // save the prediction results
-            if (batch.type == sgd::Job::kPrediction) {
-              // TODO
-            }
+            // a validation job
             on_complete();
           }
           delete values;

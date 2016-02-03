@@ -1,8 +1,8 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_COMMON_LOCALIZER_H_
-#define DIFACTO_COMMON_LOCALIZER_H_
+#ifndef DIFACTO_DATA_LOCALIZER_H_
+#define DIFACTO_DATA_LOCALIZER_H_
 #include <vector>
 #include <limits>
 #include "difacto/base.h"
@@ -23,8 +23,9 @@ class Localizer {
    */
 
   Localizer(feaid_t max_index = std::numeric_limits<feaid_t>::max(),
-            int nthreads = DEFAULT_NTHREADS)
-      : max_index_(max_index), nt_(nthreads) { }
+            int nthreads = DEFAULT_NTHREADS,
+            int feagrp_nbits = DEFAULT_FEAGRP_NBITS)
+      : max_index_(max_index), nt_(nthreads), nbits_(feagrp_nbits){ }
   ~Localizer() { }
 
   /**
@@ -84,6 +85,7 @@ class Localizer {
   feaid_t max_index_;
   /** \brief number of threads */
   int nt_;
+  int nbits_;
 
 #pragma pack(push)
 #pragma pack(4)
@@ -95,4 +97,4 @@ class Localizer {
 };
 }  // namespace difacto
 
-#endif  // DIFACTO_COMMON_LOCALIZER_H_
+#endif  // DIFACTO_DATA_LOCALIZER_H_

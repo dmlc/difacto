@@ -2,7 +2,7 @@
 #include "data/batch_iter.h"
 #include "./utils.h"
 #include "loss/fm_loss.h"
-#include "common/localizer.h"
+#include "data/localizer.h"
 #include "loss/bin_class_metric.h"
 
 using namespace difacto;

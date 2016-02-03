@@ -22,9 +22,23 @@ typedef uint64_t feaid_t;
  */
 typedef std::vector<std::pair<std::string, std::string>> KWArgs;
 /**
- * \brief reverse the bytes of x to make it more uniformly spanning the space
+ * \brief the default number of threads
  */
-inline feaid_t ReverseBytes(feaid_t x) {
+#define DEFAULT_NTHREADS 2
+/**
+ * \brief the default number of heading bits used to encode the feature group info
+ */
+#define DEFAULT_FEAGRP_NBITS 12
+/**
+ * \brief number of bits for feaid_t
+ */
+#define FEAID_NBITS 64
+/**
+ * \brief reverse the bytes of x to make it more uniformly spanning the space
+ * \param x the feature index
+ * \param feagrp_nbits the number of heading bits are used to encode the feature group
+ */
+inline feaid_t ReverseBytes(feaid_t x, int feagrp_nbits = DEFAULT_FEAGRP_NBITS) {
   // return x;
   x = x << 32 | x >> 32;
   x = (x & 0x0000FFFF0000FFFFULL) << 16 |
@@ -33,12 +47,9 @@ inline feaid_t ReverseBytes(feaid_t x) {
       (x & 0xFF00FF00FF00FF00ULL) >> 8;
   x = (x & 0x0F0F0F0F0F0F0F0FULL) << 4 |
       (x & 0xF0F0F0F0F0F0F0F0ULL) >> 4;
+  x = (x << (FEAID_NBITS - feagrp_nbits)) | ( x >> feagrp_nbits);
   return x;
 }
-/**
- * \brief the default number of threads
- */
-#define DEFAULT_NTHREADS 2
 /**
  * \brief returns true if it is currently under distributed running
  */

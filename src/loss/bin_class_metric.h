@@ -13,6 +13,7 @@ namespace difacto {
 
 /**
  * \brief binary classificatoin metrics
+ * all metrics are not divided by num_examples
  */
 class BinClassMetric {
  public:
@@ -51,7 +52,7 @@ class BinClassMetric {
     }
     if (cum_tp == 0 || cum_tp == n) return 1;
     area /= cum_tp * (n - cum_tp);
-    return area < 0.5 ? 1 - area : area;
+    return (area < 0.5 ? 1 - area : area) * n;
   }
 
   real_t Accuracy(real_t threshold) {
@@ -63,8 +64,7 @@ class BinClassMetric {
           (label_[i] <= 0 && predict_[i] <= threshold))
         correct += 1;
     }
-    real_t acc = correct / (real_t) n;
-    return acc > 0.5 ? acc : 1 - acc;
+    return correct > 0.5 * n ? correct : n - correct;
   }
 
   real_t LogLoss() {

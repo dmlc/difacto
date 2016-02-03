@@ -40,7 +40,7 @@ BatchIter::BatchIter(
     } else if (format ==  "adfea") {
       parser_ = new AdfeaParser(
           dmlc::InputSplit::Create(c_uri, part_index, num_parts, "text"));
-    } else if (format == "cb") {
+    } else if (format == "rec") {
       parser_ = new CRBParser(
           dmlc::InputSplit::Create(c_uri, part_index, num_parts, "recordio"));
     } else {

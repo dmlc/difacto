@@ -13,7 +13,6 @@
 #include "./crb_parser.h"
 #include "./criteo_parser.h"
 namespace difacto {
-
 /**
  * \brief an iterator reads a chunk with a hint data size
  */
@@ -46,7 +45,7 @@ class ChunkIter {
       parser_ = new CriteoParser(input, false);
     } else if (format ==  "adfea") {
       parser_ = new AdfeaParser(input);
-    } else if (format == "cb") {
+    } else if (format == "rec") {
       parser_ = new CRBParser(input);
     } else {
       LOG(FATAL) << "unknown format " << format;

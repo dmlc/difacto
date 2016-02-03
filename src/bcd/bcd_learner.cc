@@ -97,10 +97,11 @@ void BCDLearner::RunScheduler() {
       cb(epoch_, progress);
     }
 
+    real_t cnt = progress.value[0];
     LL << "epoch: " << epoch_
-       << ", objv: " << progress.value[0]
-       << ", auc: " << progress.value[1]
-       << ", acc: " << progress.value[2];
+       << ", objv: " << progress.value[1] / cnt
+       << ", auc: " << progress.value[2] / cnt
+       << ", acc: " << progress.value[3] / cnt;
   }
 }
 
@@ -108,12 +109,12 @@ void BCDLearner::RunScheduler() {
 void BCDLearner::PrepareData(const bcd::JobArgs& job,
                              bcd::PrepDataRets* rets) {
   // read train data
-  int chunk_size = 1<<28;  // read and process a 512MB chunk each time
   ChunkIter train(param_.data_in, param_.data_format,
                   model_store_->Rank(), model_store_->NumWorkers(),
-                  chunk_size);
+                  param_.data_chunk_size);
   bcd::FeaGroupStats stats(param_.num_feature_group_bits);
-  tile_builder_ = new bcd::TileBuilder(tile_store_);
+  tile_builder_ = new bcd::TileBuilder(
+      tile_store_, DEFAULT_NTHREADS, param_.num_feature_group_bits);
   while (train.Next()) {
     auto rowblk = train.Value();
     stats.Add(rowblk);
@@ -131,8 +132,7 @@ void BCDLearner::PrepareData(const bcd::JobArgs& job,
   if (param_.data_val.size()) {
     ChunkIter val(param_.data_val, param_.data_format,
                   model_store_->Rank(), model_store_->NumWorkers(),
-                  chunk_size);
-
+                  param_.data_chunk_size);
     while (val.Next()) {
       auto rowblk = val.Value();
       tile_builder_->Add(rowblk, false);
@@ -202,7 +202,7 @@ void BCDLearner::IterateData(const bcd::JobArgs& job, bcd::Progress* progress) {
       feablk_tracker.Finish(i);
     };
     int f = job.fea_blks[i];
-    IterateFeablk(f, on_complete, progress);
+    IterateFeablk(f, on_complete, (i == nfeablk -1 ? progress : nullptr));
 
     if (i >= tau) feablk_tracker.Wait(i - tau);
   }
@@ -307,15 +307,17 @@ void BCDLearner::UpdtPred(int rowblk_id, int colblk_id,
                  &pred_[rowblk_id]);
 
   // evaluate
+  if (!progress) return;
   CHECK_EQ(tile.data.label.size(), pred_[rowblk_id].size());
   BinClassMetric metric(tile.data.label.data(),
                         pred_[rowblk_id].data(),
                         pred_[rowblk_id].size());
   auto& val = progress->value;
-  if (val.empty()) val.resize(3);
-  val[0] = metric.LogitObjv();
-  val[1] = metric.AUC();
-  val[2] = metric.Accuracy(.5);
+  if (val.empty()) val.resize(4);
+  val[0] += tile.data.label.size();
+  val[1] += metric.LogitObjv();
+  val[2] += metric.AUC();
+  val[3] += metric.Accuracy(.5);
 }
 
 }  // namespace difacto

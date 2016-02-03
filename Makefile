@@ -9,14 +9,15 @@ CFLAGS = -std=c++11 -fopenmp -fPIC -O3 -ggdb -Wall -finline-functions $(INCPATH)
 OBJS = $(addprefix build/, loss/loss.o \
 updater.o sgd/sgd_updater.o \
 learner.o \
+bcd/bcd_learner.o \
 store/store.o \
 tracker/tracker.o \
 reporter/reporter.o \
-common/localizer.o data/batch_iter.o )
+data/localizer.o data/batch_iter.o )
 
 DMLC_DEPS = dmlc-core/libdmlc.a
 
-all: build/difacto test
+all: build/difacto  build/bcd_learner_test
 
 clean:
 	rm -rf build

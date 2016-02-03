@@ -43,7 +43,7 @@ class BCDLearner : public Learner {
    * \brief sleep for a moment
    * \param ms the milliseconds (1e-3 sec) for sleeping
    */
-  inline void Sleep(int ms = 1) {
+  inline void Sleep(int ms = 5) {
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
   }
 

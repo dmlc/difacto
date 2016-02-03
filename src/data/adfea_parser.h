@@ -61,7 +61,8 @@ class AdfeaParser : public dmlc::data::ParserImpl<feaid_t> {
         feaid_t idx = strtoull(head, NULL, 10);
         if (sizeof(feaid_t) == 8) {
           feaid_t gid = strtoull(p, NULL, 10);
-          idx = (idx >> 10) | (gid << 54);
+          idx = (idx >> DEFAULT_FEAGRP_NBITS) |
+                (gid << (FEAID_NBITS - DEFAULT_FEAGRP_NBITS));
         } else {
           // skip the group id
         }

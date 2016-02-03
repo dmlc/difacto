@@ -6,12 +6,6 @@ namespace difacto {
  * \brief sgd config
  */
 struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
-  /**
-   * \brief type of task,
-   * - train: the training task, which is the default
-   * - predict: the prediction task
-   */
-  std::string task;
   /** \brief The input data, either a filename or a directory. */
   std::string data_in;
   /**
@@ -28,16 +22,10 @@ struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
    * should be specified if it is a prediction task, or a training
    */
   std::string model_in;
-  /**
-   * \brief the filename for prediction output.
-   *  should be specified for a prediction task.
-   */
-  std::string pred_out;
   /** \brief type of loss, defaut is fm*/
   std::string loss;
   /** \brief the maximal number of data passes */
   int max_num_epochs;
-
   /**
    * \brief the minibatch size
    */
@@ -48,13 +36,11 @@ struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
   int job_size;
 
   DMLC_DECLARE_PARAMETER(SGDLearnerParam) {
-    DMLC_DECLARE_FIELD(task).set_default("train");
     DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
     DMLC_DECLARE_FIELD(data_in);
     DMLC_DECLARE_FIELD(val_data).set_default("");
     DMLC_DECLARE_FIELD(model_out).set_default("");
     DMLC_DECLARE_FIELD(model_in).set_default("");
-    DMLC_DECLARE_FIELD(pred_out).set_default("");
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
     DMLC_DECLARE_FIELD(job_size).set_default(4);

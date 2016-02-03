@@ -89,6 +89,15 @@ struct PrepDataRets {
   std::vector<real_t> value;
 };
 
+/**
+ * \brief the training progress
+ *
+ * value[0] : count
+ * value[1] : objv
+ * value[2] : auc
+ * value[3] : acc
+ * value[4] : ...
+ */
 struct Progress {
   void SerializeToString(std::string* str) const {
     dmlc::Stream* ss = new dmlc::MemoryStringStream(str);
@@ -113,6 +122,8 @@ struct Progress {
       value[i] += other.value[i];
     }
   }
+
+
   std::vector<real_t> value;
 };
 

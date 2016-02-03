@@ -38,9 +38,7 @@ class BCDUpdater : public Updater {
   virtual ~BCDUpdater() { }
 
   KWArgs Init(const KWArgs& kwargs) override {
-    auto r = param_.InitAllowUnknown(kwargs);
-    LL << param_.l1 << " " << param_.lr;
-    return r;
+    return param_.InitAllowUnknown(kwargs);
   }
 
   const BCDUpdaterParam& param() const { return param_; }

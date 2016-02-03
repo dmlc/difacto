@@ -20,7 +20,7 @@ class BatchIter {
    * \brief create a batch iterator
    *
    * @param uri filename
-   * @param format the data format, support libsvm, crb, ...
+   * @param format the data format, support libsvm, rec, ...
    * @param part_index the i-th part to read
    * @param num_parts partition the file into serveral parts
    * @param batch_size the batch size.

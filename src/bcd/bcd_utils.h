@@ -27,8 +27,9 @@ class FeatureBlock {
     for (auto f : feagrps) {
       CHECK_GT(1<<feagrp_nbits, f.first);
       Range g;
-      g.begin = ReverseBytes(f.first);
-      g.end = ReverseBytes((key_max << feagrp_nbits) | f.first);
+      feaid_t begin = static_cast<feaid_t>(f.first) << (FEAID_NBITS - feagrp_nbits);
+      g.begin = ReverseBytes(begin);
+      g.end = ReverseBytes((key_max >> feagrp_nbits) | begin);
       for (int i = 0; i < f.second; ++i) {
         feablks->push_back(g.Segment(i, f.second));
         CHECK(feablks->back().Valid());
@@ -84,13 +85,15 @@ class FeaGroupStats {
   }
 
   void Add(const dmlc::RowBlock<feaid_t>& rowblk) {
+    real_t nrows = 0;
     for (size_t i = 0; i < rowblk.size; i+=skip_) {
       for (size_t j = rowblk.offset[i]; j < rowblk.offset[i+1]; ++j) {
         feaid_t f = rowblk.index[j];
-        ++value_[f-((f>>nbit_)<<nbit_)];
+        ++value_[f>>(FEAID_NBITS - nbit_)];
       }
-      ++value_[1<<nbit_];
+      ++nrows;
     }
+    value_[1<<nbit_] += nrows;
     value_[(1<<nbit_)+1] += rowblk.size;
   }
 

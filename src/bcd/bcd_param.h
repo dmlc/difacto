@@ -4,12 +4,6 @@
 namespace difacto {
 
 struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
-  /**
-   * \brief type of task,
-   * - train: the training task, which is the default
-   * - predict: the prediction task
-   */
-  std::string task;
   /** \brief The input data, either a filename or a directory. */
   std::string data_in;
   /**
@@ -41,12 +35,13 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
   float block_ratio;
   /** \brief if or not process feature blocks in a random order, default is true */
   int random_block;
-  /** \brief the number of bit used to encode the feature group, default is 0 */
+  /** \brief the number of heading bits used to encode the feature group, default is 12 */
   int num_feature_group_bits;
   float neg_sampling;
+  /** \brief the size of data in MB read each time for processing, in default 256 MB */
+  int data_chunk_size;
 
   DMLC_DECLARE_PARAMETER(BCDLearnerParam) {
-    DMLC_DECLARE_FIELD(task).set_default("train");
     DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
     DMLC_DECLARE_FIELD(data_in);
     DMLC_DECLARE_FIELD(data_val).set_default("");
@@ -56,9 +51,10 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
     DMLC_DECLARE_FIELD(random_block).set_default(1);
-    DMLC_DECLARE_FIELD(num_feature_group_bits).set_default(0);
+    DMLC_DECLARE_FIELD(num_feature_group_bits).set_default(DEFAULT_FEAGRP_NBITS);
     DMLC_DECLARE_FIELD(block_ratio).set_default(4);
     DMLC_DECLARE_FIELD(data_cache).set_default("/tmp/cache_difacto_");
+    DMLC_DECLARE_FIELD(data_chunk_size).set_default(1<<28);
   }
 };
 }  // namespace difacto
