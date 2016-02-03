@@ -26,19 +26,10 @@ typedef std::vector<std::pair<std::string, std::string>> KWArgs;
  */
 #define DEFAULT_NTHREADS 2
 /**
- * \brief the default number of heading bits used to encode the feature group info
- */
-#define DEFAULT_FEAGRP_NBITS 12
-/**
- * \brief number of bits for feaid_t
- */
-#define FEAID_NBITS 64
-/**
  * \brief reverse the bytes of x to make it more uniformly spanning the space
  * \param x the feature index
- * \param feagrp_nbits the number of heading bits are used to encode the feature group
  */
-inline feaid_t ReverseBytes(feaid_t x, int feagrp_nbits = DEFAULT_FEAGRP_NBITS) {
+inline feaid_t ReverseBytes(feaid_t x) {
   // return x;
   x = x << 32 | x >> 32;
   x = (x & 0x0000FFFF0000FFFFULL) << 16 |
@@ -47,8 +38,30 @@ inline feaid_t ReverseBytes(feaid_t x, int feagrp_nbits = DEFAULT_FEAGRP_NBITS) 
       (x & 0xFF00FF00FF00FF00ULL) >> 8;
   x = (x & 0x0F0F0F0F0F0F0F0FULL) << 4 |
       (x & 0xF0F0F0F0F0F0F0F0ULL) >> 4;
-  x = (x << (FEAID_NBITS - feagrp_nbits)) | ( x >> feagrp_nbits);
   return x;
+}
+/**
+ * \brief generate a new feature index containing the feature group id
+ *
+ * @param x the feature index
+ * @param gid feature group id
+ * @param nbits number of bits used to encode gid
+ * @return the new feature index
+ */
+inline feaid_t EncodeFeaGrpID(feaid_t x, int gid, int nbits = 12) {
+  CHECK_GE(gid, 0); CHECK_LT(gid, 1 << nbits);
+  return (x << nbits) | gid;
+}
+/**
+ * \brief get the feature group id from a feature index
+ *
+ * @param x the feature index
+ * @param nbits number of bits used to encode gid
+ * @return the feature group id
+ */
+inline feaid_t DecodeFeaGrpID(feaid_t x, int nbits = 12) {
+  int feabits = 64 - nbits;
+  return (x << feabits) >> feabits;
 }
 /**
  * \brief returns true if it is currently under distributed running

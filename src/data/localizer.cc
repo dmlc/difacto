@@ -20,7 +20,7 @@ void Localizer::CountUniqIndex(
 
 #pragma omp parallel for num_threads(nt_)
   for (size_t i = 0; i < idx_size; ++i) {
-    pair_[i].k = ReverseBytes(blk.index[i] % max_index_, nbits_);
+    pair_[i].k = ReverseBytes(blk.index[i] % max_index_);
     pair_[i].i = i;
   }
 

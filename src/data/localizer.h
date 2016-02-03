@@ -23,9 +23,8 @@ class Localizer {
    */
 
   Localizer(feaid_t max_index = std::numeric_limits<feaid_t>::max(),
-            int nthreads = DEFAULT_NTHREADS,
-            int feagrp_nbits = DEFAULT_FEAGRP_NBITS)
-      : max_index_(max_index), nt_(nthreads), nbits_(feagrp_nbits){ }
+            int nthreads = DEFAULT_NTHREADS)
+      : max_index_(max_index), nt_(nthreads) { }
   ~Localizer() { }
 
   /**
@@ -85,7 +84,6 @@ class Localizer {
   feaid_t max_index_;
   /** \brief number of threads */
   int nt_;
-  int nbits_;
 
 #pragma pack(push)
 #pragma pack(4)

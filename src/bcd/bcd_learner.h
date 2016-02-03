@@ -36,7 +36,7 @@ class BCDLearner : public Learner {
  protected:
   void RunScheduler() override;
 
-  void Process(const std::string& args, std::string* rets);
+  void Process(const std::string& args, std::string* rets) override;
 
  private:
   /**

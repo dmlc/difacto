@@ -59,15 +59,9 @@ class AdfeaParser : public dmlc::data::ParserImpl<feaid_t> {
       if (*p == ':') {
         ++p;
         feaid_t idx = strtoull(head, NULL, 10);
-        if (sizeof(feaid_t) == 8) {
-          feaid_t gid = strtoull(p, NULL, 10);
-          idx = (idx >> DEFAULT_FEAGRP_NBITS) |
-                (gid << (FEAID_NBITS - DEFAULT_FEAGRP_NBITS));
-        } else {
-          // skip the group id
-        }
+        feaid_t gid = strtoull(p, NULL, 10);
+        blk.index.push_back(EncodeFeaGrpID(idx, gid));
         while (isdigit(*p) && p != end) ++p;
-        blk.index.push_back(idx);
       } else {
         // skip the lineid and the first count
         if (i == 2) {

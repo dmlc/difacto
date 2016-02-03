@@ -1,5 +1,5 @@
-#ifndef DEFACTO_LEARNER_SGD_LEARNER_H_
-#define DEFACTO_LEARNER_SGD_LEARNER_H_
+#ifndef DEFACTO_SGD_SGD_LEARNER_H_
+#define DEFACTO_SGD_SGD_LEARNER_H_
 #include <stdlib.h>
 #include <chrono>
 #include <memory>
@@ -257,4 +257,4 @@ class SGDLearner : public Learner {
 };
 
 }  // namespace difacto
-#endif  // DEFACTO_LEARNER_SGD_LEARNER_H_
+#endif  // DEFACTO_SGD_SGD_LEARNER_H_

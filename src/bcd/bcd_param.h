@@ -51,7 +51,7 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
     DMLC_DECLARE_FIELD(random_block).set_default(1);
-    DMLC_DECLARE_FIELD(num_feature_group_bits).set_default(DEFAULT_FEAGRP_NBITS);
+    DMLC_DECLARE_FIELD(num_feature_group_bits).set_default(0);
     DMLC_DECLARE_FIELD(block_ratio).set_default(4);
     DMLC_DECLARE_FIELD(data_cache).set_default("/tmp/cache_difacto_");
     DMLC_DECLARE_FIELD(data_chunk_size).set_default(1<<28);

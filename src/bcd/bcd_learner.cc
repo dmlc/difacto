@@ -113,8 +113,7 @@ void BCDLearner::PrepareData(const bcd::JobArgs& job,
                   model_store_->Rank(), model_store_->NumWorkers(),
                   param_.data_chunk_size);
   bcd::FeaGroupStats stats(param_.num_feature_group_bits);
-  tile_builder_ = new bcd::TileBuilder(
-      tile_store_, DEFAULT_NTHREADS, param_.num_feature_group_bits);
+  tile_builder_ = new bcd::TileBuilder(tile_store_, DEFAULT_NTHREADS);
   while (train.Next()) {
     auto rowblk = train.Value();
     stats.Add(rowblk);

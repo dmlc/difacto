@@ -12,10 +12,9 @@ namespace bcd {
  */
 class TileBuilder {
  public:
-  TileBuilder(TileStore* store, int nthreads, int feagrp_nbits) {
+  TileBuilder(TileStore* store, int nthreads) {
     store_ = store;
     nthreads_ = nthreads;
-    nbits_ = feagrp_nbits;
   }
   /**
    * \brief add a data block
@@ -28,7 +27,7 @@ class TileBuilder {
     auto compacted = new dmlc::data::RowBlockContainer<unsigned>();
     auto transposed = new dmlc::data::RowBlockContainer<unsigned>();
 
-    Localizer lc(-1, nthreads_, nbits_);
+    Localizer lc(-1, nthreads_);
     lc.Compact(rowblk, compacted, ids.get(), cnt.get());
     SpMT::Transpose(compacted->GetBlock(), transposed, ids->size(), nthreads_);
     delete compacted;
@@ -90,7 +89,7 @@ class TileBuilder {
  private:
   std::vector<SArray<feaid_t>> blk_feaids_;
   TileStore* store_;
-  int nthreads_, nbits_;
+  int nthreads_;
 };
 
 }  // namespace bcd

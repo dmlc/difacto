@@ -23,15 +23,12 @@ class FeatureBlock {
                         std::vector<Range>* feablks) {
     CHECK_EQ(feagrp_nbits % 4, 0) << "should be 0, 4, 8, ...";
     feablks->clear();
-    feaid_t key_max = std::numeric_limits<feaid_t>::max();
     for (auto f : feagrps) {
-      CHECK_GT(1<<feagrp_nbits, f.first);
-      Range g;
-      feaid_t begin = static_cast<feaid_t>(f.first) << (FEAID_NBITS - feagrp_nbits);
-      g.begin = ReverseBytes(begin);
-      g.end = ReverseBytes((key_max >> feagrp_nbits) | begin);
+      int gid = f.first;
+      Range rg(ReverseBytes(EncodeFeaGrpID(0, gid)),
+               ReverseBytes(EncodeFeaGrpID(std::numeric_limits<feaid_t>::max(), gid)));
       for (int i = 0; i < f.second; ++i) {
-        feablks->push_back(g.Segment(i, f.second));
+        feablks->push_back(rg.Segment(i, f.second));
         CHECK(feablks->back().Valid());
       }
     }
@@ -77,24 +74,22 @@ class FeatureBlock {
  */
 class FeaGroupStats {
  public:
-  FeaGroupStats(int nbit) {
-    CHECK_EQ(nbit % 4, 0) << "should be 0, 4, 8, ...";
-    CHECK_LE(nbit, 16);
-    nbit_ = nbit;
-    value_.resize((1<<nbit)+2);
+  FeaGroupStats(int nbits) {
+    CHECK_LE(nbits, 16);
+    nbits_ = nbits;
+    value_.resize((1<<nbits_)+2);
   }
 
   void Add(const dmlc::RowBlock<feaid_t>& rowblk) {
     real_t nrows = 0;
     for (size_t i = 0; i < rowblk.size; i+=skip_) {
       for (size_t j = rowblk.offset[i]; j < rowblk.offset[i+1]; ++j) {
-        feaid_t f = rowblk.index[j];
-        ++value_[f>>(FEAID_NBITS - nbit_)];
+        ++value_[DecodeFeaGrpID(rowblk.index[j], nbits_)];
       }
       ++nrows;
     }
-    value_[1<<nbit_] += nrows;
-    value_[(1<<nbit_)+1] += rowblk.size;
+    value_[1<<nbits_] += nrows;
+    value_[(1<<nbits_)+1] += rowblk.size;
   }
 
   void Get(std::vector<real_t>* value) {
@@ -102,7 +97,7 @@ class FeaGroupStats {
   }
 
  private:
-  int nbit_;
+  int nbits_;
   int skip_ = 10; // only count 10% data
   std::vector<real_t> value_;
 };
