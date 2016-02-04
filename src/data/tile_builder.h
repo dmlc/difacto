@@ -20,8 +20,8 @@ class TileBuilder {
    * \brief add a raw rowblk to the store
    */
   void Add(const dmlc::RowBlock<feaid_t>& rowblk,
-           SArray<feaid_t>* feaids,
-           SArray<real_t>* feacnts) {
+           SArray<feaid_t>* feaids = nullptr,
+           SArray<real_t>* feacnts = nullptr) {
     // map feature id into continous intergers
     std::shared_ptr<std::vector<feaid_t>> ids(new std::vector<feaid_t>());
     std::shared_ptr<std::vector<real_t>> cnt(new std::vector<real_t>());
@@ -60,7 +60,8 @@ class TileBuilder {
    * \param feaids
    */
   void BuildColmap(const SArray<real_t>& feaids,
-                   const std::vector<Range>& feablk_range = {}) {
+                   const std::vector<Range>& feablk_range = {},
+                   std::vector<Range> *feapos = nullptr) {
     SArray<int> map(feaids.size());
     for (size_t i = 0; i < map.size(); ++i) {
       map[i] = i+1;  // start from 1
@@ -74,24 +75,51 @@ class TileBuilder {
       store_->data_->Store(std::to_string(i) + "_colmap", colmap);
 
       // store position
+      std::vector<Range> pos;
       if (feablk_range.size()) {
         CHECK(multicol_) << "you should set allow_multi_columns = true";
-        std::vector<Range> pos;
         FindPosition(blk_feaids_[i], feablk_range, &pos);
-        store_->colblk_pos_.push_back(pos);
       } else {
-
+        pos.push_back(Range::All());
       }
-
+      store_->colblk_pos_.push_back(pos);
 
       // clear
       blk_feaids_[i].clear();
     }
     feaids.clear();
-  }
-  SArray<feaid_t> feaids;
-  SArray<real_t> feacnts;
 
+    if (feapos) FindPosition(feaids, feablk_range, feapos);
+  }
+
+
+  /**
+   * \brief merge features ids and its associated counts
+   * feaids = feaids \cup new_feaids
+   * feacnts = feacnts \cup new_feacnts
+   */
+  void Merge(const SArray<feaid_t>& new_feaids,
+             const SArray<real_t>& new_feacnts,
+             SArray<feaid_t>* feaids,
+             SArray<real_t>* feacnts) {
+    CHECK_NOTNULL(feaids);
+    CHECK_NOTNULL(feacnts);
+    CHECK_EQ(feaids->size(), feacnts.size());
+    CHECK_EQ(new_feaids.size(), new_feacnts.size());
+    if (feaids->empty()) {
+      *feaids = new_feaids;
+      *feacnts = new_feacnts;
+    } else {
+      SArray<feaid_t> union_feaids;
+      SArray<real_t> union_feacnts;
+      KVUnion(new_feaids, new_feacnts, *feaids, *feacnts,
+              &union_feaids, &union_feacnts, 1, PLUS, nthreads_);
+      *feaids = union_feaids;
+      *feacnts = union_feacnts;
+    }
+  }
+
+ private:
   /**
    * \brief find the positionn of each feature block in the list of feature IDs
    *
@@ -119,7 +147,6 @@ class TileBuilder {
     }
   }
 
- private:
   std::vector<SArray<feaid_t>> blk_feaids_;
   TileStore* store_;
   int nthreads_;
@@ -128,15 +155,3 @@ class TileBuilder {
 
 }  // namespace difacto
 #endif  // _TILE_BUILDER_H_
-
-    // if (feaids.empty()) {
-    //   feaids = sids;
-    //   feacnts = scnt;
-    // } else {
-    //   SArray<feaid_t> new_feaids;
-    //   SArray<real_t> new_feacnts;
-    //   KVUnion(sids, scnt, feaids, feacnts,
-    //           &new_feaids, &new_feacnts, 1, PLUS, nthreads_);
-    //   feaids = new_feaids;
-    //   feacnts = new_feacnts;
-    // }

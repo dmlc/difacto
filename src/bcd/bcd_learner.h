@@ -11,8 +11,8 @@
 #include "./bcd_job.h"
 #include "./bcd_utils.h"
 #include "./bcd_updater.h"
-#include "./tile_store.h"
-#include "./tile_builder.h"
+#include "data/tile_store.h"
+#include "data/tile_builder.h"
 #include "loss/logit_loss_delta.h"
 namespace difacto {
 
@@ -110,11 +110,19 @@ class BCDLearner : public Learner {
   /** \brief parameters */
   BCDLearnerParam param_;
 
+  /** \brief data associated with a feature block */
+  struct FeaBlk {
+    SArray<feaid_t> feaids;
+    Range pos;
+    SArray<feaid_t> delta;
+    SArray<int> model_offset;
+  };
+  std::vector<FeaBlk> feablks_;
+
+  SArray<feaid_t> feaids_;
+
   std::vector<SArray<real_t>> pred_;
-  std::vector<SArray<feaid_t>> feaids_;
-  std::vector<Range> feablk_pos_;
-  std::vector<SArray<real_t>> delta_;
-  std::vector<SArray<int>> model_offset_;
+
   std::vector<std::function<void(int epoch, const bcd::Progress& prog)>> epoch_end_callback_;
 };
 
