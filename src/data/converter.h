@@ -4,7 +4,7 @@
 #ifndef DIFACTO_DATA_CONVERTER_H_
 #define DIFACTO_DATA__CONVERTER_H_
 #include "dmlc/parameter.h"
-#include "data/chunk_iter.h"
+#include "reader/reader.h"
 #include "dmlc/io.h"
 namespace difacto {
 
@@ -44,7 +44,7 @@ class Converter {
   void Run() {
     using namespace dmlc;
     using namespace dmlc::data;
-    ChunkIter in(param_.data_in, param_.data_format, 0, 1, 8);
+    Reader in(param_.data_in, param_.data_format, 0, 1, 8);
 
     LOG(INFO) << "reading data from " << param_.data_in
               << " in " << param_.data_format << " format";

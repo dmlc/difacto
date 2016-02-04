@@ -5,7 +5,7 @@
 #include "difacto/learner.h"
 #include "difacto/node_id.h"
 #include "dmlc/data.h"
-#include "data/chunk_iter.h"
+#include "reader/reader.h"
 #include "data/data_store.h"
 #include "./bcd_param.h"
 #include "./bcd_job.h"

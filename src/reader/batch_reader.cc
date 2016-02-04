@@ -1,14 +1,10 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#include "./batch_iter.h"
-#include "data/libsvm_parser.h"
-#include "./adfea_parser.h"
-#include "./crb_parser.h"
-#include "./criteo_parser.h"
+#include "./batch_reader.h"
 namespace difacto {
 
-BatchIter::BatchIter(
+BatchReader::BatchReader(
     const std::string& uri, const std::string& format,
     unsigned part_index, unsigned num_parts,
     unsigned batch_size, unsigned shuffle_buf_size,
@@ -21,43 +17,23 @@ BatchIter::BatchIter(
   seed_         = 0;
   if (shuf_buf_) {
     CHECK_GE(shuf_buf_, batch_size_);
-    buf_reader_ = new BatchIter(
+    buf_reader_ = new BatchReader(
         uri, format, part_index, num_parts, shuf_buf_);
-    parser_ = NULL;
+    reader_ = NULL;
   } else {
     buf_reader_ = NULL;
-    // create parser
-    char const* c_uri = uri.c_str();
-    if (format == "libsvm") {
-      parser_ = new dmlc::data::LibSVMParser<feaid_t>(
-          dmlc::InputSplit::Create(c_uri, part_index, num_parts, "text"), 1);
-    } else if (format == "criteo") {
-      parser_ = new CriteoParser(
-          dmlc::InputSplit::Create(c_uri, part_index, num_parts, "text"), true);
-    } else if (format == "criteo_test") {
-      parser_ = new CriteoParser(
-          dmlc::InputSplit::Create(c_uri, part_index, num_parts, "text"), false);
-    } else if (format ==  "adfea") {
-      parser_ = new AdfeaParser(
-          dmlc::InputSplit::Create(c_uri, part_index, num_parts, "text"));
-    } else if (format == "rec") {
-      parser_ = new CRBParser(
-          dmlc::InputSplit::Create(c_uri, part_index, num_parts, "recordio"));
-    } else {
-      LOG(FATAL) << "unknown format " << format;
-    }
-    parser_ = new dmlc::data::ThreadedParser<feaid_t>(parser_);
+    reader_ = new Reader(uri, format, part_index, num_parts, 1<<26);
   }
 }
 
-bool BatchIter::Next() {
+bool BatchReader::Next() {
   batch_.Clear();
   while (batch_.offset.size() < batch_size_ + 1) {
     if (start_ == end_) {
       if (shuf_buf_ == 0) {
         // no random shuffle
-        if (!parser_->Next()) break;
-        in_blk_ = parser_->Value();
+        if (!reader_->Next()) break;
+        in_blk_ = reader_->Value();
       } else {
         // do random shuffle
         if (!buf_reader_->Next()) break;
@@ -101,7 +77,7 @@ bool BatchIter::Next() {
   return out_blk_.size > 0;
 }
 
-void BatchIter::Push(size_t pos, size_t len) {
+void BatchReader::Push(size_t pos, size_t len) {
   if (!len) return;
   CHECK_LE(pos + len, in_blk_.size);
   dmlc::RowBlock<feaid_t> slice;

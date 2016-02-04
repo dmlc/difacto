@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include "data/batch_iter.h"
 #include "./utils.h"
 #include "loss/fm_loss.h"
 #include "data/localizer.h"

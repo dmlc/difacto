@@ -8,7 +8,7 @@
 #include <vector>
 #include "data/parser.h"
 #include "dmlc/recordio.h"
-#include "./compressed_row_block.h"
+#include "data/compressed_row_block.h"
 namespace difacto {
 /**
  * \brief compressed row block parser

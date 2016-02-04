@@ -1,10 +1,9 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_DATA_CHUNK_ITER_H_
-#define DIFACTO_DATA_CHUNK_ITER_H_
+#ifndef DIFACTO_READER_READER_H_
+#define DIFACTO_READER_READER_H_
 #include <string>
-#include <vector>
 #include "difacto/base.h"
 #include "dmlc/data.h"
 #include "data/parser.h"
@@ -14,28 +13,19 @@
 #include "./criteo_parser.h"
 namespace difacto {
 /**
- * \brief an iterator reads a chunk with a hint data size
+ * \brief a reader reads a chunk of data with roughly same size a time
  */
-class ChunkIter {
+class Reader {
  public:
-  /**
-   * \brief create a chunk iterator
-   *
-   * @param uri filename
-   * @param format the data format, support libsvm, crb, ...
-   * @param part_index the i-th part to read
-   * @param num_parts partition the file into serveral parts
-   * @param chunk_size the chunk size.
-   */
-  ChunkIter(const std::string& uri,
-            const std::string& format,
-            unsigned part_index,
-            unsigned num_parts,
-            unsigned chunk_size) {
+  Reader(const std::string& uri,
+         const std::string& format,
+         int part_index,
+         int num_parts,
+         int chunk_size_hint) {
     char const* c_uri = uri.c_str();
     dmlc::InputSplit* input = dmlc::InputSplit::Create(
         c_uri, part_index, num_parts, format == "cb" ? "recordio" : "text");
-    input->HintChunkSize(chunk_size);
+    input->HintChunkSize(chunk_size_hint);
 
     if (format == "libsvm") {
       parser_ = new dmlc::data::LibSVMParser<feaid_t>(input, 1);
@@ -53,20 +43,15 @@ class ChunkIter {
     parser_ = new dmlc::data::ThreadedParser<feaid_t>(parser_);
   }
 
-  ~ChunkIter() {
-    delete parser_;
-  }
+  ~Reader() { delete parser_; }
 
-  bool Next() {
-    return parser_->Next();
-  }
+  bool Next() { return parser_->Next(); }
 
-  const dmlc::RowBlock<feaid_t>& Value() const {
-    return parser_->Value();
-  }
+  const dmlc::RowBlock<feaid_t>& Value() const { return parser_->Value(); }
+
  private:
-  dmlc::data::ParserImpl<feaid_t> *parser_;
+  dmlc::data::ParserImpl<feaid_t>* parser_;
 };
 
 }  // namespace difacto
-#endif  // DIFACTO_DATA_CHUNK_ITER_H_
+#endif  // DIFACTO_READER_READER_H_

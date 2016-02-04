@@ -3,19 +3,14 @@
 #include "difacto/base.h"
 #include "common/spmt.h"
 #include "data/localizer.h"
-#include "data/batch_iter.h"
 
 using namespace difacto;
 TEST(SpMT, Transpose) {
-  BatchIter iter("../tests/data", "libsvm", 0, 1, 100);
-  CHECK(iter.Next());
-  dmlc::data::RowBlockContainer<unsigned> compact;
+  dmlc::data::RowBlockContainer<unsigned> data;
   std::vector<feaid_t> uidx;
-  std::vector<real_t> freq;
-  Localizer lc;
-  lc.Compact(iter.Value(), &compact, &uidx, &freq);
+  load_data(&data, &uidx);
 
-  auto X = compact.GetBlock();
+  auto X = data.GetBlock();
   dmlc::data::RowBlockContainer<unsigned> Y, X2;
   SpMT::Transpose(X, &Y, uidx.size());
   SpMT::Transpose(Y.GetBlock(), &X2);

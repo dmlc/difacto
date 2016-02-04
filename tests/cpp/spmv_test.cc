@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include "./utils.h"
 #include "common/spmv.h"
-#include "data/batch_iter.h"
 #include "dmlc/timer.h"
 #include "./spmv_test.h"
 

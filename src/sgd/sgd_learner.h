@@ -6,7 +6,7 @@
 #include <thread>
 #include "dmlc/data.h"
 #include "difacto/learner.h"
-#include "data/batch_iter.h"
+#include "reader/batch_reader.h"
 #include "data/row_block.h"
 #include "data/localizer.h"
 #include "dmlc/timer.h"
@@ -185,7 +185,7 @@ class SGDLearner : public Learner {
     int batch_size = 100;
     int shuffle = 0;
     float neg_sampling = 1;
-    BatchIter reader(
+    BatchReader reader(
         job.filename, param_.data_format, job.part_idx, job.num_parts,
         batch_size, shuffle, neg_sampling);
     while (reader.Next()) {

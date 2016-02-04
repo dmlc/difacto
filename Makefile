@@ -13,7 +13,7 @@ bcd/bcd_learner.o \
 store/store.o \
 tracker/tracker.o \
 reporter/reporter.o \
-data/localizer.o data/batch_iter.o )
+data/localizer.o reader/batch_reader.o )
 
 DMLC_DEPS = dmlc-core/libdmlc.a
 

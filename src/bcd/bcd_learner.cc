@@ -109,9 +109,10 @@ void BCDLearner::RunScheduler() {
 void BCDLearner::PrepareData(const bcd::JobArgs& job,
                              bcd::PrepDataRets* rets) {
   // read train data
-  ChunkIter train(param_.data_in, param_.data_format,
-                  model_store_->Rank(), model_store_->NumWorkers(),
-                  param_.data_chunk_size);
+
+  Reader train(param_.data_in, param_.data_format,
+               model_store_->Rank(), model_store_->NumWorkers(),
+               param_.data_chunk_size);
   bcd::FeaGroupStats stats(param_.num_feature_group_bits);
   tile_builder_ = new bcd::TileBuilder(tile_store_, DEFAULT_NTHREADS);
   while (train.Next()) {
@@ -129,9 +130,9 @@ void BCDLearner::PrepareData(const bcd::JobArgs& job,
 
   // read validation data if any
   if (param_.data_val.size()) {
-    ChunkIter val(param_.data_val, param_.data_format,
-                  model_store_->Rank(), model_store_->NumWorkers(),
-                  param_.data_chunk_size);
+    Reader val(param_.data_val, param_.data_format,
+               model_store_->Rank(), model_store_->NumWorkers(),
+               param_.data_chunk_size);
     while (val.Next()) {
       auto rowblk = val.Value();
       tile_builder_->Add(rowblk, false);

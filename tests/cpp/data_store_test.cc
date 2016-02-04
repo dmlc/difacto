@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "data/data_store.h"
-#include "data/batch_iter.h"
+#include "reader/batch_reader.h"
 #include "./utils.h"
 
 using namespace difacto;
@@ -44,9 +44,9 @@ TEST(DataStore, MemBase) {
 }
 
 TEST(DataStore, RowBlock) {
-  BatchIter iter("../tests/data", "libsvm", 0, 1, 100);
-  CHECK(iter.Next());
-  auto data = iter.Value();
+  BatchReader reader("../tests/data", "libsvm", 0, 1, 100);
+  CHECK(reader.Next());
+  auto data = reader.Value();
 
   DataStore store;
   store.Store("1", data);

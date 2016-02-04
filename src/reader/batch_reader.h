@@ -1,20 +1,20 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_DATA_BATCH_ITER_H_
-#define DIFACTO_DATA_BATCH_ITER_H_
+#ifndef DIFACTO_DATA_BATCH_READER_H_
+#define DIFACTO_DATA_BATCH_READER_H_
 #include <string>
 #include <vector>
 #include "difacto/base.h"
 #include "dmlc/data.h"
-#include "data/parser.h"
+#include "./reader.h"
 namespace difacto {
 
 /**
- * \brief an iterator reads a batch with a given number of examples
+ * \brief a reader reads a batch with a given number of examples
  * each time.
  */
-class BatchIter {
+class BatchReader {
  public:
   /**
    * \brief create a batch iterator
@@ -28,7 +28,7 @@ class BatchIter {
    * shuffle_buf_size examples
    * @param neg_sampling the probability to pickup a negative sample (label <= 0)
    */
-  BatchIter(const std::string& uri,
+  BatchReader(const std::string& uri,
             const std::string& format,
             unsigned part_index,
             unsigned num_parts,
@@ -36,8 +36,8 @@ class BatchIter {
             unsigned shuffle_buf_size = 0,
             float neg_sampling = 1.0);
 
-  ~BatchIter() {
-    delete parser_;
+  ~BatchReader() {
+    delete reader_;
     delete buf_reader_;
   }
 
@@ -54,14 +54,6 @@ class BatchIter {
     return out_blk_;
   }
 
-  /**
-   * \brief reset to the file beginning
-   */
-  void Reset() {
-    if (parser_) parser_->BeforeFirst();
-    if (buf_reader_) buf_reader_->Reset();
-  }
-
  private:
   /**
    * \brief batch_.push(in_blk_(pos:pos+len))
@@ -69,7 +61,9 @@ class BatchIter {
   void Push(size_t pos, size_t len);
 
   unsigned batch_size_, shuf_buf_;
-  dmlc::data::ParserImpl<feaid_t> *parser_;
+
+  Reader *reader_;
+  BatchReader* buf_reader_;
 
   float neg_sampling_;
   size_t start_, end_;
@@ -78,9 +72,8 @@ class BatchIter {
 
   // random pertubation
   std::vector<unsigned> rdp_;
-  BatchIter* buf_reader_;
   unsigned int seed_;
 };
 
 }  // namespace difacto
-#endif  // DIFACTO_DATA_BATCH_ITER_H_
+#endif  // DIFACTO_DATA_BATCH_READER_H_

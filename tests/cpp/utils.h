@@ -9,7 +9,7 @@
 #include "difacto/base.h"
 #include "difacto/sarray.h"
 #include "data/localizer.h"
-#include "data/batch_iter.h"
+#include "reader/batch_reader.h"
 namespace difacto {
 
 template <typename T>
@@ -113,10 +113,10 @@ void check_equal(RowBlock<T> a, RowBlock<T> b) {
 void load_data(dmlc::data::RowBlockContainer<unsigned>* data,
                std::vector<feaid_t>* uidx) {
   CHECK_NOTNULL(data);
-  BatchIter iter("../tests/data", "libsvm", 0, 1, 100);
-  CHECK(iter.Next());
+  BatchReader reader("../tests/data", "libsvm", 0, 1, 100);
+  CHECK(reader.Next());
   Localizer lc;
-  lc.Compact(iter.Value(), data, uidx);
+  lc.Compact(reader.Value(), data, uidx);
   if (uidx) {
     for (auto& idx : *uidx) idx = ReverseBytes(idx);
   }

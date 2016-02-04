@@ -6,10 +6,27 @@ namespace difacto {
 namespace bcd {
 
 /**
- * \brief a row and column block X, stored in column-major order, namely X'
+ * \brief a sliced block of a large matrix
+ *
+ * assume the we evenly partition the following 4x4 matrix into 4 2x2 tiles
+ * \code
+ * 1..4
+ * ....
+ * .3..
+ * 2..1
+ * \endcode
+ *
+ * then the tile at row=2 and col=2 is
+ *
+ * \code
+ * ..
+ * .1
+ * \endcode
  */
 struct Tile {
+  /** \brief the map to the column id on the original matrix */
   SArray<int> colmap;
+  /** \brief the transposed data to make slice efficient */
   SharedRowBlockContainer<unsigned> data;
 };
 

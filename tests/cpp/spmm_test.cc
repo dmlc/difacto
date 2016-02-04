@@ -2,7 +2,6 @@
 #include "./utils.h"
 #include "common/spmv.h"
 #include "common/spmm.h"
-#include "data/batch_iter.h"
 #include "dmlc/timer.h"
 #include "./spmv_test.h"
 #include "./spmm_test.h"
