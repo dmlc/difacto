@@ -40,32 +40,6 @@ class FeatureBlock {
       CHECK_LE(before.end, after.begin);
     }
   }
-  /**
-   * \brief find the positionn of each feature block in the list of feature IDs
-   *
-   * @param feaids
-   * @param feablks
-   * @param positions
-   */
-  static void FindPosition(const SArray<feaid_t>& feaids,
-                           const std::vector<Range>& feablks,
-                           std::vector<Range>* positions) {
-    size_t n = feablks.size();
-    for (size_t i = 0; i < n; ++i) CHECK(feablks[i].Valid());
-    for (size_t i = 1; i < n; ++i) CHECK_LE(feablks[i-1].end, feablks[i].begin);
-
-    positions->resize(n);
-    feaid_t const* begin = feaids.begin();
-    feaid_t const* end = feaids.end();
-    feaid_t const* cur = begin;
-
-    for (size_t i = 0; i < n; ++i) {
-      auto lb = std::lower_bound(cur, end, feablks[i].begin);
-      auto ub = std::lower_bound(lb, end, feablks[i].end);
-      cur = ub;
-      positions->at(i) = Range(lb - begin, ub - begin);
-    }
-  }
 };
 
 

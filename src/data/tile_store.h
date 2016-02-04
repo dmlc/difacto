@@ -3,12 +3,10 @@
 #include "dmlc/data.h"
 #include "difacto/sarray.h"
 namespace difacto {
-namespace bcd {
-
 /**
  * \brief a sliced block of a large matrix
  *
- * assume the we evenly partition the following 4x4 matrix into 2 4x2 tiles
+ * assume the we evenly partition the following 4x4 matrix into 2 2x4 tiles
  * \code
  * 1..4
  * ..2.
@@ -61,6 +59,5 @@ class TileStore {
   std::vector<std::vector<Range>> colblk_pos_;
 };
 
-}  // namespace bcd
 }  // namespace difacto
 #endif  // _TILE_STORE_H_
