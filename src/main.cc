@@ -4,7 +4,7 @@
 #include "difacto/learner.h"
 #include "common/arg_parser.h"
 #include "dmlc/parameter.h"
-#include "data/converter.h"
+#include "reader/converter.h"
 namespace difacto {
 struct DifactoParam : public dmlc::Parameter<DifactoParam> {
   /**

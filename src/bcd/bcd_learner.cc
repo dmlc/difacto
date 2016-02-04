@@ -2,6 +2,8 @@
 #include "loss/bin_class_metric.h"
 namespace difacto {
 
+DMLC_REGISTER_PARAMETER(BCDUpdaterParam);
+
 KWArgs BCDLearner::Init(const KWArgs& kwargs) {
   auto remain = Learner::Init(kwargs);
   // init param

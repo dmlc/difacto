@@ -2,7 +2,7 @@
  * Copyright (c) 2015 by Contributors
  */
 #ifndef DIFACTO_DATA_CONVERTER_H_
-#define DIFACTO_DATA__CONVERTER_H_
+#define DIFACTO_DATA_CONVERTER_H_
 #include "dmlc/parameter.h"
 #include "reader/reader.h"
 #include "dmlc/io.h"

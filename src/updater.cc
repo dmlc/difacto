@@ -7,6 +7,5 @@
 namespace difacto {
 
 DMLC_REGISTER_PARAMETER(SGDUpdaterParam);
-DMLC_REGISTER_PARAMETER(BCDUpdaterParam);
 
 }  // namespace difacto
