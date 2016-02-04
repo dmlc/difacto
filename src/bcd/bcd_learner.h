@@ -104,8 +104,8 @@ class BCDLearner : public Learner {
   Loss* loss_ = nullptr;
   /** \brief data store */
   DataStore* data_store_ = nullptr;
-  bcd::TileStore* tile_store_ = nullptr;
-  bcd::TileBuilder* tile_builder_ = nullptr;
+  TileStore* tile_store_ = nullptr;
+  TileBuilder* tile_builder_ = nullptr;
 
   /** \brief parameters */
   BCDLearnerParam param_;
@@ -114,7 +114,7 @@ class BCDLearner : public Learner {
   struct FeaBlk {
     SArray<feaid_t> feaids;
     Range pos;
-    SArray<feaid_t> delta;
+    SArray<real_t> delta;
     SArray<int> model_offset;
   };
   std::vector<FeaBlk> feablks_;

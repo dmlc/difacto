@@ -18,7 +18,7 @@ KWArgs BCDLearner::Init(const KWArgs& kwargs) {
   // init data stores
   data_store_ = new DataStore();
   remain = model_store_->Init(remain);
-  tile_store_ = new bcd::TileStore(data_store_);
+  tile_store_ = new TileStore(data_store_);
   // init loss
   loss_ = Loss::Create("logit_delta", DEFAULT_NTHREADS);
   remain = loss_->Init(remain);
@@ -116,15 +116,12 @@ void BCDLearner::PrepareData(const bcd::JobArgs& job,
                model_store_->Rank(), model_store_->NumWorkers(),
                param_.data_chunk_size);
   bcd::FeaGroupStats stats(param_.num_feature_group_bits);
-  tile_builder_ = new bcd::TileBuilder(tile_store_, DEFAULT_NTHREADS, true);
+  tile_builder_ = new TileBuilder(tile_store_, DEFAULT_NTHREADS, true);
   SArray<real_t> feacnts;
   while (train.Next()) {
     auto rowblk = train.Value();
     stats.Add(rowblk);
-    SArray<feaids_t> new_feaids;
-    SArray<real_t> new_feacnts;
-    tile_builder_->Add(rowblk, &new_feaids, &new_feacnts);
-    tile_builder_->Merge(new_feaids, new_feacnts, &feaids_, &feacnts);
+    tile_builder_->Add(rowblk, &feaids_, &feacnts);
     pred_.push_back(SArray<real_t>(rowblk.size));
     ++ntrain_blks_;
   }
@@ -177,12 +174,8 @@ void BCDLearner::BuildFeatureMap(const bcd::JobArgs& job) {
   tile_builder_->BuildColmap(filtered, job.fea_blk_ranges, &pos);
   delete tile_builder_; tile_builder_ = nullptr;
 
-  // init aux data
+  // init feature blocks
   feablks_.resize(pos.size());
-
-  feaids_.resize(pos.size());
-  delta_.resize(pos.size());
-  model_offset_.resize(pos.size());
 
   for (size_t i = 0; i < pos.size(); ++i) {
     auto& feablk = feablks_[i];
@@ -221,7 +214,7 @@ void BCDLearner::IterateFeablk(int blk_id,
                                bcd::Progress* progress) {
   // 1. calculate gradient
   auto& feablk = feablks_[blk_id];
-  SArray<int> grad_offset = feablks.model_offset;
+  SArray<int> grad_offset = feablk.model_offset;
   for (int& o : grad_offset) o += o; // it's ok to overwrite model_offset_[blk_id]
   SArray<real_t> grad(
       grad_offset.empty() ? feablk.feaids.size() * 2 : grad_offset.back());
@@ -248,7 +241,7 @@ void BCDLearner::IterateFeablk(int blk_id,
     };
     // pull the changes of w from the servers
     model_store_->Pull(
-        feaids_[blk_id], Store::kWeight, delta_w, delta_w_offset, pull_callback);
+        feablks_[blk_id].feaids, Store::kWeight, delta_w, delta_w_offset, pull_callback);
   };
   // 2. push gradient to the servers
   model_store_->Push(
@@ -260,7 +253,7 @@ void BCDLearner::CalcGrad(int rowblk_id, int colblk_id,
                           const SArray<int>& grad_offset,
                           SArray<real_t>* grad) {
   // load data
-  bcd::Tile tile;
+  Tile tile;
   tile_store_->Fetch(rowblk_id, colblk_id, &tile);
 
   // build index
@@ -291,7 +284,7 @@ void BCDLearner::UpdtPred(int rowblk_id, int colblk_id,
                           const SArray<real_t> delta_w,
                           bcd::Progress* progress) {
   // load data
-  bcd::Tile tile;
+  Tile tile;
   tile_store_->Fetch(rowblk_id, colblk_id, &tile);
   size_t n = tile.colmap.size();
 

@@ -18,16 +18,18 @@ class TileBuilder {
 
   /**
    * \brief add a raw rowblk to the store
+   * feaids = feaids \cup new_feaids
+   * feacnts = feacnts \cup new_feacnts
    */
   void Add(const dmlc::RowBlock<feaid_t>& rowblk,
            SArray<feaid_t>* feaids = nullptr,
            SArray<real_t>* feacnts = nullptr) {
     // map feature id into continous intergers
     std::shared_ptr<std::vector<feaid_t>> ids(new std::vector<feaid_t>());
-    std::shared_ptr<std::vector<real_t>> cnt(new std::vector<real_t>());
+    std::shared_ptr<std::vector<real_t>> cnts(new std::vector<real_t>());
     auto compacted = new dmlc::data::RowBlockContainer<unsigned>();
     Localizer lc(-1, nthreads_);
-    lc.Compact(rowblk, compacted, ids.get(), feacnts ? cnt.get() : nullptr);
+    lc.Compact(rowblk, compacted, ids.get(), feacnts ? cnts.get() : nullptr);
 
     // store data into tile store
     int id = blk_feaids_.size();
@@ -51,15 +53,29 @@ class TileBuilder {
     SArray<feaid_t> sids(ids);
     blk_feaids_.push_back(sids);
 
-    if (feaids) *feaids = sids;
-    if (feacnts) *feacnts = SArray<real_t>(cnt);
+    if (!feaids) return;
+    CHECK_NOTNULL(feacnts);
+    SArray<real_t> scnts(cnts);
+    CHECK_EQ(feaids->size(), feacnts->size());
+    CHECK_EQ(sids.size(), scnts.size());
+    if (feaids->empty()) {
+      *feaids = sids;
+      *feacnts = scnts;
+    } else {
+      SArray<feaid_t> union_feaids;
+      SArray<real_t> union_feacnts;
+      KVUnion(sids, scnts, *feaids, *feacnts,
+              &union_feaids, &union_feacnts, 1, PLUS, nthreads_);
+      *feaids = union_feaids;
+      *feacnts = union_feacnts;
+    }
   }
 
   /**
    * \brief build colmap
    * \param feaids
    */
-  void BuildColmap(const SArray<real_t>& feaids,
+  void BuildColmap(const SArray<feaid_t>& feaids,
                    const std::vector<Range>& feablk_range = {},
                    std::vector<Range> *feapos = nullptr) {
     SArray<int> map(feaids.size());
@@ -87,36 +103,7 @@ class TileBuilder {
       // clear
       blk_feaids_[i].clear();
     }
-    feaids.clear();
-
     if (feapos) FindPosition(feaids, feablk_range, feapos);
-  }
-
-
-  /**
-   * \brief merge features ids and its associated counts
-   * feaids = feaids \cup new_feaids
-   * feacnts = feacnts \cup new_feacnts
-   */
-  void Merge(const SArray<feaid_t>& new_feaids,
-             const SArray<real_t>& new_feacnts,
-             SArray<feaid_t>* feaids,
-             SArray<real_t>* feacnts) {
-    CHECK_NOTNULL(feaids);
-    CHECK_NOTNULL(feacnts);
-    CHECK_EQ(feaids->size(), feacnts.size());
-    CHECK_EQ(new_feaids.size(), new_feacnts.size());
-    if (feaids->empty()) {
-      *feaids = new_feaids;
-      *feacnts = new_feacnts;
-    } else {
-      SArray<feaid_t> union_feaids;
-      SArray<real_t> union_feacnts;
-      KVUnion(new_feaids, new_feacnts, *feaids, *feacnts,
-              &union_feaids, &union_feacnts, 1, PLUS, nthreads_);
-      *feaids = union_feaids;
-      *feacnts = union_feacnts;
-    }
   }
 
  private:
