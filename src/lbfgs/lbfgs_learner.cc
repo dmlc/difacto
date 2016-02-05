@@ -58,6 +58,9 @@ void LBFGSLearner::RunScheduler() {
 
 void LBFGSLearner::Process(const std::string& args, std::string* rets) {
 
+  // push gradient and wait
+  int t = model_store_->Push(feaids_, Store::kGradient, grads_, model_offsets_);
+  model_store_->Wait(t);
 }
 
 size_t LBFGSLearner::PrepareData() {
@@ -94,59 +97,93 @@ size_t LBFGSLearner::PrepareData() {
   model_store_->Wait(t);
 }
 
-void LBFGSLearner::RemoveTailFeatures() {
+real_t LBFGSLearner::InitWorker() {
+  // remove tail features
   int filter = 0;  // TODO
-
   if (filter > 0) {
-    // remove tail features
     SArray<real_t> feacnt;
     int t = model_store_->Pull(
         feaids_, Store::kFeaCount, &feacnt, nullptr);
     model_store_->Wait(t);
 
     SArray<feaid_t> filtered;
-    size_t n = feaids_.size();
-    CHECK_EQ(feacnt.size(), n);
-    for (size_t i = 0; i < n; ++i) {
-      if (feacnt[i] > filter) {
-        filtered.push_back(feaids_[i]);
-      }
+    CHECK_EQ(feacnt.size(), feaids_.size());
+    for (size_t i = 0; i < feaids_.size(); ++i) {
+      if (feacnt[i] > filter) filtered.push_back(feaids_[i]);
     }
     feaids_ = filtered;
   }
 
   // build the colmap
-  CHECK_NOTNULL(tile_builder_);
-  tile_builder_->BuildColmap(feaids_);
+  CHECK_NOTNULL(tile_builder_)->BuildColmap(feaids_);
+
+  // pull w
+  int t = CHECK_NOTNULL(model_store_)->Pull(
+      feaids_, Store::kWeight, &weights_, &model_offsets_);
+  model_store_->Wait(t);
+
+  return CalcGrad(weights_, model_offsets_, &grads_);
+}
+
+void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
+  // w += αp
+  if (directions_.empty()) {
+    SArray<int> dir_offsets;
+    int t = CHECK_NOTNULL(model_store_)->Pull(
+        feaids_, Store::kWeight, &directions_, &dir_offsets_);
+    model_store_->Wait(t);
+    Add(directions_, dir_offsets, alpha, model_offsets_, &weights_);
+    model_offsets_ = dir_offsets;
+  } else {
+    Add(directions_, model_offsets_, alpha - alpha_, model_offsets_, &weights_);
+  }
+  alpha_ = alpha;
+
+  status->resize(2);
+  (*status)[0] = CalcGrad(weights_, model_offsets_, &grads_);
+
+  real_t gp = 0;
+
+#pragma omp parallel for reduction(+:gp) num_threads(nthreads_)
+  for (size_t i = 0; i < grads_.size(); ++i) {
+    gp += grads_[i] * directions_[i];
+  }
+  (*status)[1] = gp;
+}
+
+void LBFGSLearner::Evaluate(std::vector<real_t>* prog) {
+
+
 }
 
 
-void LBFGSLearner::CalcGrad() {
-  // pretech data
+real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
+                              const SArray<int>& w_offset,
+                              SArray<real_t>* grad) {
+  directions_.clear();
   for (int i = 0; i < ntrain_blks_; ++i) {
     tile_store_->Prefetch(i, 0);
   }
-
-  SArray<real_t> grad(weights_.size());
+  grad->resize(w.size());
+  real_t objv = 0;
   for (int i = 0; i < ntrain_blks_; ++i) {
-    // load data
     Tile tile; tile_store_->Fetch(i, 0, &tile);
-
-    // build grad_pos
-    bool no_pos = model_offsets_.empty();
-    SArray<int> grad_pos(no_pos ? 0 : tile.colmap.size());
-    for (size_t i = 0; i < grad_pos.size(); ++i) {
-      grad_pos[i] = model_offsets_[tile.colmap[i]];
-    }
-
-    // calc grad
-    auto param = {SArray<char>(pred_[i]), SArray<char>(grad_pos), SArray<char>(wegihts_)};
-    loss_->CalcGrad(tile.data.GetBlock(), param, *grad);
+    auto data = tile.data.GetBlock();
+    auto pos = GetPos(w_offset, tile.colmap);
+    loss_->Predict(data, {SArray<char>(w), SArray<char>(pos)}, &pred_[i]);
+    loss_->CalcGrad(
+        data, {SArray<char>(pred_[i]), SArray<char>(pos), SArray<char>(w)}, grad);
+    objv += loss_->CalcObjv(data, pred_[i]);
   }
+}
 
-  // push gradient and wait
-  int t = model_store_->Push(feaids_, Store::kGradient, grad, model_offsets_);
-  model_store_->Wait(t);
+SArray<int> LBFGSLearner::GetPos(const SArray<int>& offset, const SArray<int>& colmap) {
+  if (offset.empty()) return colmap;
+  SArray<int> pos(colmap.size());
+  for (size_t i = 0; i < pos.size(); ++i) {
+    pos[i] = offset[colmap[i]];
+  }
+  return pos;
 }
 
 }  // namespace difacto

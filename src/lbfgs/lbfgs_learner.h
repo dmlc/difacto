@@ -36,24 +36,40 @@ class LBFGSLearner : public Learner {
   /**
    * \brief preprocessing the data
    *
-   * pass data once and store them in an internal tile format, push feature IDs
-   * with their appearance counts into the model store
+   * if load_epoch is set, check data cache first. otherwise, pass data once and
+   * store them in an internal tile format, push feature IDs with their
+   * appearance counts into the model store
    *
    * @return number examples loaded
    */
   size_t PrepareData();
   /**
-   * \brief remove the tail features
+   * \brief init worker
    *
-   * remove features with appearance less than a threshold
+   * remove features with appearance less than a threshold (if > 0).  pull w
+   * from servers, calculate ∇f(w)
+   *
+   * @return f(w)
    */
-  void RemoveTailFeatures();
+  real_t InitWorker();
 
-  void CalcGradient();
+  /**
+   * \brief init server
+   *
+   * load w if load_epoch is set. otherwise, initialize w
+   *
+   * @return number of model parameters
+   */
+  size_t InitServer() { }
 
-  void CalcDirection();
 
-  void LinearSearch();
+  void PrepareCalcDirection(std::vector<real_t>* aux) {
+  }
+  real_t CalcDirection(const std::vector<real_t>& aux) {
+    return 0;
+  }
+
+  void LinearSearch(real_t alpha, std::vector<real_t>* status);
 
   LBFGSLearnerParam param_;
 
@@ -70,6 +86,8 @@ class LBFGSLearner : public Learner {
 
   int nthreads_ = DEFAULT_NTHREADS;
   SArray<feaid_t> feaids_;
+  SArray<real_t> weights_, grads_, directions_;
+  SArray<int> model_offsets_;
 
   // data
   int ntrain_blks_ = 0;
@@ -85,6 +103,8 @@ class LBFGSLearner : public Learner {
   /** \brief the loss function */
   Loss* loss_ = nullptr;
   std::vector<SArray<real_t>> pred_;
+
+  real_t alpha_;
 };
 }  // namespace difacto
 #endif  // DIFACTO_LBFGS_LBFGS_LEARNER_H_
