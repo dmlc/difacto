@@ -62,13 +62,6 @@ class LBFGSLearner : public Learner {
    */
   size_t InitServer() { }
 
-  void PrepareCalcDirection(std::vector<real_t>* aux) {
-  }
-
-  real_t CalcDirection(const std::vector<real_t>& aux) {
-    return 0;
-  }
-
   void LinearSearch(real_t alpha, std::vector<real_t>* status);
 
   BCDUpdater* GetUpdater() {

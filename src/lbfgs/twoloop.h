@@ -7,13 +7,11 @@ namespace lbfgs {
  * reference paper:
  * chen et al, large-scale l-bfgs using mapreduce, nips, 2015
  */
-class VectorFree {
+class Twoloop {
  public:
-  VectorFree(int nthreads) : nthreads_(nthreads) { }
+  Twoloop(int nthreads) : nthreads_(nthreads) { }
   void CalcIncreB(const std::vector<SArray<real_t>>& s,
                   const std::vector<SArray<real_t>>& y,
-                  const SArray<real_t>& new_s;
-                  const SArray<real_t>& new_y;
                   const SArray<real_t>& grad;
                   std::vector<real_t>* incr_B) {
 
@@ -74,19 +72,6 @@ class VectorFree {
       beta /= B_[i][m_+i];
       d[i] += alpha[i] - beta;
     }
-  }
-
-  /**
-   * \brief return <a, b>
-   */
-  double InnerProduct(const SArray<real_t>& a, const SArray<real_t>& b) {
-    double res = 0;
-    CHECK_EQ(a.size(), b.size());
-    real_t const *ap = a.data();
-    real_t const *bp = b.data();
-#pragma omp parallel for reduction(+:res) num_threads(nthreads_)
-    for (size_t i = 0; i < a.size(); ++i) res += ap[i] * bp[i];
-    return res;
   }
 
   /**

@@ -58,5 +58,30 @@ void KVUnion(
   CHECK_EQ(n2, keys_b.size() * val_len);
 }
 
+/**
+ * \brief Join two key-value lists
+ *
+ * joined_keys = joined_keys \cup keys
+ * joined_vals = joined_vals \cup vals
+ */
+template <typename K, typename V>
+void KVUnion(
+    const SArray<K>& keys,
+    const SArray<V>& vals,
+    SArray<K>* joined_keys,
+    SArray<V>* joined_vals,
+    int val_len = 1,
+    AssignOp op = PLUS,
+    int num_threads = DEFAULT_NTHREADS) {
+  SArray<K> new_keys;
+  SArray<V> new_vals;
+  KVUnion(keys, vals, *joined_keys, *joined_vals,
+          &new_keys, &new_vals,
+          val_len, op, num_threads);
+  *joined_keys = new_keys;
+  *joined_vals = new_vals;
+}
+
+
 }  // namespace difacto
 #endif  // DIFACTO_COMMON_KV_UNION_H_

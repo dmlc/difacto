@@ -23,21 +23,21 @@ void LBFGSLearner::RunScheduler() {
   IssueJobAndWait(NodeID::kWorkerGroup, Job::kInitWorker, {}, &objv);
 
   // iterate over data
-  int epoch = param_.load_epoch >= 0 : param_.load_epoch + 1 : 0;
+  real_t alpha = 0;
+  int epoch = param_.load_epoch >= 0 : param_.load_epoch : 0;
   for (; epoch < param_.max_num_epochs; ++epoch) {
     // calc direction
     IssueJobAndWait(NodeID::kWorkerGroup, Job::kPushGradient);
     std::vector<real_t> aux;
-    IssueJobAndWait(NodeID::kServerGroup, Job::kPrepareCalcDirection, {}, &aux);
+    IssueJobAndWait(NodeID::kServerGroup, Job::kPrepareCalcDirection, {alpha}, &aux);
     real_t gp;  // <∇f(w), p>
     IssueJobAndWait(NodeID::kServerGroup, Job::kCalcDirection, aux, &gp);
 
     // line search
-    real_t alpha = param_.alpha;
+    alpha = param_.alpha;
     for (int i = 0; i < 10; ++i) {
       std::vector<real_t> status; // = {f(w+αp), <∇f(w+αp), p>}
-      IssueJobAndWait(NodeID::kServerGroup + NodeID::kWorkerGroup,
-                      Job::kLinearSearch, {alpha}, &status);
+      IssueJobAndWait(NodeID::kServerGroup, Job::kLinearSearch, {alpha}, &status);
       // check wolf condition
       if ((stats[0] <= objv + param_.c1 * alpha * gp) &&
           (stats[1] >= param_.c2 * gp)) {
@@ -74,18 +74,14 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
         feaids_, Store::kGradient, grads_, model_offsets_);
     model_store_->Wait(t);
   } else if (type == Job::kPrepareCalcDirection) {
-
+    GetUpdater()->PrepareCalcDirection(job_args.value[0], &job_rets);
   } else if (type == Job::kCalcDirection) {
+    job_rets.push_back(GetUpdater()->CalcDirection(job_args.value));
   } else if (type == Job::kLinearSearch) {
-
+    LinearSearch(job_args.value[0], &job_rets);
   }
-
-  switch () {
-    case Job::kPrepareData:
-      break;
-
-  }
-  // push gradient and wait
+  dmlc::Stream* ss = new dmlc::MemoryStringStream(rets);
+  ss.Write(job_rets);
 }
 
 size_t LBFGSLearner::PrepareData() {
@@ -166,14 +162,7 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
 
   status->resize(2);
   (*status)[0] = CalcGrad(weights_, model_offsets_, &grads_);
-
-  real_t gp = 0;
-
-#pragma omp parallel for reduction(+:gp) num_threads(nthreads_)
-  for (size_t i = 0; i < grads_.size(); ++i) {
-    gp += grads_[i] * directions_[i];
-  }
-  (*status)[1] = gp;
+  (*status)[1] = lbfgs::InnerProduct(grads_, directions_, nthreads_);
 }
 
 void LBFGSLearner::Evaluate(std::vector<real_t>* prog) {

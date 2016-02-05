@@ -1,5 +1,7 @@
 #ifndef _LBFGS_UPDATER_H_
 #define _LBFGS_UPDATER_H_
+#include "./twoloop.h"
+#include "difacto/updater.h"
 namespace difacto {
 
 struct LBFGSUpdaterParam : public dmlc::Parameter<LBFGSUpdaterParam> {
@@ -27,14 +29,34 @@ class LBFGSUpdater : public Updater {
 
   const LBFGSUpdaterParam& param() const { return param_; }
 
-  void Load(dmlc::Stream* fi, bool* has_aux) override {
-  }
+  void Load(dmlc::Stream* fi, bool* has_aux) override { }
 
-  void Save(bool save_aux, dmlc::Stream *fo) const override {
-  }
+  void Save(bool save_aux, dmlc::Stream *fo) const override { }
 
   size_t InitWeights() {
+    models_.resize(feaids_.size());
+  }
 
+  void PrepareCalcDirection(real_t alpha, std::vector<real_t>* aux) {
+    SArray<real_t> new_s(models_.size());
+    for (size_t i = 0; i < models_.size(); ++i) {
+      new_s[i] = alpha * models_[i];
+    }
+    if (s.size() > param_.m - 1) s.erase(s.begin());
+    s.push_back(new_s);
+    twoloop_.CalcIncreB(s_, y_, grads_, aux);
+  }
+
+  /**
+   * \brief return <∇f(w), p>
+   *
+   *
+   * @return
+   */
+  real_t CalcDirection(const std::vector<real_t>& aux) {
+    twoloop_.ApplyIncrB(aux);
+    CalcDirection(s_, y_, grads_, models_);
+    return lbfgs::InnerProduct(grads_, models_, nthreads_);
   }
 
   void Get(const SArray<feaid_t>& feaids,
@@ -45,69 +67,52 @@ class LBFGSUpdater : public Updater {
       values->resize(feaids.size());
       KVMatch(feaids_, feacnt_, feaids, values);
     } else if (value_type == Store::kWeight) {
-      if (weights_.empty()) InitWeights();
-      values->resize(feaids.size() * (param_.V_dim+1));
-      if (param_.V_dim == 0) {
-        KVMatch(feaids_, w_delta_, feaids, values);
-      } else {
-        offsets->resize(feaids.size());
-        SArray<int> pos; FindPosition(feaids_, feaids, &pos);
-        int *os = offsets->data(); os[0] = 0;
-        real_t* val = values->data();
-        for (size_t i = 0; i < pos.size(); ++i) {
-          CHECK_NE(pos[i], -1);
-          int start = offsets_[pos[i]+1];
-          int len = offsets_[pos[i]+1] - start;
-          os[1] = os[0] + len;
-          memcpy(val, w_delta_.data() + start, len * sizeof(real_t));
-          val += len; ++os;
-        }
-        values->resize(os[1]);
-      }
+      CHECK(param_.V_dim == 0);  // TODO
+      KVMatch(feaids_, models_, feaids, values);
     } else {
       LOG(FATAL) << "...";
     }
   }
-
 
   void Update(const SArray<feaid_t>& feaids,
               int value_type,
               const SArray<real_t>& values,
               const SArray<int>& offsets) override {
     if (value_type == Store::kFeaCount) {
-      CHECK_EQ(values.size(), feaids.size());
-      SArray<feaid_t> new_feaids;
-      SArray<real_t> new_feacnt;
-      KVUnion(feaids_, feacnt_, feaids, values, &new_feaids, &new_feacnt);
-      feaids_ = new_feaids;
-      feacnt_ = new_feacnt;
-      // LL << DebugStr(feaids_);
-      // LL << DebugStr(feacnt_);
+      feaids_ = feaids;
+      feacnts_ = values;
     } else if (value_type == Store::kGradient) {
-      if (weights_.empty()) InitWeights();
-      SArray<int> pos; FindPosition(feaids_, feaids, &pos);
-      if (offsets.empty()) {
-        int k = 2;
-        CHECK_EQ(values.size(), feaids.size()*k);
-        for (size_t i = 0; i < pos.size(); ++i) {
-          CHECK_NE(pos[i], -1);
-          UpdateWeight(pos[i], values.data()+i*k, k);
+      CHECK_EQ(feaids_.size(), feaids.size());
+      // update y
+      if (grads_.size()) {
+        CHECK_EQ(grads_.size(), values.size());
+        SArray<real_t> new_y(grads_.size());
+        for (size_t i = 0; i < grads_.size(); ++i) {
+          new_y[i] = values[i] - grads_[i];
         }
-      } else {
-        CHECK_EQ(offsets.size(), feaids.size());
-        CHECK_EQ(offsets.back(), static_cast<int>(values.size()));
-        for (size_t i = 0; i < pos.size(); ++i) {
-          CHECK_NE(pos[i], -1);
-          UpdateWeight(pos[i], values.data()+offsets[i], offsets[i+1]-offsets[i]);
-        }
+        if (y_.size() > param_.m - 1) y_.erase(y_.begin());
+        y_.push_back(new_y);
       }
+      grads_ = values;
     } else {
       LOG(FATAL) << "...";
     }
   }
- private:
 
-  static void VectorFreeTwoLoop();
+ private:
+  LBFGSUpdaterParam param_;
+  SArray<feaid_t> feaids_;
+  SArray<real_t> feacnts_;
+
+  std::vector<SArray<real_t>> s_, y_;
+
+  /** \brief initilized with w, store p later */
+  SArray<real_t> models_;
+  SArray<int_t> model_offsets_;
+  SArray<real_t> grads_;
+
+  Twoloop twoloop_;
+  int nthreads_ = DEFAULT_NTHREADS;
 };
 }  // namespace difacto
 #endif  // _LBFGS_UPDATER_H_

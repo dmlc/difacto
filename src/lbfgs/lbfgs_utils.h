@@ -55,6 +55,22 @@ struct JobRets {
   }
   std::vector<real_t> value;
 };
+
+
+/**
+ * \brief return <a, b>
+ */
+double InnerProduct(const SArray<real_t>& a, const SArray<real_t>& b, int nthreads) {
+  double res = 0;
+  CHECK_EQ(a.size(), b.size());
+  real_t const *ap = a.data();
+  real_t const *bp = b.data();
+#pragma omp parallel for reduction(+:res) num_threads(nthreads)
+  for (size_t i = 0; i < a.size(); ++i) res += ap[i] * bp[i];
+  return res;
+}
+
+
 }  // namespace lbfgs
 }  // namespace difacto
 #endif  // _LBFGS_UTILS_H_
