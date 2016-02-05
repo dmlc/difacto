@@ -62,27 +62,21 @@ class LBFGSLearner : public Learner {
    */
   size_t InitServer() { }
 
-
   void PrepareCalcDirection(std::vector<real_t>* aux) {
   }
+
   real_t CalcDirection(const std::vector<real_t>& aux) {
     return 0;
   }
 
   void LinearSearch(real_t alpha, std::vector<real_t>* status);
 
-  LBFGSLearnerParam param_;
+  BCDUpdater* GetUpdater() {
+    return CHECK_NOTNULL(std::static_pointer_cast<LBFGSUpdater>(
+        CHECK_NOTNULL(model_store_)->updater()).get());
+  }
 
-  struct Job {
-    static const int kPrepareData = 1;
-    static const int kInitServer = 2;
-    static const int kInitWorker = 3;
-    static const int kPushGradient = 4;
-    static const int kPrepareCalcDirection = 5;
-    static const int kCalcDirection = 6;
-    static const int kLinearSearch = 7;
-    static const int kSaveModel = 8;
-  };
+  LBFGSLearnerParam param_;
 
   int nthreads_ = DEFAULT_NTHREADS;
   SArray<feaid_t> feaids_;

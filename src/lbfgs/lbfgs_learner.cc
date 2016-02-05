@@ -1,4 +1,5 @@
 #include "./lbfgs_learner.h"
+#include "./lbfgs_utils.h"
 #include "reader/reader.h"
 namespace difacto {
 
@@ -6,9 +7,9 @@ KWArgs LBFGSLearner::Init(const KWArgs& kwargs) override {
 }
 
 void LBFGSLearner::RunScheduler() {
+  using lbfgs::Job;
   // load data
   LOG(INFO) << "loading data... ";
-
   real_t data_size;
   IssueJobAndWait(NodeID::kWorkerGroup, Job::kPrepareData, {}, &data_size);
   LOG(INFO) << "loaded " << data_size << " examples";
@@ -19,7 +20,7 @@ void LBFGSLearner::RunScheduler() {
   LOG(INFO) << "inited model with " << model_size << " parameters";
 
   real_t objv;
-  IssueJobAndWait(NodeID::kWorkerGroup, Job::kInitWorker, {}, &fw);
+  IssueJobAndWait(NodeID::kWorkerGroup, Job::kInitWorker, {}, &objv);
 
   // iterate over data
   int epoch = param_.load_epoch >= 0 : param_.load_epoch + 1 : 0;
@@ -57,10 +58,34 @@ void LBFGSLearner::RunScheduler() {
 }
 
 void LBFGSLearner::Process(const std::string& args, std::string* rets) {
+  using lbfgs::Job;
+  Job job_args; job_args.ParseFromString(args);
+  std::vector<real_t> job_rets;
+  JobRets job_rets;
+  int type = job_args.type;
+  if (type == Job::kPrepareData) {
+    job_rets.push_back(PrepareData());
+  } else if (type == Job::kInitServer) {
+    job_rets.push_back(GetUpdater()->InitWeights());
+  } else if (type == Job::kInitWorker) {
+    job_rets.push_back(InitWorker());
+  } else if (type == Job::kPushGradient) {
+    int t = CHECK_NOTNULL(model_store_)->Push(
+        feaids_, Store::kGradient, grads_, model_offsets_);
+    model_store_->Wait(t);
+  } else if (type == Job::kPrepareCalcDirection) {
 
+  } else if (type == Job::kCalcDirection) {
+  } else if (type == Job::kLinearSearch) {
+
+  }
+
+  switch () {
+    case Job::kPrepareData:
+      break;
+
+  }
   // push gradient and wait
-  int t = model_store_->Push(feaids_, Store::kGradient, grads_, model_offsets_);
-  model_store_->Wait(t);
 }
 
 size_t LBFGSLearner::PrepareData() {
