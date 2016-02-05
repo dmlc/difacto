@@ -1,18 +1,13 @@
 #ifndef DEFACTO_LEARNER_BCD_LEARNER_H_
 #define DEFACTO_LEARNER_BCD_LEARNER_H_
-#include <cmath>
-#include <algorithm>
 #include "difacto/learner.h"
-#include "difacto/node_id.h"
-#include "dmlc/data.h"
-#include "reader/reader.h"
+#include "difacto/store.h"
 #include "data/data_store.h"
+#include "data/tile_store.h"
+#include "data/tile_builder.h"
 #include "./bcd_param.h"
 #include "./bcd_job.h"
 #include "./bcd_utils.h"
-#include "./bcd_updater.h"
-#include "data/tile_store.h"
-#include "data/tile_builder.h"
 #include "loss/logit_loss_delta.h"
 namespace difacto {
 
@@ -101,6 +96,7 @@ class BCDLearner : public Learner {
 
   /** \brief the model store*/
   Store* model_store_ = nullptr;
+  /** \brief the loss function */
   Loss* loss_ = nullptr;
   /** \brief data store */
   DataStore* data_store_ = nullptr;

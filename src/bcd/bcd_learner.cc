@@ -1,5 +1,10 @@
 #include "./bcd_learner.h"
+#include <algorithm>
+#include <cmath>
+#include "difacto/node_id.h"
+#include "reader/reader.h"
 #include "loss/bin_class_metric.h"
+#include "./bcd_updater.h"
 namespace difacto {
 
 DMLC_REGISTER_PARAMETER(BCDUpdaterParam);
@@ -111,7 +116,6 @@ void BCDLearner::RunScheduler() {
 void BCDLearner::PrepareData(const bcd::JobArgs& job,
                              bcd::PrepDataRets* rets) {
   // read train data
-
   Reader train(param_.data_in, param_.data_format,
                model_store_->Rank(), model_store_->NumWorkers(),
                param_.data_chunk_size);
@@ -253,8 +257,7 @@ void BCDLearner::CalcGrad(int rowblk_id, int colblk_id,
                           const SArray<int>& grad_offset,
                           SArray<real_t>* grad) {
   // load data
-  Tile tile;
-  tile_store_->Fetch(rowblk_id, colblk_id, &tile);
+  Tile tile; tile_store_->Fetch(rowblk_id, colblk_id, &tile);
 
   // build index
   size_t n = tile.colmap.size();

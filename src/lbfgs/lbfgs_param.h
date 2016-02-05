@@ -1,9 +1,9 @@
-#ifndef _BCD_PARAM_H_
-#define _BCD_PARAM_H_
+#ifndef _LBFGS_PARAM_H_
+#define _LBFGS_PARAM_H_
 #include "dmlc/parameter.h"
 namespace difacto {
 
-struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
+struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
   /** \brief The input data, either a filename or a directory. */
   std::string data_in;
   /** \brief The optional validation dataset, either a filename or a directory */
@@ -12,7 +12,7 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
   std::string data_format;
   /** \brief the directory for the data chache */
   std::string data_cache;
-  /** \brief the model output for a training task */
+  /** \brief the model output */
   std::string model_out;
   /** \brief the model input for warm start */
   std::string model_in;
@@ -20,30 +20,28 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
   std::string loss;
   /** \brief the maximal number of data passes, defaut is 20 */
   int max_num_epochs;
-  /** \brief controls the number of feature blocks, default is 4 */
-  float block_ratio;
-  /** \brief if or not process feature blocks in a random order, default is true */
-  int random_block;
-  /** \brief the number of heading bits used to encode the feature group, default is 12 */
-  int num_feature_group_bits;
-  float neg_sampling;
   /** \brief the size of data in MB read each time for processing, in default 256 MB */
   int data_chunk_size;
 
-  DMLC_DECLARE_PARAMETER(BCDLearnerParam) {
-    DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
+  int load_epoch;
+
+  real_t alpha;
+  real_t c1;
+  real_t c2;
+  real_t rho;
+
+  DMLC_DECLARE_PARAMETER(LBFGSLearnerParam) {
     DMLC_DECLARE_FIELD(data_in);
     DMLC_DECLARE_FIELD(data_val).set_default("");
-    DMLC_DECLARE_FIELD(data_cache).set_default("/tmp/difacto_bcd_");
+    DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
+    DMLC_DECLARE_FIELD(data_cache).set_default("/tmp/difacto_lbfgs_");
     DMLC_DECLARE_FIELD(data_chunk_size).set_default(1<<28);
     DMLC_DECLARE_FIELD(model_out).set_default("");
     DMLC_DECLARE_FIELD(model_in).set_default("");
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
-    DMLC_DECLARE_FIELD(random_block).set_default(1);
-    DMLC_DECLARE_FIELD(num_feature_group_bits).set_default(0);
-    DMLC_DECLARE_FIELD(block_ratio).set_default(4);
   }
 };
+
 }  // namespace difacto
-#endif  // _BCD_PARAM_H_
+#endif  // _LBFGS_PARAM_H_

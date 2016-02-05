@@ -2,6 +2,8 @@
 #define _TILE_STORE_H_
 #include "dmlc/data.h"
 #include "difacto/sarray.h"
+#include "./shared_row_block_container.h"
+#include "./data_store.h"
 namespace difacto {
 /**
  * \brief a sliced block of a large matrix
