@@ -34,6 +34,29 @@ void TwoloopRefer(const std::vector<SArray<real_t>>& s,
   }
 }
 
+TEST(Twoloop, naive) {
+
+  SArray<real_t> g = {1, 2};
+  std::vector<SArray<real_t>> s = {{2, 3}}, y = {{3, 4}};
+  SArray<real_t> p0, p1;
+
+  TwoloopRefer(s, y, g, &p0);
+
+  Twoloop two;
+  std::vector<real_t> B;
+  two.CalcIncreB(s, y, g, &B);
+  two.ApplyIncreB(B);
+  two.CalcDirection(s, y, g, &p1);
+
+  real_t a = (54.0-202)/25/9;
+  real_t b = (-36.0-303)/25/9;
+
+  EXPECT_LE(abs(p0[0] - a), 1e-5);
+  EXPECT_LE(abs(p0[1] - b), 1e-5);
+  EXPECT_LE(abs(p1[0] - a), 1e-5);
+  EXPECT_LE(abs(p1[1] - b), 1e-5);
+}
+
 TEST(Twoloop, basic) {
   int m = 4;
   int n = 100;
@@ -61,8 +84,6 @@ TEST(Twoloop, basic) {
     two.ApplyIncreB(B);
     two.CalcDirection(s, y, g, &p1);
 
-    LL << norm2(p0);
-    LL << norm2(p1);
-    EXPECT_LE(abs(norm2(p0) - norm2(p1)), 1e-5);
+    EXPECT_LE(abs(norm2(p0) - norm2(p1)) / norm2(p1), 5e-6);
   }
 }

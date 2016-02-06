@@ -45,7 +45,7 @@ class Twoloop {
         const auto& old = B_[i+(m==m_?1:-1)];
         for (int j = 0; j < m; ++j) b[j] = old[j+(m==m_?1:0)];
         b[m-1] = incr_B[i];
-        for (int j = m; j < i; ++j) b[j] = old[j+(m==m_?1:-1)];
+        for (int j = m; j <= i; ++j) b[j] = old[j+(m==m_?1:-1)];
       } else if (i == 2*m-1) {
         for (int j = 0; j < 2*m; ++j) b[j] = incr_B[2*m+j];
       } else {
@@ -102,7 +102,7 @@ class Twoloop {
     }
 
     for (int i = 0; i < 2*m_+1; ++i) {
-      d[i] *= B_[m_][2*m_] / B_[2*m_][2*m_];
+      d[i] *= B_[m_-1][2*m_-1] / B_[2*m_-1][2*m_-1];
     }
 
     for (int i = 0; i < m_; ++i) {
@@ -117,7 +117,7 @@ class Twoloop {
 
   int m_ = 0;
   int nthreads_ = DEFAULT_NTHREADS;
-  // B_[i][j] = <b[i], b[j]>
+  /** \brief B_[i][j] = <b[i], b[j]> */
   std::vector<std::vector<double>> B_;
 
 };
