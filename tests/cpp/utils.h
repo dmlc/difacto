@@ -87,6 +87,22 @@ void gen_vals(int len, real_t min_val, real_t max_val, SArray<V>* val) {
 }
 
 /**
+ * \brief generate a list of random values
+ *
+ * @param len the length
+ * @param max_val random value in [min_val, max_val)
+ * @param val results
+ */
+template <typename V>
+void gen_vals(int len, SArray<V>* val, real_t min_val = -10, real_t max_val = 10) {
+  val->resize(len);
+  std::uniform_real_distribution<real_t> dis(min_val, max_val);
+  for (int i = 0; i < len; ++i) {
+    (*val)[i] = static_cast<V>(dis(generator));
+  }
+}
+
+/**
  * \brief check rowblock a == b
  */
 template <typename T>

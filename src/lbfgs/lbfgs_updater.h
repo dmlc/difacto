@@ -1,6 +1,6 @@
 #ifndef _LBFGS_UPDATER_H_
 #define _LBFGS_UPDATER_H_
-#include "./twoloop.h"
+#include "./lbfgs_twoloop.h"
 #include "difacto/updater.h"
 namespace difacto {
 
@@ -56,9 +56,9 @@ class LBFGSUpdater : public Updater {
    * @return
    */
   real_t CalcDirection(const std::vector<real_t>& aux) {
-    twoloop_.ApplyIncrB(aux);
+    twoloop_.ApplyIncreB(aux);
     twoloop_.CalcDirection(s_, y_, grads_, &models_);
-    return lbfgs::InnerProduct(grads_, models_, nthreads_);
+    return lbfgs::Inner(grads_, models_, nthreads_);
   }
 
   void Get(const SArray<feaid_t>& feaids,

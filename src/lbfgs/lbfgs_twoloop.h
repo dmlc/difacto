@@ -4,22 +4,62 @@
 namespace difacto {
 namespace lbfgs {
 /**
- * \brief vector-free lbfgs
- * reference paper:
+ * \brief compute direction p given s, y, ∇f(w)
+ *
+ * we used the vector-free version, reference paper:
+ *
  * chen et al, large-scale l-bfgs using mapreduce, nips, 2015
  */
 class Twoloop {
  public:
-  // Twoloop(int nthreads) : nthreads_(nthreads) { }
   void CalcIncreB(const std::vector<SArray<real_t>>& s,
                   const std::vector<SArray<real_t>>& y,
                   const SArray<real_t>& grad,
                   std::vector<real_t>* incr_B) {
-
+    CHECK_EQ(s.size(), y.size());
+    int m = static_cast<int>(s.size());
+    incr_B->resize(6*m+1);
+    for (int i = 0; i < m; ++i) {
+      (*incr_B)[i    ] = Inner(s.back(), s[i]);
+      (*incr_B)[i+  m] = Inner(s.back(), y[i]);
+      (*incr_B)[i+2*m] = Inner(y.back(), s[i]);
+      (*incr_B)[i+3*m] = Inner(y.back(), y[i]);
+      (*incr_B)[i+4*m] = Inner(grad,     s[i]);
+      (*incr_B)[i+5*m] = Inner(grad,     y[i]);
+    }
+    (*incr_B)[6*m] = Inner(grad, grad);
   }
 
-  void ApplyIncrB(const std::vector<real_t>& incr_B) {
-
+  void ApplyIncreB(const std::vector<real_t>& incr_B) {
+    int m = static_cast<int>((incr_B.size() - 1) / 6);
+    CHECK(m == m_+1 || m == m_);
+    std::vector<std::vector<double>> B;
+    for (int i = 0; i < 2*m+1; ++i) {
+      std::vector<double> b(2*m+1);
+      if (i < m - 1) {
+        const auto& old = B_[i+(m==m_?1:0)];
+        for (int j = 0; j <= i; ++j) b[j] = old[j+(m==m_?1:0)];
+      } else if (i == m-1) {
+        for (int j = 0; j <= i; ++j) b[j] = incr_B[j];
+      } else if (i < 2*m-1) {
+        const auto& old = B_[i+(m==m_?1:-1)];
+        for (int j = 0; j < m; ++j) b[j] = old[j+(m==m_?1:0)];
+        b[m-1] = incr_B[i];
+        for (int j = m; j < i; ++j) b[j] = old[j+(m==m_?1:-1)];
+      } else if (i == 2*m-1) {
+        for (int j = 0; j < 2*m; ++j) b[j] = incr_B[2*m+j];
+      } else {
+        for (int j = 0; j < 2*m+1; ++j) b[j] = incr_B[4*m+j];
+      }
+      B.push_back(b);
+    }
+    for (int i = 0; i < 2*m+1; ++i) {
+      for (int j = 0; j < i; ++j) {
+        B[j][i] = B[i][j];
+      }
+    }
+    B_ = B;
+    m_ = m;
   }
 
   /**
@@ -42,9 +82,9 @@ class Twoloop {
     p->resize(n); memset(p->data(), 0, n*sizeof(real_t));
 
     std::vector<double> delta; CalcDelta(&delta);
-    for (int i = 0; i < m_; ++i) Add(s[i], delta[i], p);
-    for (int i = 0; i < m_; ++i) Add(y[i], delta[i+m_], p);
-    Add(grad, delta[2*m_], p);
+    for (int i = 0; i < m_; ++i) Add(delta[i], s[i], p);
+    for (int i = 0; i < m_; ++i) Add(delta[i+m_], y[i], p);
+    Add(delta[2*m_], grad, p);
   }
 
  private:
@@ -75,19 +115,8 @@ class Twoloop {
     }
   }
 
-  /**
-   * \brief b += a * x
-   */
-  real_t Add(const SArray<real_t>& a, double x, SArray<real_t>* b) {
-    CHECK_EQ(a.size(), b->size());
-    real_t const *ap = a.data();
-    real_t *bp = b->data();
-#pragma omp parallel for num_threads(nthreads_)
-    for (size_t i = 0; i < a.size(); ++i) bp[i] += x * ap[i];
-  }
-
-  int nthreads_ = DEFAULT_NTHREADS;
   int m_ = 0;
+  int nthreads_ = DEFAULT_NTHREADS;
   // B_[i][j] = <b[i], b[j]>
   std::vector<std::vector<double>> B_;
 

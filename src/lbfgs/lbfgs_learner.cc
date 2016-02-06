@@ -163,14 +163,13 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
 
   status->resize(2);
   (*status)[0] = CalcGrad(weights_, model_offsets_, &grads_);
-  (*status)[1] = lbfgs::InnerProduct(grads_, directions_, nthreads_);
+  (*status)[1] = lbfgs::Inner(grads_, directions_, nthreads_);
 }
 
 // void LBFGSLearner::Evaluate(std::vector<real_t>* prog) {
 
 
 // }
-
 
 real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
                               const SArray<int>& w_offset,
