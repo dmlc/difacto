@@ -58,17 +58,7 @@ class TileBuilder {
     SArray<real_t> scnts(cnts);
     CHECK_EQ(feaids->size(), feacnts->size());
     CHECK_EQ(sids.size(), scnts.size());
-    if (feaids->empty()) {
-      *feaids = sids;
-      *feacnts = scnts;
-    } else {
-      SArray<feaid_t> union_feaids;
-      SArray<real_t> union_feacnts;
-      KVUnion(sids, scnts, *feaids, *feacnts,
-              &union_feaids, &union_feacnts, 1, PLUS, nthreads_);
-      *feaids = union_feaids;
-      *feacnts = union_feacnts;
-    }
+    KVUnion(sids, scnts, feaids, feacnts);
   }
 
   /**
@@ -86,7 +76,7 @@ class TileBuilder {
     for (size_t i = 0; i < blk_feaids_.size(); ++i) {
       // store colmap
       SArray<int> colmap;
-      KVMatch(feaids, map, blk_feaids_[i], &colmap, 1, ASSIGN, nthreads_);
+      KVMatch(feaids, map, blk_feaids_[i], &colmap, ASSIGN, nthreads_);
       for (int& c : colmap) --c;  // unmatched will get -1
       store_->data_->Store(std::to_string(i) + "_colmap", colmap);
 

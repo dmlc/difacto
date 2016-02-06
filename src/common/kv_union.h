@@ -25,7 +25,6 @@ namespace difacto {
  * @param vals_b values from list b
  * @param joined_key the union of key1 and key2
  * @param joined_val the union of val1 and val2
- * @param val_len the length of a single value
  * @param op the assignment operator (default is PLUS)
  * @param num_threads number of thread (default is 2)
  */
@@ -37,9 +36,19 @@ void KVUnion(
     const SArray<V>& vals_b,
     SArray<K>* joined_keys,
     SArray<V>* joined_vals,
-    int val_len = 1,
     AssignOp op = PLUS,
     int num_threads = DEFAULT_NTHREADS) {
+  if (keys_a.empty()) {
+    joined_keys->CopyFrom(keys_b);
+    joined_vals->CopyFrom(vals_b);
+    return;
+  }
+  if (keys_b.empty()) {
+    joined_keys->CopyFrom(keys_a);
+    joined_vals->CopyFrom(vals_a);
+    return;
+  }
+
   // merge keys
   CHECK_NOTNULL(joined_keys)->resize(keys_a.size() + keys_b.size());
   auto end = std::set_union(keys_a.begin(), keys_a.end(), keys_b.begin(), keys_b.end(),
@@ -47,14 +56,15 @@ void KVUnion(
   joined_keys->resize(end - joined_keys->begin());
 
   // merge value of list a
+  size_t val_len = vals_a.size() / vals_a.size();
   CHECK_NOTNULL(joined_vals)->clear();
   size_t n1 = KVMatch<K, V>(
-      keys_a, vals_a, *joined_keys, joined_vals, val_len, ASSIGN, num_threads);
+      keys_a, vals_a, *joined_keys, joined_vals, ASSIGN, num_threads);
   CHECK_EQ(n1, keys_a.size() * val_len);
 
   // merge value list b
   auto n2 = KVMatch<K, V>(
-      keys_b, vals_b, *joined_keys, joined_vals, val_len, op, num_threads);
+      keys_b, vals_b, *joined_keys, joined_vals, op, num_threads);
   CHECK_EQ(n2, keys_b.size() * val_len);
 }
 
@@ -70,14 +80,12 @@ void KVUnion(
     const SArray<V>& vals,
     SArray<K>* joined_keys,
     SArray<V>* joined_vals,
-    int val_len = 1,
     AssignOp op = PLUS,
     int num_threads = DEFAULT_NTHREADS) {
   SArray<K> new_keys;
   SArray<V> new_vals;
   KVUnion(keys, vals, *joined_keys, *joined_vals,
-          &new_keys, &new_vals,
-          val_len, op, num_threads);
+          &new_keys, &new_vals, op, num_threads);
   *joined_keys = new_keys;
   *joined_vals = new_vals;
 }

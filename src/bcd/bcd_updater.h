@@ -88,14 +88,8 @@ class BCDUpdater : public Updater {
               const SArray<real_t>& values,
               const SArray<int>& offsets) override {
     if (value_type == Store::kFeaCount) {
-      CHECK_EQ(values.size(), feaids.size());
-      SArray<feaid_t> new_feaids;
-      SArray<real_t> new_feacnt;
-      KVUnion(feaids_, feacnt_, feaids, values, &new_feaids, &new_feacnt);
-      feaids_ = new_feaids;
-      feacnt_ = new_feacnt;
-      // LL << DebugStr(feaids_);
-      // LL << DebugStr(feacnt_);
+      feaids_ = feaids;
+      feacnt_ = values;
     } else if (value_type == Store::kGradient) {
       if (weights_.empty()) InitWeights();
       SArray<int> pos; FindPosition(feaids_, feaids, &pos);
@@ -114,21 +108,6 @@ class BCDUpdater : public Updater {
           UpdateWeight(pos[i], values.data()+offsets[i], offsets[i+1]-offsets[i]);
         }
       }
-      // LL << DebugStr(offsets);
-      // real_t n1 = 0, n2 =0 ;
-      // for (size_t i = 0; i < values.size(); i+=2) {
-      //   n1 += values[i] * values[i];
-      //   n2 += values[i+1] * values[i+1];
-      // }
-
-      // real_t w = 0, d = 0;
-      // for (size_t i = 0; i < weights_.size(); ++i) {
-      //   w += weights_[i] * weights_[i];
-      //   d += delta_[i] * delta_[i];
-      // }
-      // LL << values.size() << " " << n1 << " " << n2 <<  " " << w << " " << d;
-      // LL << DebugStr(values);
-      // LL << DebugStr(weights_);
     } else {
       LOG(FATAL) << "...";
     }

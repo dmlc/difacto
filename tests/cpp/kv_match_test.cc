@@ -42,7 +42,7 @@ void test(int n, int k) {
   gen_vals(key1.size()*k, -100, 100, &val1);
 
   size_t ret2 = KVMatchRefer(key1, val1, key2, &val3, k);
-  size_t ret1 = KVMatch(key1, val1, key2, &val2, k, ASSIGN, 4);
+  size_t ret1 = KVMatch(key1, val1, key2, &val2, ASSIGN, 4);
 
   EXPECT_EQ(ret1, ret2);
   EXPECT_EQ(val2.size(), val3.size());
