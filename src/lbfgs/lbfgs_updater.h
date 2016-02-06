@@ -11,6 +11,8 @@ struct LBFGSUpdaterParam : public dmlc::Parameter<LBFGSUpdaterParam> {
   float l1;
   /** \brief the l2 regularizer for :math:`w`: :math:`\lambda_2 \|w\|_2^2` */
   float l2;
+
+  int m;
   DMLC_DECLARE_PARAMETER(LBFGSUpdaterParam) {
     DMLC_DECLARE_FIELD(tail_feature_filter).set_default(4);
     DMLC_DECLARE_FIELD(l1).set_default(1);
@@ -42,8 +44,8 @@ class LBFGSUpdater : public Updater {
     for (size_t i = 0; i < models_.size(); ++i) {
       new_s[i] = alpha * models_[i];
     }
-    if (s.size() > param_.m - 1) s.erase(s.begin());
-    s.push_back(new_s);
+    if (s_.size() > param_.m - 1) s_.erase(s_.begin());
+    s_.push_back(new_s);
     twoloop_.CalcIncreB(s_, y_, grads_, aux);
   }
 
@@ -55,7 +57,7 @@ class LBFGSUpdater : public Updater {
    */
   real_t CalcDirection(const std::vector<real_t>& aux) {
     twoloop_.ApplyIncrB(aux);
-    CalcDirection(s_, y_, grads_, models_);
+    twoloop_.CalcDirection(s_, y_, grads_, &models_);
     return lbfgs::InnerProduct(grads_, models_, nthreads_);
   }
 
@@ -65,7 +67,7 @@ class LBFGSUpdater : public Updater {
            SArray<int>* offsets) override {
     if (value_type == Store::kFeaCount) {
       values->resize(feaids.size());
-      KVMatch(feaids_, feacnt_, feaids, values);
+      KVMatch(feaids_, feacnts_, feaids, values);
     } else if (value_type == Store::kWeight) {
       CHECK(param_.V_dim == 0);  // TODO
       KVMatch(feaids_, models_, feaids, values);
@@ -108,10 +110,10 @@ class LBFGSUpdater : public Updater {
 
   /** \brief initilized with w, store p later */
   SArray<real_t> models_;
-  SArray<int_t> model_offsets_;
+  SArray<int> model_offsets_;
   SArray<real_t> grads_;
 
-  Twoloop twoloop_;
+  lbfgs::Twoloop twoloop_;
   int nthreads_ = DEFAULT_NTHREADS;
 };
 }  // namespace difacto

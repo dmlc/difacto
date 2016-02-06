@@ -1,5 +1,6 @@
 #ifndef _VECTOR_FREE_H_
 #define _VECTOR_FREE_H_
+#include "./lbfgs_utils.h"
 namespace difacto {
 namespace lbfgs {
 /**
@@ -9,10 +10,10 @@ namespace lbfgs {
  */
 class Twoloop {
  public:
-  Twoloop(int nthreads) : nthreads_(nthreads) { }
+  // Twoloop(int nthreads) : nthreads_(nthreads) { }
   void CalcIncreB(const std::vector<SArray<real_t>>& s,
                   const std::vector<SArray<real_t>>& y,
-                  const SArray<real_t>& grad;
+                  const SArray<real_t>& grad,
                   std::vector<real_t>* incr_B) {
 
   }
@@ -34,11 +35,11 @@ class Twoloop {
   void CalcDirection(const std::vector<SArray<real_t>>& s,
                      const std::vector<SArray<real_t>>& y,
                      const SArray<real_t>& grad,
-                     std::vector<real_t>* p) {
+                     SArray<real_t>* p) {
     CHECK_EQ(s.size(), m_);
     CHECK_EQ(y.size(), m_);
     size_t n = grad.size();
-    p->resize(n); memset(p.data(), 0, n*sizeof(real_t));
+    p->resize(n); memset(p->data(), 0, n*sizeof(real_t));
 
     std::vector<double> delta; CalcDelta(&delta);
     for (int i = 0; i < m_; ++i) Add(s[i], delta[i], p);
@@ -77,14 +78,15 @@ class Twoloop {
   /**
    * \brief b += a * x
    */
-  real_t Add(const SArray<real_t>& a, real_t x, SArray<real_t>* b) {
+  real_t Add(const SArray<real_t>& a, double x, SArray<real_t>* b) {
     CHECK_EQ(a.size(), b->size());
     real_t const *ap = a.data();
-    real_t *bp = b.data();
+    real_t *bp = b->data();
 #pragma omp parallel for num_threads(nthreads_)
     for (size_t i = 0; i < a.size(); ++i) bp[i] += x * ap[i];
   }
 
+  int nthreads_ = DEFAULT_NTHREADS;
   int m_ = 0;
   // B_[i][j] = <b[i], b[j]>
   std::vector<std::vector<double>> B_;

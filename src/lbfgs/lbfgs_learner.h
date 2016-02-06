@@ -9,6 +9,8 @@
 #include "data/tile_store.h"
 #include "data/tile_builder.h"
 #include "./lbfgs_param.h"
+#include "./lbfgs_utils.h"
+#include "./lbfgs_updater.h"
 namespace difacto {
 
 class LBFGSLearner : public Learner {
@@ -32,6 +34,10 @@ class LBFGSLearner : public Learner {
                        const std::vector<real_t>& job_args = {},
                        std::vector<real_t>* job_rets = nullptr);
 
+  void IssueJobAndWait(int node_group,
+                       int job_type,
+                       const std::vector<real_t>& job_args,
+                       real_t* job_rets);
 
   /**
    * \brief preprocessing the data
@@ -62,13 +68,17 @@ class LBFGSLearner : public Learner {
    */
   size_t InitServer() { }
 
+  real_t CalcGrad(const SArray<real_t>& w,
+                  const SArray<int>& w_offset,
+                  SArray<real_t>* grad);
   void LinearSearch(real_t alpha, std::vector<real_t>* status);
 
-  BCDUpdater* GetUpdater() {
+  LBFGSUpdater* GetUpdater() {
     return CHECK_NOTNULL(std::static_pointer_cast<LBFGSUpdater>(
         CHECK_NOTNULL(model_store_)->updater()).get());
   }
 
+  SArray<int> GetPos(const SArray<int>& offset, const SArray<int>& colmap);
   LBFGSLearnerParam param_;
 
   int nthreads_ = DEFAULT_NTHREADS;

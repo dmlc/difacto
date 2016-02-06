@@ -1,9 +1,10 @@
 #include "./lbfgs_learner.h"
 #include "./lbfgs_utils.h"
+#include "difacto/node_id.h"
 #include "reader/reader.h"
 namespace difacto {
 
-KWArgs LBFGSLearner::Init(const KWArgs& kwargs) override {
+KWArgs LBFGSLearner::Init(const KWArgs& kwargs) {
 }
 
 void LBFGSLearner::RunScheduler() {
@@ -24,7 +25,7 @@ void LBFGSLearner::RunScheduler() {
 
   // iterate over data
   real_t alpha = 0;
-  int epoch = param_.load_epoch >= 0 : param_.load_epoch : 0;
+  int epoch = param_.load_epoch >= 0 ? param_.load_epoch : 0;
   for (; epoch < param_.max_num_epochs; ++epoch) {
     // calc direction
     IssueJobAndWait(NodeID::kWorkerGroup, Job::kPushGradient);
@@ -35,12 +36,12 @@ void LBFGSLearner::RunScheduler() {
 
     // line search
     alpha = param_.alpha;
+    std::vector<real_t> status; // = {f(w+αp), <∇f(w+αp), p>}
     for (int i = 0; i < 10; ++i) {
-      std::vector<real_t> status; // = {f(w+αp), <∇f(w+αp), p>}
       IssueJobAndWait(NodeID::kServerGroup, Job::kLinearSearch, {alpha}, &status);
       // check wolf condition
-      if ((stats[0] <= objv + param_.c1 * alpha * gp) &&
-          (stats[1] >= param_.c2 * gp)) {
+      if ((status[0] <= objv + param_.c1 * alpha * gp) &&
+          (status[1] >= param_.c2 * gp)) {
         break;
       }
       alpha *= param_.rho;
@@ -61,7 +62,6 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
   using lbfgs::Job;
   Job job_args; job_args.ParseFromString(args);
   std::vector<real_t> job_rets;
-  JobRets job_rets;
   int type = job_args.type;
   if (type == Job::kPrepareData) {
     job_rets.push_back(PrepareData());
@@ -81,7 +81,8 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
     LinearSearch(job_args.value[0], &job_rets);
   }
   dmlc::Stream* ss = new dmlc::MemoryStringStream(rets);
-  ss.Write(job_rets);
+  ss->Write(job_rets);
+  delete ss;
 }
 
 size_t LBFGSLearner::PrepareData() {
@@ -151,12 +152,12 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
   if (directions_.empty()) {
     SArray<int> dir_offsets;
     int t = CHECK_NOTNULL(model_store_)->Pull(
-        feaids_, Store::kWeight, &directions_, &dir_offsets_);
+        feaids_, Store::kWeight, &directions_, &model_offsets_);
     model_store_->Wait(t);
-    Add(directions_, dir_offsets, alpha, model_offsets_, &weights_);
+    // Add(directions_, dir_offsets, alpha, model_offsets_, &weights_);
     model_offsets_ = dir_offsets;
   } else {
-    Add(directions_, model_offsets_, alpha - alpha_, model_offsets_, &weights_);
+    // Add(directions_, model_offsets_, alpha - alpha_, model_offsets_, &weights_);
   }
   alpha_ = alpha;
 
@@ -165,10 +166,10 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
   (*status)[1] = lbfgs::InnerProduct(grads_, directions_, nthreads_);
 }
 
-void LBFGSLearner::Evaluate(std::vector<real_t>* prog) {
+// void LBFGSLearner::Evaluate(std::vector<real_t>* prog) {
 
 
-}
+// }
 
 
 real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
@@ -187,7 +188,7 @@ real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
     loss_->Predict(data, {SArray<char>(w), SArray<char>(pos)}, &pred_[i]);
     loss_->CalcGrad(
         data, {SArray<char>(pred_[i]), SArray<char>(pos), SArray<char>(w)}, grad);
-    objv += loss_->CalcObjv(data, pred_[i]);
+    objv += loss_->CalcObjv(data.label, pred_[i]);
   }
 }
 
