@@ -76,8 +76,8 @@ class Twoloop {
                      const std::vector<SArray<real_t>>& y,
                      const SArray<real_t>& grad,
                      SArray<real_t>* p) {
-    CHECK_EQ(s.size(), m_);
-    CHECK_EQ(y.size(), m_);
+    CHECK_EQ(s.size(), static_cast<size_t>(m_));
+    CHECK_EQ(y.size(), static_cast<size_t>(m_));
     size_t n = grad.size();
     p->resize(n); memset(p->data(), 0, n*sizeof(real_t));
 

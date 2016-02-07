@@ -37,9 +37,9 @@ struct Job {
 /**
  * \brief return <a, b>
  */
-double Inner(const SArray<real_t>& a,
-             const SArray<real_t>& b,
-             int nthreads = DEFAULT_NTHREADS) {
+inline double Inner(const SArray<real_t>& a,
+                    const SArray<real_t>& b,
+                    int nthreads = DEFAULT_NTHREADS) {
   double res = 0;
   CHECK_EQ(a.size(), b.size());
   real_t const *ap = a.data();
@@ -52,9 +52,9 @@ double Inner(const SArray<real_t>& a,
 /**
  * \brief b += x * a
  */
-real_t Add(real_t x, const SArray<real_t>& a,
-           SArray<real_t>* b,
-           int nthreads = DEFAULT_NTHREADS) {
+inline void Add(real_t x, const SArray<real_t>& a,
+                SArray<real_t>* b,
+                int nthreads = DEFAULT_NTHREADS) {
   CHECK_EQ(a.size(), b->size());
   real_t const *ap = a.data();
   real_t *bp = b->data();

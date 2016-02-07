@@ -4,7 +4,28 @@
 #include "reader/reader.h"
 namespace difacto {
 
+DMLC_REGISTER_PARAMETER(LBFGSLearnerParam);
+DMLC_REGISTER_PARAMETER(LBFGSUpdaterParam);
+
 KWArgs LBFGSLearner::Init(const KWArgs& kwargs) {
+  auto remain = Learner::Init(kwargs);
+  // init param
+  remain = param_.InitAllowUnknown(kwargs);
+  // init updater
+  std::shared_ptr<Updater> updater(new LBFGSUpdater());
+  remain = updater->Init(remain);
+  // init model store
+  model_store_ = Store::Create();
+  model_store_->set_updater(updater);
+  remain = model_store_->Init(remain);
+  // init data stores
+  data_store_ = new DataStore();
+  remain = model_store_->Init(remain);
+  tile_store_ = new TileStore(data_store_);
+  // init loss
+  loss_ = Loss::Create(param_.loss, nthreads_);
+  remain = loss_->Init(remain);
+  return remain;
 }
 
 void LBFGSLearner::RunScheduler() {
@@ -85,15 +106,24 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
   delete ss;
 }
 
+void LBFGSLearner::IssueJobAndWait(
+    int node_group, int job_type, const std::vector<real_t>& job_args,
+    std::vector<real_t>* job_rets) {
+
+}
+
+
 size_t LBFGSLearner::PrepareData() {
   // read train data
   Reader train(param_.data_in, param_.data_format,
                model_store_->Rank(), model_store_->NumWorkers(),
                param_.data_chunk_size);
+  size_t nrows = 0;
   tile_builder_ = new TileBuilder(tile_store_, nthreads_);
   SArray<real_t> feacnts;
   while (train.Next()) {
     auto rowblk = train.Value();
+    nrows += rowblk.size;
     tile_builder_->Add(rowblk, &feaids_, &feacnts);
     pred_.push_back(SArray<real_t>(rowblk.size));
     ++ntrain_blks_;
@@ -109,6 +139,7 @@ size_t LBFGSLearner::PrepareData() {
                param_.data_chunk_size);
     while (val.Next()) {
       auto rowblk = val.Value();
+      nrows += rowblk.size;
       tile_builder_->Add(rowblk);
       pred_.push_back(SArray<real_t>(rowblk.size));
       ++nval_blks_;
@@ -117,11 +148,12 @@ size_t LBFGSLearner::PrepareData() {
 
   // wait the previous push finished
   model_store_->Wait(t);
+  return nrows;
 }
 
 real_t LBFGSLearner::InitWorker() {
   // remove tail features
-  int filter = 0;  // TODO
+  int filter = GetUpdater()->param().tail_feature_filter;
   if (filter > 0) {
     SArray<real_t> feacnt;
     int t = model_store_->Pull(
@@ -166,11 +198,6 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
   (*status)[1] = lbfgs::Inner(grads_, directions_, nthreads_);
 }
 
-// void LBFGSLearner::Evaluate(std::vector<real_t>* prog) {
-
-
-// }
-
 real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
                               const SArray<int>& w_offset,
                               SArray<real_t>* grad) {
@@ -189,6 +216,7 @@ real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
         data, {SArray<char>(pred_[i]), SArray<char>(pos), SArray<char>(w)}, grad);
     objv += loss_->CalcObjv(data.label, pred_[i]);
   }
+  return objv;
 }
 
 SArray<int> LBFGSLearner::GetPos(const SArray<int>& offset, const SArray<int>& colmap) {
@@ -199,5 +227,9 @@ SArray<int> LBFGSLearner::GetPos(const SArray<int>& offset, const SArray<int>& c
   }
   return pos;
 }
+
+
+// void LBFGSLearner::Evaluate(std::vector<real_t>* prog) {
+// }
 
 }  // namespace difacto

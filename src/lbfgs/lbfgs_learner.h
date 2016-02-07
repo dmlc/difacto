@@ -15,7 +15,12 @@ namespace difacto {
 
 class LBFGSLearner : public Learner {
  public:
-  virtual ~LBFGSLearner() { }
+  virtual ~LBFGSLearner() {
+    delete model_store_;
+    delete data_store_;
+    delete tile_store_;
+    delete loss_;
+  }
   KWArgs Init(const KWArgs& kwargs) override;
 
  protected:
@@ -26,18 +31,22 @@ class LBFGSLearner : public Learner {
   /**
    * \brief send jobs to nodes and wait them finished.
    */
-  void IssueJobAndWait(int node_group, const lbfgs::Job& job,
-                       Tracker::Monitor monitor = nullptr);
-
   void IssueJobAndWait(int node_group,
                        int job_type,
                        const std::vector<real_t>& job_args = {},
                        std::vector<real_t>* job_rets = nullptr);
 
+  /**
+   * \brief a wrapper to above
+   */
   void IssueJobAndWait(int node_group,
                        int job_type,
                        const std::vector<real_t>& job_args,
-                       real_t* job_rets);
+                       real_t* job_rets) {
+    std::vector<real_t> rets(1);
+    IssueJobAndWait(node_group, job_type, job_args, &rets);
+    *job_rets = rets[0];
+  }
 
   /**
    * \brief preprocessing the data
@@ -59,18 +68,10 @@ class LBFGSLearner : public Learner {
    */
   real_t InitWorker();
 
-  /**
-   * \brief init server
-   *
-   * load w if load_epoch is set. otherwise, initialize w
-   *
-   * @return number of model parameters
-   */
-  size_t InitServer() { }
-
   real_t CalcGrad(const SArray<real_t>& w,
                   const SArray<int>& w_offset,
                   SArray<real_t>* grad);
+
   void LinearSearch(real_t alpha, std::vector<real_t>* status);
 
   LBFGSUpdater* GetUpdater() {
@@ -79,8 +80,8 @@ class LBFGSLearner : public Learner {
   }
 
   SArray<int> GetPos(const SArray<int>& offset, const SArray<int>& colmap);
-  LBFGSLearnerParam param_;
 
+  LBFGSLearnerParam param_;
   int nthreads_ = DEFAULT_NTHREADS;
   SArray<feaid_t> feaids_;
   SArray<real_t> weights_, grads_, directions_;

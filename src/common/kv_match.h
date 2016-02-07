@@ -68,7 +68,7 @@ namespace difacto {
  * \param dst_val the destination values.
  * \param op the assignment operator (default is ASSIGN)
  * \param num_threads number of thread (default is 2)
- * \return the number of matched kv pairs
+ * \return the number of matched values
  */
 template <typename K, typename V>
 size_t KVMatch(
@@ -97,6 +97,21 @@ size_t KVMatch(
   return n;
 }
 
+/**
+ * \brief merge with various length values
+ *
+ * if src_offset is empty, fallback to the previous fixed value length version
+ *
+ * \param src_key the source keys
+ * \param src_val the source values
+ * \param src_offset the offsets for source values, can be empty
+ * \param dst_key the destination keys
+ * \param dst_val the destination values.
+ * \param dst_offset the offsets for destination values, can be empty
+ * \param op the assignment operator (default is ASSIGN)
+ * \param num_threads number of thread (default is 2)
+ * \return the number of matched kv pairs
+ */
 template <typename K, typename I, typename V>
 size_t KVMatch(
     const SArray<K>& src_key,
@@ -107,6 +122,11 @@ size_t KVMatch(
     SArray<I>* dst_offset,
     AssignOp op = ASSIGN,
     int num_threads = DEFAULT_NTHREADS) {
+  if (src_offset.empty()) {
+    if (dst_offset) dst_offset->clear();
+    return KVMatch(src_key, src_val, dst_key, dst_val, op, num_threads);
+  }
+  LOG(FATAL) << "TODO";
   return 0;
 }
 

@@ -17,6 +17,7 @@ struct LBFGSUpdaterParam : public dmlc::Parameter<LBFGSUpdaterParam> {
     DMLC_DECLARE_FIELD(tail_feature_filter).set_default(4);
     DMLC_DECLARE_FIELD(l1).set_default(1);
     DMLC_DECLARE_FIELD(l2).set_default(.1);
+    DMLC_DECLARE_FIELD(m).set_default(10);
   }
 };
 
@@ -37,14 +38,13 @@ class LBFGSUpdater : public Updater {
 
   size_t InitWeights() {
     models_.resize(feaids_.size());
+    return models_.size();
   }
 
   void PrepareCalcDirection(real_t alpha, std::vector<real_t>* aux) {
+    if (static_cast<int>(s_.size()) > param_.m - 1) s_.erase(s_.begin());
     SArray<real_t> new_s(models_.size());
-    for (size_t i = 0; i < models_.size(); ++i) {
-      new_s[i] = alpha * models_[i];
-    }
-    if (s_.size() > param_.m - 1) s_.erase(s_.begin());
+    lbfgs::Add(alpha, models_, &new_s);
     s_.push_back(new_s);
     twoloop_.CalcIncreB(s_, y_, grads_, aux);
   }
@@ -66,11 +66,10 @@ class LBFGSUpdater : public Updater {
            SArray<real_t>* values,
            SArray<int>* offsets) override {
     if (value_type == Store::kFeaCount) {
-      values->resize(feaids.size());
-      KVMatch(feaids_, feacnts_, feaids, values);
+      KVMatch(feaids_, feacnts_, feaids, values, ASSIGN, nthreads_);
     } else if (value_type == Store::kWeight) {
-      CHECK(param_.V_dim == 0);  // TODO
-      KVMatch(feaids_, models_, feaids, values);
+      KVMatch(feaids_, models_, model_offsets_, feaids, values, offsets,
+              ASSIGN, nthreads_);
     } else {
       LOG(FATAL) << "...";
     }
@@ -81,18 +80,15 @@ class LBFGSUpdater : public Updater {
               const SArray<real_t>& values,
               const SArray<int>& offsets) override {
     if (value_type == Store::kFeaCount) {
-      feaids_ = feaids;
-      feacnts_ = values;
+      feaids_ = feaids; feacnts_ = values;
     } else if (value_type == Store::kGradient) {
       CHECK_EQ(feaids_.size(), feaids.size());
-      // update y
+      // add y = new_grad - old_grad
       if (grads_.size()) {
-        CHECK_EQ(grads_.size(), values.size());
-        SArray<real_t> new_y(grads_.size());
-        for (size_t i = 0; i < grads_.size(); ++i) {
-          new_y[i] = values[i] - grads_[i];
-        }
-        if (y_.size() > param_.m - 1) y_.erase(y_.begin());
+        if (static_cast<int>(y_.size()) == param_.m - 1) y_.erase(y_.begin());
+        SArray<real_t> new_y;
+        new_y.CopyFrom(values);
+        lbfgs::Add(-1, grads_, &new_y);
         y_.push_back(new_y);
       }
       grads_ = values;

@@ -18,7 +18,7 @@ data/localizer.o reader/batch_reader.o )
 
 DMLC_DEPS = dmlc-core/libdmlc.a
 
-all: build/difacto  build/bcd_learner_test
+all: build/difacto build/spmv_perf
 
 clean:
 	rm -rf build
@@ -46,6 +46,7 @@ dmlc-core/libdmlc.a:
 
 include tests/cpp/test.mk
 cpp-test: $(CPPTEST)
+cpp-perf: $(CPPPERF)
 
 test: cpp-test
 

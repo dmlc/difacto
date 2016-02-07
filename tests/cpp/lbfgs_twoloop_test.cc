@@ -67,7 +67,7 @@ TEST(Twoloop, basic) {
   for (int k = 0; k < 10; ++k) {
     gen_vals(n, -1, 1, &g);
 
-    if (s.size() == m-1) {
+    if (static_cast<int>(s.size()) == m-1) {
       s.erase(s.begin());
       y.erase(y.begin());
     }

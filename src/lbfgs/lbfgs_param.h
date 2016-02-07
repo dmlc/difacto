@@ -40,6 +40,10 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
     DMLC_DECLARE_FIELD(model_in).set_default("");
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
+    DMLC_DECLARE_FIELD(alpha).set_default(1);
+    DMLC_DECLARE_FIELD(c1).set_default(1e-4);
+    DMLC_DECLARE_FIELD(c2).set_default(.9);
+    DMLC_DECLARE_FIELD(rho).set_default(.8);
   }
 };
 
