@@ -51,6 +51,7 @@ class LBFGSUpdater : public Updater {
   }
 
   void PrepareCalcDirection(real_t alpha, std::vector<real_t>* aux) {
+    if (y_.empty()) return;
     if (static_cast<int>(s_.size()) > param_.m - 1) s_.erase(s_.begin());
     SArray<real_t> new_s(models_.size());
     lbfgs::Add(alpha, models_, &new_s);
@@ -65,8 +66,13 @@ class LBFGSUpdater : public Updater {
    * @return
    */
   real_t CalcDirection(const std::vector<real_t>& aux) {
-    twoloop_.ApplyIncreB(aux);
-    twoloop_.CalcDirection(s_, y_, grads_, &models_);
+    if (y_.size()) {
+      twoloop_.ApplyIncreB(aux);
+      twoloop_.CalcDirection(s_, y_, grads_, &models_);
+    } else {
+      memset(models_.data(), 0, models_.size()*sizeof(real_t));
+      lbfgs::Add(-1, grads_, &models_);
+    }
     return lbfgs::Inner(grads_, models_, nthreads_);
   }
 

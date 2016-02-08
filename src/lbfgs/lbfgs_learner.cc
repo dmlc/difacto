@@ -74,7 +74,7 @@ void LBFGSLearner::RunScheduler() {
     std::vector<real_t> prog;
     IssueJobAndWait(NodeID::kWorkerGroup, Job::kEvaluate, {}, &prog);
 
-    LL << "epoch " << epoch << ",  objv: " << objv << ", auc: " << prog[0];
+    LL << "epoch " << epoch << ",  objv: " << objv; // << ", auc: " << prog[0];
 
     // chekc stop critea
   }
@@ -92,6 +92,7 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
   } else if (type == Job::kInitWorker) {
     job_rets.push_back(InitWorker());
   } else if (type == Job::kPushGradient) {
+    directions_.clear();
     int t = CHECK_NOTNULL(model_store_)->Push(
         feaids_, Store::kGradient, grads_, model_offsets_);
     model_store_->Wait(t);
@@ -212,12 +213,9 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
     int t = CHECK_NOTNULL(model_store_)->Pull(
         feaids_, Store::kWeight, &directions_, &model_offsets_);
     model_store_->Wait(t);
-    // Add(directions_, dir_offsets, alpha, model_offsets_, &weights_);
-    model_offsets_ = dir_offsets;
-  } else {
-    // Add(directions_, model_offsets_, alpha - alpha_, model_offsets_, &weights_);
   }
   alpha_ = alpha;
+  lbfgs::Add(alpha_, directions_, &weights_);
 
   status->resize(2);
   (*status)[0] = CalcGrad(weights_, model_offsets_, &grads_);
@@ -227,7 +225,6 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
 real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
                               const SArray<int>& w_offset,
                               SArray<real_t>* grad) {
-  directions_.clear();
   for (int i = 0; i < ntrain_blks_; ++i) {
     tile_store_->Prefetch(i, 0);
   }
