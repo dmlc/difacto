@@ -73,7 +73,8 @@ class LBFGSUpdater : public Updater {
       memset(models_.data(), 0, models_.size()*sizeof(real_t));
       lbfgs::Add(-1, grads_, &models_);
     }
-    return lbfgs::Inner(grads_, models_, nthreads_);
+    for (auto& p : models_) p = p > 5 ? 5 : (p < -5 ? -5 : p);
+    return - lbfgs::Inner(grads_, models_, nthreads_);
   }
 
   void Get(const SArray<feaid_t>& feaids,

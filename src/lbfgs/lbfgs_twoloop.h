@@ -97,12 +97,12 @@ class Twoloop {
       for (int l = 0; l < 2*m_+1; ++l) {
         alpha[i] += d[l] * B_[l][i];
       }
-      alpha[i] /= B_[i][m_+i];
+      alpha[i] /= B_[i][m_+i] + 1e-10;
       d[m_+i] -= alpha[i];
     }
 
     for (int i = 0; i < 2*m_+1; ++i) {
-      d[i] *= B_[m_-1][2*m_-1] / B_[2*m_-1][2*m_-1];
+      d[i] *= B_[m_-1][2*m_-1] / (B_[2*m_-1][2*m_-1] + 1e-10);
     }
 
     for (int i = 0; i < m_; ++i) {
@@ -110,7 +110,7 @@ class Twoloop {
       for (int l = 0; l < 2*m_+1; ++l) {
         beta += d[l] * B_[m_+i][l];
       }
-      beta /= B_[i][m_+i];
+      beta /= B_[i][m_+i] + 1e-10;
       d[i] += alpha[i] - beta;
     }
   }

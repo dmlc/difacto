@@ -26,7 +26,9 @@ class StoreLocal : public Store {
            const SArray<real_t>& vals,
            const SArray<int>& lens,
            const std::function<void()>& on_complete) override {
-    updater_->Update(fea_ids, val_type, vals, lens);
+    SArray<real_t> vals_copy; vals_copy.CopyFrom(vals);
+    SArray<int> lens_copy; lens_copy.CopyFrom(lens);
+    updater_->Update(fea_ids, val_type, vals_copy, lens_copy);
     if (on_complete) on_complete();
     return time_++;
   }

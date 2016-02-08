@@ -44,6 +44,7 @@ void LBFGSLearner::RunScheduler() {
 
   real_t objv;
   IssueJobAndWait(NodeID::kWorkerGroup, Job::kInitWorker, {}, &objv);
+  LL << objv;
 
   // iterate over data
   real_t alpha = 0;
@@ -58,14 +59,21 @@ void LBFGSLearner::RunScheduler() {
 
     // line search
     alpha = param_.alpha;
+    LOG(INFO) << "epoch " << epoch << "old_objv " << objv << ", <g,p> " << gp;
+
     std::vector<real_t> status; // = {f(w+αp), <∇f(w+αp), p>}
     for (int i = 0; i < 10; ++i) {
-      IssueJobAndWait(NodeID::kServerGroup, Job::kLinearSearch, {alpha}, &status);
+      status.clear();
+      IssueJobAndWait(NodeID::kWorkerGroup, Job::kLinearSearch, {alpha}, &status);
       // check wolf condition
+      LOG(INFO) << "linesearch with alpha " << alpha
+                << ", new_objv " << status[0] << ", <g_new,p> " << status[1];
       if ((status[0] <= objv + param_.c1 * alpha * gp) &&
           (status[1] >= param_.c2 * gp)) {
+        LOG(INFO) << "wolf condition is satisfied!";
         break;
       }
+      LOG(INFO) << "wolf condition is no satisfied, decrease alpha by " << param_.rho;
       alpha *= param_.rho;
     }
 
@@ -213,13 +221,17 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
     int t = CHECK_NOTNULL(model_store_)->Pull(
         feaids_, Store::kWeight, &directions_, &model_offsets_);
     model_store_->Wait(t);
+    lbfgs::Add(alpha, directions_, &weights_);
+  } else {
+    lbfgs::Add(alpha - alpha_, directions_, &weights_);
   }
+  LL << DebugStr(weights_);
   alpha_ = alpha;
-  lbfgs::Add(alpha_, directions_, &weights_);
 
   status->resize(2);
+
   (*status)[0] = CalcGrad(weights_, model_offsets_, &grads_);
-  (*status)[1] = lbfgs::Inner(grads_, directions_, nthreads_);
+  (*status)[1] = - lbfgs::Inner(grads_, directions_, nthreads_);
 }
 
 real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
@@ -234,6 +246,8 @@ real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
     Tile tile; tile_store_->Fetch(i, 0, &tile);
     auto data = tile.data.GetBlock();
     auto pos = GetPos(w_offset, tile.colmap);
+    memset(pred_[i].data(), 0, pred_[i].size()*sizeof(real_t));
+    memset(grad->data(), 0, grad->size()*sizeof(real_t));
     loss_->Predict(data, {SArray<char>(w), SArray<char>(pos)}, &pred_[i]);
     loss_->CalcGrad(
         data, {SArray<char>(pred_[i]), SArray<char>(pos), SArray<char>(w)}, grad);
