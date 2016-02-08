@@ -7,13 +7,14 @@
 #include "difacto/tracker.h"
 #include "./async_local_tracker.h"
 namespace difacto {
-
 /**
  * \brief an implementation of the tracker which only runs within a local
  * process
  */
 class LocalTracker : public Tracker {
  public:
+  typedef std::pair<int, std::string> Job;
+
   LocalTracker() {
     tracker_ = new AsyncLocalTracker<Job, Job>();
   }
@@ -21,7 +22,6 @@ class LocalTracker : public Tracker {
 
   KWArgs Init(const KWArgs& kwargs) override { return kwargs; }
 
-  typedef std::pair<int, std::string> Job;
 
   void Issue(const std::vector<Job>& jobs) override {
     if (!tracker_) tracker_ = new AsyncLocalTracker<Job, Job>();

@@ -43,7 +43,6 @@ class TileStore {
     auto id = std::to_string(rowblk_id);
     auto rg = colblk_pos_[rowblk_id][colblk_id];
     data_->Prefetch(id + "_data", rg);
-    data_->Prefetch(id + "_label");
     data_->Prefetch(id + "_colmap", rg);
   }
 
@@ -52,7 +51,6 @@ class TileStore {
     auto rg = colblk_pos_[rowblk_id][colblk_id];
     CHECK_NOTNULL(tile);
     data_->Fetch(id + "_data", &tile->data, rg);
-    data_->Fetch(id + "_label", &tile->data.label);
     data_->Fetch(id + "_colmap", &tile->colmap, rg);
   }
 

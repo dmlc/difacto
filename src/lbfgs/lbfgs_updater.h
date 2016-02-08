@@ -37,7 +37,16 @@ class LBFGSUpdater : public Updater {
   void Save(bool save_aux, dmlc::Stream *fo) const override { }
 
   size_t InitWeights() {
+    if (param_.tail_feature_filter > 0) {
+      SArray<feaid_t> filtered_ids;
+      SArray<real_t> filtered_cnts;
+      lbfgs::RemoveTailFeatures(feaids_, feacnts_, param_.tail_feature_filter, &filtered_ids);
+      KVMatch(feaids_, feacnts_, filtered_ids, &filtered_cnts, ASSIGN, nthreads_);
+      feaids_ = filtered_ids;
+      feacnts_ = filtered_cnts;
+    }
     models_.resize(feaids_.size());
+
     return models_.size();
   }
 
@@ -68,6 +77,7 @@ class LBFGSUpdater : public Updater {
     if (value_type == Store::kFeaCount) {
       KVMatch(feaids_, feacnts_, feaids, values, ASSIGN, nthreads_);
     } else if (value_type == Store::kWeight) {
+      feacnts_.clear();
       KVMatch(feaids_, models_, model_offsets_, feaids, values, offsets,
               ASSIGN, nthreads_);
     } else {

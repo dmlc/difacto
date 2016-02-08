@@ -54,7 +54,7 @@ void test(int n, int k) {
   gen_vals(key1.size()*k, -100, 100, &val1);
   gen_vals(key2.size()*k, -100, 100, &val2);
 
-  KVUnion(key1, val1, key2, val2, &jkey1, &jval1, k, PLUS, 4);
+  KVUnion(key1, val1, key2, val2, &jkey1, &jval1, PLUS, 4);
   KVUnionRefer(key1, val1, key2, val2, &jkey2, &jval2, k);
 
   EXPECT_EQ(jval1.size(), jval2.size());

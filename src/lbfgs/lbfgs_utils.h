@@ -22,15 +22,17 @@ struct Job {
   std::vector<real_t> value;
 
   void SerializeToString(std::string* str) const {
-    // dmlc::MemoryStringStream ss(str);
-    // ss.Write(type);
-    // ss.Write(value);
+    dmlc::Stream* ss = new dmlc::MemoryStringStream(str);
+    ss->Write(type);
+    ss->Write(value);
+    delete ss;
   }
   void ParseFromString(const std::string& str) {
-    // auto pstr = str;
-    // dmlc::MemoryStringStream ss(&pstr);
-    // ss.Read(&type);
-    // ss.Read(&value);
+    auto copy = str;
+    dmlc::Stream* ss = new dmlc::MemoryStringStream(&copy);
+    ss->Read(&type);
+    ss->Read(&value);
+    delete ss;
   }
 };
 
@@ -60,6 +62,21 @@ inline void Add(real_t x, const SArray<real_t>& a,
   real_t *bp = b->data();
 #pragma omp parallel for num_threads(nthreads)
   for (size_t i = 0; i < a.size(); ++i) bp[i] += x * ap[i];
+}
+
+inline void RemoveTailFeatures(const SArray<feaid_t>& feaids,
+                               const SArray<real_t>& feacnts,
+                               real_t threshold,
+                               SArray<feaid_t>* filtered) {
+  CHECK_EQ(feaids.size(), feacnts.size());
+  size_t n = 0;
+  for (size_t i = 0; i < feaids.size(); ++i) if (feacnts[i] > threshold) ++n;
+  filtered->resize(n);
+  feaid_t* f = filtered->data();
+  n = 0;
+  for (size_t i = 0; i < feaids.size(); ++i) {
+    if (feacnts[i] > threshold) f[n++] = feaids[i];
+  }
 }
 
 }  // namespace lbfgs

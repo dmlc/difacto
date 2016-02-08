@@ -28,12 +28,15 @@ namespace difacto {
 template<typename JobArgs, typename JobRets = std::string>
 class AsyncLocalTracker {
  public:
-  AsyncLocalTracker() : thread_(&AsyncLocalTracker::RunExecutor, this) { }
+  AsyncLocalTracker() {
+    thread_ = new std::thread(&AsyncLocalTracker::RunExecutor, this);
+  }
   ~AsyncLocalTracker() {
     Wait();
     done_ = true;
     run_cond_.notify_one();
-    thread_.join();
+    thread_->join();
+    delete thread_;
   }
 
   /**
@@ -140,7 +143,7 @@ class AsyncLocalTracker {
   int cur_id_ = 0;
   std::mutex mu_;
   std::condition_variable run_cond_, fin_cond_;
-  std::thread thread_;
+  std::thread* thread_;
   Executor executor_;
   Monitor monitor_;
   std::queue<JobArgs> pending_;

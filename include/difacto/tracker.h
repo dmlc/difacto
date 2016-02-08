@@ -50,7 +50,7 @@ class Tracker {
    * This function returns immediately once the job is queued. Use
    * \ref NumRemains to query if or not the job is finished.
    *
-   * \param node_id the node id of the executor
+   * \param node_id the node id of the executor, can be a group id
    * \param args the job arguments
    */
   void Issue(int node_id, std::string args) {
@@ -61,6 +61,7 @@ class Tracker {
    * \param jobs the jobs to add
    */
   virtual void Issue(const std::vector<std::pair<int, std::string>>& jobs) = 0;
+
   /**
    * \brief return the number of unfinished job
    */
@@ -75,7 +76,7 @@ class Tracker {
   /**
    * \brief stop the tracker
    *
-   * it first wait all jobs are done, and then issue a STOP job to all executors
+   * it first wait all jobs are done, and then issue a STOP signals to all executors
    * and wait they are done
    */
   virtual void Stop() = 0;
