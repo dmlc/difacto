@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #include <gtest/gtest.h>
 #include "common/spmt.h"
 #include "loss/logit_loss_delta.h"

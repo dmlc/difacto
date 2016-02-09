@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_COMMON_KV_MATCH_H_
 #define DIFACTO_COMMON_KV_MATCH_H_
 #include <vector>

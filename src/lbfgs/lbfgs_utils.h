@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _LBFGS_UTILS_H_
 #define _LBFGS_UTILS_H_
 #include "dmlc/memory_io.h"

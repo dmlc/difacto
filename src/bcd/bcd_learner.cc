@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #include "./bcd_learner.h"
 #include <algorithm>
 #include <cmath>

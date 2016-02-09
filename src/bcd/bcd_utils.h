@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _BCD_UTILS_H_
 #define _BCD_UTILS_H_
 #include <mutex>

@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_TRACKER_DIST_TRACKER_H_
 #define DIFACTO_TRACKER_DIST_TRACKER_H_
 namespace difacto {

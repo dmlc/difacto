@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _LBFGS_PARAM_H_
 #define _LBFGS_PARAM_H_
 #include "dmlc/parameter.h"

@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _BCD_PARAM_H_
 #define _BCD_PARAM_H_
 #include "dmlc/parameter.h"

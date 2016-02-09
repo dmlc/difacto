@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #include <cstring>
 #include "dmlc/data.h"
 #include "dmlc/omp.h"

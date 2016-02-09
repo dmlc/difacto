@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _VECTOR_FREE_H_
 #define _VECTOR_FREE_H_
 #include "./lbfgs_utils.h"

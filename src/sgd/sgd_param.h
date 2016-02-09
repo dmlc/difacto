@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _SGD_PARAM_H_
 #define _SGD_PARAM_H_
 #include "dmlc/parameter.h"

@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _KV_MATCH_INL_H_
 #define _KV_MATCH_INL_H_
 namespace difacto {

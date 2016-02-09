@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DEFACTO_SGD_SGD_LEARNER_H_
 #define DEFACTO_SGD_SGD_LEARNER_H_
 #include <stdlib.h>

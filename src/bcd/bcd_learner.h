@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DEFACTO_LEARNER_BCD_LEARNER_H_
 #define DEFACTO_LEARNER_BCD_LEARNER_H_
 #include "difacto/learner.h"

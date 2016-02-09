@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _LBFGS_UPDATER_H_
 #define _LBFGS_UPDATER_H_
 #include "./lbfgs_twoloop.h"

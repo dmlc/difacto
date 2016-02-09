@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _TILE_BUILDER_H_
 #define _TILE_BUILDER_H_
 #include "common/kv_union.h"

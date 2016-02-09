@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #include "./utils.h"
 #include "common/arg_parser.h"
 #include "common/spmv.h"

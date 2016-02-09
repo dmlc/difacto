@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #include <gtest/gtest.h>
 #include "dmlc/memory_io.h"
 #include "data/data_store.h"

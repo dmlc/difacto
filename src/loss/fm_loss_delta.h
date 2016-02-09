@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _FM_LOSS_DELTA_H_
 #define _FM_LOSS_DELTA_H_
 #include "difacto/sarray.h"

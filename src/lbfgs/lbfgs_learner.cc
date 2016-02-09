@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #include "./lbfgs_learner.h"
 #include "./lbfgs_utils.h"
 #include "dmlc/memory_io.h"

@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_COMMON_FIND_POSITION_H_
 #define DIFACTO_COMMON_FIND_POSITION_H_
 #include <vector>

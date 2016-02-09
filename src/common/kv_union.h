@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_COMMON_KV_UNION_H_
 #define DIFACTO_COMMON_KV_UNION_H_
 #include <vector>

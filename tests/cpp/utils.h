@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_TEST_CPP_UTILS_H_
 #define DIFACTO_TEST_CPP_UTILS_H_
 #include <random>

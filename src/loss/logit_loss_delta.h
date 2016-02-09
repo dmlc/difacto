@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _LOGIT_LOSS_DELTA_H_
 #define _LOGIT_LOSS_DELTA_H_
 #include <cmath>

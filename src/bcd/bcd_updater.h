@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _BCD_UPDATER_H_
 #define _BCD_UPDATER_H_
 #include <string>

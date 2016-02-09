@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_DATA_DATA_STORE_H_
 #define DIFACTO_DATA_DATA_STORE_H_
 #include <utility>

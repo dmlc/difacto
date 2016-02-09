@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _SGD_JOB_H_
 #define _SGD_JOB_H_
 #include <string>

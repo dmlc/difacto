@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef _TILE_STORE_H_
 #define _TILE_STORE_H_
 #include "dmlc/data.h"

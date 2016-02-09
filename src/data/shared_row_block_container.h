@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_DATA_SHARED_ROW_BLOCK_CONTAINER_H_
 #define DIFACTO_DATA_SHARED_ROW_BLOCK_CONTAINER_H_
 #include <vector>

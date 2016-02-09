@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_LBFGS_LBFGS_LEARNER_H_
 #define DIFACTO_LBFGS_LBFGS_LEARNER_H_
 #include <string>
