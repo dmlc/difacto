@@ -74,7 +74,7 @@ class LBFGSUpdater : public Updater {
       lbfgs::Add(-1, grads_, &models_);
     }
     for (auto& p : models_) p = p > 5 ? 5 : (p < -5 ? -5 : p);
-    return - lbfgs::Inner(grads_, models_, nthreads_);
+    return lbfgs::Inner(grads_, models_, nthreads_);
   }
 
   void Get(const SArray<feaid_t>& feaids,

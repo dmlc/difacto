@@ -1,7 +1,7 @@
 load data
 a = sum(abs(x));
 X = x(:,a~=0);
-c
+
 %%
 load rcv1
 y = Y;
