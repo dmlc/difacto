@@ -81,6 +81,7 @@ class Loss {
     CHECK_GT(nthreads, 1); CHECK_LT(nthreads, 50);
     nthreads_ = nthreads;
   }
+
  protected:
   int nthreads_;
 };

@@ -1,5 +1,8 @@
-#ifndef _SARRAY_H_
-#define _SARRAY_H_
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
+#ifndef DIFACTO_SARRAY_H_
+#define DIFACTO_SARRAY_H_
 #include "ps/sarray.h"
 namespace difacto {
 
@@ -32,4 +35,4 @@ template <typename T>
 using SArray = ps::SArray<T>;
 
 }  // namespace difacto
-#endif  // _SARRAY_H_
+#endif  // DIFACTO_SARRAY_H_

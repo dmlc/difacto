@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_REPORTER_H_
 #define DIFACTO_REPORTER_H_
 #include <string>

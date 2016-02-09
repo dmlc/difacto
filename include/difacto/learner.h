@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_LEARER_H_
-#define DIFACTO_LEARER_H_
+#ifndef DIFACTO_LEANRER_H_
+#define DIFACTO_LEANRER_H_
 #include <string.h>
 #include <string>
 #include <functional>

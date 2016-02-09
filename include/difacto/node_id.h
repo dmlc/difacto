@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_NODE_ID_H_
 #define DIFACTO_NODE_ID_H_
 namespace difacto {
@@ -5,7 +8,7 @@ namespace difacto {
 class NodeID {
  public:
   /** \brief node ID for the scheduler */
-  const static int kScheduler = 1;
+  static const int kScheduler = 1;
   /**
    * \brief the server node group ID
    *
@@ -13,10 +16,9 @@ class NodeID {
    * - kServerGroup + kScheduler means all server nodes and the scheuduler
    * - kServerGroup + kWorkerGroup means all server and worker nodes
    */
-  const static int kServerGroup = 2;
-
+  static const int kServerGroup = 2;
   /** \brief the worker node group ID */
-  const static int kWorkerGroup = 4;
+  static const int kWorkerGroup = 4;
 
   static int Encode(int group, int rank) {
     return group + (rank+1) * 8;
@@ -26,7 +28,6 @@ class NodeID {
   static int GetGroup(int id) {
     return (id % 8);
   }
-
 };
 }  // namespace difacto
 
