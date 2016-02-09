@@ -3,28 +3,12 @@
 #include <utility>
 #include <memory>
 #include <vector>
-#include <unordered_set>
 #include <unordered_map>
 #include "common/range.h"
-#include "dmlc/data.h"
-#include "dmlc/parameter.h"
+#include "dmlc/io.h"
 #include "./data_store_impl.h"
-#include "./shared_row_block_container.h"
 #include "difacto/sarray.h"
 namespace difacto {
-
-/** \brief parameters for data store */
-struct DataStoreParam : public dmlc::Parameter<DataStoreParam> {
-  /** \brief the prefix to store the data cache */
-  std::string data_cache_prefix;
-  /** \brief the maximal memory data store can used. in default no limits */
-  std::string max_data_store_memory;
-  DMLC_DECLARE_PARAMETER(DataStoreParam) {
-    DMLC_DECLARE_FIELD(data_cache_prefix);
-    DMLC_DECLARE_FIELD(max_data_store_memory);
-  }
-};
-
 /**
  * \brief data store can be used to store and fetch data. Once the stored data
  * exceed the maximal memory cacapcity, it will dump data into disks
@@ -38,22 +22,13 @@ class DataStore {
   /**
    * \brief create a data store
    *
-   * @param store_prefix , such as
-   * /tmp/store_. If not specified, then keep all things in memory
+   * @param store_prefix , such as /tmp/store_. If not specified, then keep all
+   * things in memory
    * @param max_mem_capacity  in default no limits
    */
   DataStore() { store_ = new DataStoreMemory(); }
   /** \brief deconstructor */
   virtual ~DataStore() { delete store_; }
-  /**
-   * \brief init
-   *
-   * @param kwargs keyword arguments
-   * @return the unknown kwargs
-   */
-  KWArgs Init(const KWArgs& kwargs) {
-    return kwargs;
-  }
   /**
    * \brief copy data into the store, overwrite the previous data if key exists.
    *
@@ -75,148 +50,108 @@ class DataStore {
    */
   template <typename V>
   void Store(const std::string& key, const SArray<V>& data) {
-    DataType type;
-    type.code = typeid(V).hash_code();
-    type.size = sizeof(V);
-    data_types_[key] = type;
+    DataMeta meta;
+    meta.type_code = typeid(V).hash_code();
+    meta.type_size = sizeof(V);
+    meta.data_size = data.size();
+    data_meta_[key] = meta;
     store_->Store(key, SArray<char>(data));
   }
   /**
    * \brief pull data from the store
    *
-   * \code
-   * int data[] = {0,1,2,3};
-   * Store(0, data, 4);
-   * auto ret = Fetch(Range(1,3));
+   * \type_code
+   * SArray<int> data = {0,1,2,3}, ret;
+   * Store("data", data);
+   * Fetch("data", &ret, Range(1,3));
    * EXPECT_EQ(ret[0], 1);
    * EXPECT_EQ(ret[0], 2);
-   * \endcode
+   * \endtype_code
    *
    * @param key the unique key
-   * @param range an optional range for pulling
-   *
-   * @return the data
+   * @param data the feteched data
+   * @param range an optional range for fetching
    */
   template <typename V>
   void Fetch(const std::string& key, SArray<V>* data, Range range = Range::All()) {
     auto char_range = GetCharRange(key, range);
-    CHECK_EQ(data_types_[key].code, typeid(V).hash_code());
+    CHECK_EQ(data_meta_[key].type_code, typeid(V).hash_code());
     SArray<char> char_data;
     store_->Fetch(key, char_range, &char_data);
     *CHECK_NOTNULL(data) = char_data;
   }
   /**
-   * \brief give a hit to the store what will be pulled next.
+   * \brief give a hit to the store what will be fetched in a near future.
    *
    * the store may use the hint to perform data pretech
+   *
    * @param key the unique key
    * @param range an optional range
    */
-  virtual void Prefetch(const std::string& key, Range range = Range::All()) {
-    if (IsRowBlockKey(key)) {
-      auto keys = GetRowBlockKeys(key);
-      Range rg1 = range == Range::All() ? range
-                  : Range(range.begin, range.end+1) * sizeof(size_t);
-      store_->Prefetch(keys[0], rg1, [this, key, keys, range](const SArray<char>& data) {
-          SArray<size_t> offset(data);
-          Range rg = Range(offset.front(), offset.back());
-          store_->Prefetch(keys[3], GetCharRange(keys[3], rg));
-          store_->Prefetch(keys[4], GetCharRange(keys[4], rg));
-        });
-      store_->Prefetch(keys[1], GetCharRange(keys[1], range));
-      store_->Prefetch(keys[2], GetCharRange(keys[2], range));
-    } else {
-      store_->Prefetch(key, GetCharRange(key, range));
-    }
+  void Prefetch(const std::string& key, Range range = Range::All()) {
+    store_->Prefetch(key, GetCharRange(key, range));
   }
   /**
    * \brief remove data from the store
    * \param key the unique key of the data
    */
-  virtual void Remove(const std::string& key) {
-    if (IsRowBlockKey(key)) {
-      for (const auto& s : GetRowBlockKeys(key)) {
-        store_->Remove(s);
-      }
-    } else {
-      store_->Remove(key);
-    }
-  }
-  /**
-   * \brief copy a rowblock into the store
-   *
-   * @param key the unique key
-   * @param data the rowblock
-   */
-  template <typename T>
-  void Store(const std::string& key, const dmlc::RowBlock<T>& data) {
-    SharedRowBlockContainer<T> blk(data);
-    Store(key, blk);
-  }
-  /**
-   * \brief push a shared rowblock container into the store (no memory copy)
-   *
-   * @param key the unique key
-   * @param data the rowblock container
-   */
-  template <typename T>
-  void Store(const std::string& key, const SharedRowBlockContainer<T>& data) {
-    rowblk_keys_.insert(key);
-    CHECK_EQ(data.offset[0], 0);
-    auto keys = GetRowBlockKeys(key);
-    Store(keys[0], data.offset);
-    Store(keys[1], data.label);
-    Store(keys[2], data.weight);
-    Store(keys[3], data.index);
-    Store(keys[4], data.value);
-  }
-  /**
-   * \brief pull rowblock from the store
-   *
-   * @param key the unique key
-   * @param range an optional row range for pulling
-   * @param data the pulled data
-   */
-  template <typename T>
-  void Fetch(const std::string& key, SharedRowBlockContainer<T>* data,
-            Range range = Range::All()) {
-    CHECK_NOTNULL(data);
-    CHECK(IsRowBlockKey(key));
-    auto keys = GetRowBlockKeys(key);
-    Range rg1 = range == Range::All() ? range
-                : Range(range.begin, range.end+1);
-    Fetch(keys[0], &data->offset, rg1);
-    Fetch(keys[1], &data->label, range);
-    Fetch(keys[2], &data->weight, range);
-    Range rg3 = Range(data->offset[0], data->offset.back());
-    Fetch(keys[3], &data->index, rg3);
-    Fetch(keys[4], &data->value, rg3);
-    if (rg3.begin != 0) {
-      SArray<size_t> offset; offset.CopyFrom(data->offset);
-      for (size_t& o : offset) o -= rg3.begin;
-      data->offset = offset;
-    }
+  void Remove(const std::string& key) { store_->Remove(key); }
 
+  /** \brief load meta data */
+  void Load(dmlc::Stream *fi) {
+    dmlc::istream is(fi);
+    std::string header;
+    is >> header;
+    CHECK_EQ(header, meta_header_) << "invalid meta header";
+    size_t size; is >> size;
+    for (size_t i = 0; i < size; ++i) {
+      std::string key; is >> key;
+      DataMeta meta; is >> meta.data_size >> meta.type_code >> meta.type_size;
+      data_meta_[key] = meta;
+    }
+  }
+
+  /** \brief save meta data */
+  void Save(dmlc::Stream *fo) const {
+    dmlc::ostream os(fo);
+    os << meta_header_ << "\t";
+    os << data_meta_.size() << "\n";
+    for (const auto it : data_meta_) {
+      os << it.first << "\t" << it.second.data_size << "\t"
+         << it.second.type_code << "\t" << it.second.type_size << "\n";
+    }
+  }
+
+  /**
+   * \brief return the data size of a key
+   **/
+  size_t size(const std::string& key) const {
+    auto it = data_meta_.find(key);
+    CHECK(it != data_meta_.end()) << "key " << key << " dosen't exist";
+    return it->second.data_size;
   }
 
  private:
-  std::vector<std::string> GetRowBlockKeys(const std::string& key) {
-    return {key+"_offset", key+"_label", key+"_weight", key+"_index", key+"_value"};
-  }
-
-  inline bool IsRowBlockKey(const std::string& key) {
-    return rowblk_keys_.count(key) != 0;
-  }
-
   inline Range GetCharRange(const std::string& key, Range range) {
-    auto it = data_types_.find(key);
-    CHECK(it != data_types_.end()) << "key " << key << " dosen't exist";
-    return (range == Range::All() ? range : range * it->second.size);
+    CHECK(range.Valid());
+    size_t siz = size(key);
+    if (range == Range::All()) range = Range(0, siz);
+    CHECK_LE(range.end, siz);
+    return range * data_meta_[key].type_size;
   }
-  std::unordered_set<std::string> rowblk_keys_;
-  struct DataType { size_t code; size_t size; };
-  std::unordered_map<std::string, DataType> data_types_;
+
+  struct DataMeta {
+    /** \brief data size */
+    size_t data_size;
+    /** \brief type type_code */
+    size_t type_code;
+    /** \brief sizeof(type) */
+    size_t type_size;
+  };
+  std::unordered_map<std::string, DataMeta> data_meta_;
   DataStoreImpl* store_;
+  const std::string meta_header_ = "data_store_meta(key,value_size,type_code,type_size)";
+
 };
 
 }  // namespace difacto

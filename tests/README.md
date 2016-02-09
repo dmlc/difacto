@@ -27,6 +27,3 @@ dataset in libsvm format
   cd ../build
   find *_test -exec ./{} \;
   ```
-
-
-## travis

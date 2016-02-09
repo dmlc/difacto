@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
+#include "dmlc/memory_io.h"
 #include "data/data_store.h"
-#include "reader/batch_reader.h"
 #include "./utils.h"
 
 using namespace difacto;
@@ -43,19 +43,34 @@ TEST(DataStore, MemBase) {
   EXPECT_EQ(norm2(val2), norm2(ret4));
 }
 
-TEST(DataStore, RowBlock) {
-  BatchReader reader("../tests/data", "libsvm", 0, 1, 100);
-  CHECK(reader.Next());
-  auto data = reader.Value();
-
+TEST(DataStore, Meta) {
   DataStore store;
-  store.Store("1", data);
+  int n = 1000;
+  SArray<real_t> val1;
+  SArray<int> val2;
+  SArray<uint64_t> val3;
+  gen_vals(n, -100, 100, &val1);
+  gen_vals(n, -100, 100, &val2);
+  gen_vals(n, -100, 100, &val3);
 
-  SharedRowBlockContainer<feaid_t> blk1;
-  store.Fetch("1", &blk1);
-  check_equal(data, blk1.GetBlock());
 
-  SharedRowBlockContainer<feaid_t> blk2;
-  store.Fetch("1", &blk2, Range(10, 40));
-  check_equal(data.Slice(10, 40), blk2.GetBlock());
+  store.Store("1", val1);
+  store.Store("2", val2);
+  store.Store("3", val3);
+
+  std::string meta;
+  dmlc::Stream* os = new dmlc::MemoryStringStream(&meta);
+  store.Save(os);
+  delete os;
+
+  LL << meta;
+
+  DataStore store2;
+  dmlc::Stream* is = new dmlc::MemoryStringStream(&meta);
+  store2.Load(is);
+  delete is;
+
+  EXPECT_EQ(store2.size("1"), n);
+  EXPECT_EQ(store2.size("2"), n);
+  EXPECT_EQ(store2.size("3"), n);
 }

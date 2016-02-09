@@ -41,11 +41,11 @@ class TileBuilder {
 
       SharedRowBlockContainer<unsigned> data(&transposed);
       data.label.CopyFrom(rowblk.label, rowblk.size);
-      store_->data_->Store(std::to_string(id) + "_data", data);
+      // store_->data_->Store(std::to_string(id) + "_data", data);
       delete transposed;
     } else {
       SharedRowBlockContainer<unsigned> data(&compacted);
-      store_->data_->Store(std::to_string(id) + "_data", data);
+      // store_->data_->Store(std::to_string(id) + "_data", data);
       delete compacted;
     }
 

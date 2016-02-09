@@ -60,8 +60,7 @@ inline feaid_t EncodeFeaGrpID(feaid_t x, int gid, int nbits = 12) {
  * @return the feature group id
  */
 inline feaid_t DecodeFeaGrpID(feaid_t x, int nbits = 12) {
-  int feabits = 64 - nbits;
-  return (x << feabits) >> feabits;
+  return x % (1 << nbits);
 }
 /**
  * \brief returns true if it is currently under distributed running
