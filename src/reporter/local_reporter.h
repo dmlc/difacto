@@ -1,6 +1,7 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
+#include <string>
 #ifndef DIFACTO_REPORTER_LOCAL_REPORTER_H_
 #define DIFACTO_REPORTER_LOCAL_REPORTER_H_
 namespace difacto {

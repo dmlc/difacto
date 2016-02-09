@@ -1,8 +1,8 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_TRACKER_ASYNC_LOCAL_RACKER_H_
-#define DIFACTO_TRACKER_ASYNC_LOCAL_RACKER_H_
+#ifndef DIFACTO_TRACKER_ASYNC_LOCAL_TRACKER_H_
+#define DIFACTO_TRACKER_ASYNC_LOCAL_TRACKER_H_
 #include <vector>
 #include <utility>
 #include <unordered_map>
@@ -153,4 +153,4 @@ class AsyncLocalTracker {
 
 
 }  // namespace difacto
-#endif  // DIFACTO_TRACKER_ASYNC_LOCAL_RACKER_H_
+#endif  // DIFACTO_TRACKER_ASYNC_LOCAL_TRACKER_H_

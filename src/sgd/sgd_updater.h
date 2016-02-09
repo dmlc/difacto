@@ -3,8 +3,8 @@
  * @file   sgd.h
  * @brief  the stochastic gradient descent solver
  */
-#ifndef DIFACTO_UPDATER_SGD_UPDATER_H_
-#define DIFACTO_UPDATER_SGD_UPDATER_H_
+#ifndef DIFACTO_SGD_SGD_UPDATER_H_
+#define DIFACTO_SGD_SGD_UPDATER_H_
 #include <string>
 #include <vector>
 #include <limits>
@@ -159,6 +159,7 @@ class SGDUpdater : public Updater {
               int value_type,
               const SArray<real_t>& values,
               const SArray<int>& offsets) override;
+
  private:
   /** \brief update w by FTRL */
   void UpdateW(real_t gw, SGDEntry* e);
@@ -180,4 +181,4 @@ class SGDUpdater : public Updater {
 
 
 }  // namespace difacto
-#endif  // DIFACTO_UPDATER_SGD_UPDATER_H_
+#endif  // DIFACTO_SGD_SGD_UPDATER_H_

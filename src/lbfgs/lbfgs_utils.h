@@ -1,8 +1,10 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _LBFGS_UTILS_H_
-#define _LBFGS_UTILS_H_
+#ifndef DIFACTO_LBFGS_LBFGS_UTILS_H_
+#define DIFACTO_LBFGS_LBFGS_UTILS_H_
+#include <string>
+#include <vector>
 #include "dmlc/memory_io.h"
 #include "dmlc/omp.h"
 #include "difacto/base.h"
@@ -73,7 +75,8 @@ inline void RemoveTailFeatures(const SArray<feaid_t>& feaids,
                                SArray<feaid_t>* filtered) {
   CHECK_EQ(feaids.size(), feacnts.size());
   size_t n = 0;
-  for (size_t i = 0; i < feaids.size(); ++i) if (feacnts[i] > threshold) ++n;
+  for (size_t i = 0; i < feaids.size(); ++i)
+    if (feacnts[i] > threshold) ++n;
   filtered->resize(n);
   feaid_t* f = filtered->data();
   n = 0;
@@ -84,4 +87,4 @@ inline void RemoveTailFeatures(const SArray<feaid_t>& feaids,
 
 }  // namespace lbfgs
 }  // namespace difacto
-#endif  // _LBFGS_UTILS_H_
+#endif  // DIFACTO_LBFGS_LBFGS_UTILS_H_

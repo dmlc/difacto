@@ -3,8 +3,8 @@
  * @file   adfea_parser.h
  * @brief  parse adfea ctr data format
  */
-#ifndef DIFACTO_DATA_ADFEA_PARSER_H_
-#define DIFACTO_DATA_ADFEA_PARSER_H_
+#ifndef DIFACTO_READER_ADFEA_PARSER_H_
+#define DIFACTO_READER_ADFEA_PARSER_H_
 #include <limits>
 #include <vector>
 #include "difacto/base.h"
@@ -91,4 +91,4 @@ class AdfeaParser : public dmlc::data::ParserImpl<feaid_t> {
 };
 
 }  // namespace difacto
-#endif  // DIFACTO_DATA_ADFEA_PARSER_H_
+#endif  // DIFACTO_READER_ADFEA_PARSER_H_

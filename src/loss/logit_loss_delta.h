@@ -1,9 +1,10 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _LOGIT_LOSS_DELTA_H_
-#define _LOGIT_LOSS_DELTA_H_
+#ifndef DIFACTO_LOSS_LOGIT_LOSS_DELTA_H_
+#define DIFACTO_LOSS_LOGIT_LOSS_DELTA_H_
 #include <cmath>
+#include <vector>
 #include "difacto/loss.h"
 #include "difacto/sarray.h"
 #include "common/range.h"
@@ -139,7 +140,7 @@ class LogitLossDelta : public Loss {
       LOG(FATAL) << "...";
       CHECK_EQ(psize, 3);
       SArray<real_t> delta(param[2]);
-      // TODO
+      // TODO(mli)
     } else {
       LOG(FATAL) << "...";
     }
@@ -149,5 +150,5 @@ class LogitLossDelta : public Loss {
   LogitLossDeltaParam param_;
 };
 
-} // namespace difacto
-#endif  // _LOGIT_LOSS_DELTA_H_
+}  // namespace difacto
+#endif  // DIFACTO_LOSS_LOGIT_LOSS_DELTA_H_

@@ -5,6 +5,7 @@
 #define DIFACTO_COMMON_KV_MATCH_H_
 #include <vector>
 #include <thread>
+#include <algorithm>
 #include "dmlc/logging.h"
 #include "./range.h"
 #include "difacto/base.h"
@@ -34,7 +35,7 @@ inline void AssignFunc(const T& lhs, AssignOp op, T* rhs) {
     case MINUS: *rhs -= lhs; break;
     case TIMES: *rhs *= lhs; break;
     case DIVIDE: *rhs /= lhs; break;
-    default: LOG(FATAL) << "use AssignOpInt.." ;
+    default: LOG(FATAL) << "use AssignOpInt..";
   }
 }
 }  // namespace difacto

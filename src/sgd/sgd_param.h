@@ -1,8 +1,9 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _SGD_PARAM_H_
-#define _SGD_PARAM_H_
+#ifndef DIFACTO_SGD_SGD_PARAM_H_
+#define DIFACTO_SGD_SGD_PARAM_H_
+#include <string>
 #include "dmlc/parameter.h"
 namespace difacto {
 /**
@@ -50,4 +51,4 @@ struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
   }
 };
 }  // namespace difacto
-#endif  // _SGD_PARAM_H_
+#endif  // DIFACTO_SGD_SGD_PARAM_H_

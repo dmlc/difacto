@@ -1,8 +1,8 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_DATA_MATCH_FILE_H_
-#define DIFACTO_DATA_MATCH_FILE_H_
+#ifndef DIFACTO_READER_MATCH_FILE_H_
+#define DIFACTO_READER_MATCH_FILE_H_
 #include <regex.h>
 #include <vector>
 #include <string>
@@ -54,4 +54,4 @@ inline void MatchFile(const std::string& pattern,
 }
 
 }  // namespace difacto
-#endif  // DIFACTO_DATA_MATCH_FILE_H_
+#endif  // DIFACTO_READER_MATCH_FILE_H_

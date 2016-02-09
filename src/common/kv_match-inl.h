@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _KV_MATCH_INL_H_
-#define _KV_MATCH_INL_H_
+#ifndef DIFACTO_COMMON_KV_MATCH_INL_H_
+#define DIFACTO_COMMON_KV_MATCH_INL_H_
 namespace difacto {
 
 /**
@@ -35,16 +35,16 @@ void KVMatch(
   if (dst_len <= grainsize) {
     while (dst_key != dst_key_end && src_key != src_key_end) {
       if (*src_key < *dst_key) {
-        ++ src_key; src_val += k;
+        ++src_key; src_val += k;
       } else {
         if (!(*dst_key < *src_key)) {  // equal
           for (int i = 0; i < k; ++i) {
             AssignFunc(src_val[i], op, &dst_val[i]);
           }
-          ++ src_key; src_val += k;
+          ++src_key; src_val += k;
           *n += k;
         }
-        ++ dst_key; dst_val += k;
+        ++dst_key; dst_val += k;
       }
     }
   } else {
@@ -55,7 +55,7 @@ void KVMatch(
     size_t m = 0;
     KVMatch<K, V>(
         src_key, src_key_end, src_val,
-        dst_key + dst_len / 2, dst_key_end, dst_val + ( dst_len / 2 ) * k,
+        dst_key + dst_len / 2, dst_key_end, dst_val + (dst_len / 2) * k,
         k, op, grainsize, &m);
     thr.join();
     *n += m;
@@ -63,4 +63,4 @@ void KVMatch(
 }
 
 }  // namespace difacto
-#endif  // _KV_MATCH_INL_H_
+#endif  // DIFACTO_COMMON_KV_MATCH_INL_H_

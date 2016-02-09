@@ -4,6 +4,8 @@
 #ifndef DIFACTO_TRACKER_LOCAL_TRACKER_H_
 #define DIFACTO_TRACKER_LOCAL_TRACKER_H_
 #include <vector>
+#include <utility>
+#include <string>
 #include "difacto/tracker.h"
 #include "./async_local_tracker.h"
 namespace difacto {

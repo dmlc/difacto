@@ -4,6 +4,7 @@
 #ifndef DIFACTO_COMMON_SPMM_H_
 #define DIFACTO_COMMON_SPMM_H_
 #include <cstring>
+#include <vector>
 #include "dmlc/data.h"
 #include "dmlc/omp.h"
 #include "difacto/sarray.h"
@@ -177,7 +178,6 @@ class SpMM {
       }
     }
   }
-
 };
 
 }  // namespace difacto

@@ -3,8 +3,8 @@
  * @file   criteo_parser.h
  * @brief  parse criteo ctr data format
  */
-#ifndef DIFACTO_DATA_CRITEO_PARSER_H_
-#define DIFACTO_DATA_CRITEO_PARSER_H_
+#ifndef DIFACTO_READER_CRITEO_PARSER_H_
+#define DIFACTO_READER_CRITEO_PARSER_H_
 #include <limits>
 #if DIFACTO_USE_CITY
 #include <city.h>
@@ -115,4 +115,4 @@ class CriteoParser : public dmlc::data::ParserImpl<feaid_t> {
 };
 
 }  // namespace difacto
-#endif  // DIFACTO_DATA_CRITEO_PARSER_H_
+#endif  // DIFACTO_READER_CRITEO_PARSER_H_

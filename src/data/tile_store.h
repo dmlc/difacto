@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _TILE_STORE_H_
-#define _TILE_STORE_H_
+#ifndef DIFACTO_DATA_TILE_STORE_H_
+#define DIFACTO_DATA_TILE_STORE_H_
 #include "dmlc/data.h"
 #include "difacto/sarray.h"
 #include "./shared_row_block_container.h"
@@ -155,4 +155,4 @@ class TileStore {
 };
 
 }  // namespace difacto
-#endif  // _TILE_STORE_H_
+#endif  // DIFACTO_DATA_TILE_STORE_H_

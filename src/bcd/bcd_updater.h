@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _BCD_UPDATER_H_
-#define _BCD_UPDATER_H_
+#ifndef DIFACTO_BCD_BCD_UPDATER_H_
+#define DIFACTO_BCD_BCD_UPDATER_H_
 #include <string>
 #include <vector>
 #include <limits>
@@ -171,4 +171,4 @@ class BCDUpdater : public Updater {
 }  // namespace difacto
 
 
-#endif  // _BCD_UPDATER_H_
+#endif  // DIFACTO_BCD_BCD_UPDATER_H_

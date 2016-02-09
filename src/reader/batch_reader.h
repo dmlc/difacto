@@ -1,8 +1,8 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_DATA_BATCH_READER_H_
-#define DIFACTO_DATA_BATCH_READER_H_
+#ifndef DIFACTO_READER_BATCH_READER_H_
+#define DIFACTO_READER_BATCH_READER_H_
 #include <string>
 #include <vector>
 #include "difacto/base.h"
@@ -76,4 +76,4 @@ class BatchReader {
 };
 
 }  // namespace difacto
-#endif  // DIFACTO_DATA_BATCH_READER_H_
+#endif  // DIFACTO_READER_BATCH_READER_H_

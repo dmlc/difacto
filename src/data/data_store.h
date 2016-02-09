@@ -4,6 +4,7 @@
 #ifndef DIFACTO_DATA_DATA_STORE_H_
 #define DIFACTO_DATA_DATA_STORE_H_
 #include <utility>
+#include <string>
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -141,7 +142,7 @@ class DataStore {
     if (range.Size() == 0) return range;
     CHECK(range.Valid());
     size_t siz = size(key);
-    if (siz == 0) return Range(0,0);
+    if (siz == 0) return Range(0, 0);
     if (range == Range::All()) range = Range(0, siz);
     CHECK_LE(range.end, siz);
     return range * data_meta_[key].type_size;

@@ -4,6 +4,7 @@
 #ifndef DIFACTO_TRACKER_H_
 #define DIFACTO_TRACKER_H_
 #include <string>
+#include <utility>
 #include <vector>
 #include <functional>
 #include "./base.h"
@@ -110,7 +111,6 @@ class Tracker {
    * \brief block until the producer called \ref Stop
    */
   virtual void Wait() = 0;
-
 };
 }  // namespace difacto
 #endif  // DIFACTO_TRACKER_H_

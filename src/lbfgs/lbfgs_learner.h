@@ -4,6 +4,7 @@
 #ifndef DIFACTO_LBFGS_LBFGS_LEARNER_H_
 #define DIFACTO_LBFGS_LBFGS_LEARNER_H_
 #include <string>
+#include <vector>
 #include "difacto/learner.h"
 #include "difacto/base.h"
 #include "difacto/sarray.h"

@@ -1,8 +1,9 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _FM_LOSS_DELTA_H_
-#define _FM_LOSS_DELTA_H_
+#ifndef DIFACTO_LOSS_FM_LOSS_DELTA_H_
+#define DIFACTO_LOSS_FM_LOSS_DELTA_H_
+#include <vector>
 #include "difacto/sarray.h"
 #include "./fm_loss.h"
 namespace difacto {
@@ -34,7 +35,7 @@ class FMLossDelta : public FMLoss {
   void CalcGrad(const dmlc::RowBlock<unsigned>& data,
                 const std::vector<SArray<char>>& param,
                 SArray<real_t>* grad) override {
-
+    // TODO(mli)
   }
 
   /**
@@ -52,9 +53,7 @@ class FMLossDelta : public FMLoss {
     *CHECK_NOTNULL(pred) = param[0];
     FMLoss::Predict(data, {param[1], param[2]}, pred);
   }
-
-
 };
 }  // namespace difacto
 
-#endif  // _FM_LOSS_DELTA_H_
+#endif  // DIFACTO_LOSS_FM_LOSS_DELTA_H_

@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _BCD_UTILS_H_
-#define _BCD_UTILS_H_
+#ifndef DIFACTO_BCD_BCD_UTILS_H_
+#define DIFACTO_BCD_BCD_UTILS_H_
 #include <mutex>
 #include <condition_variable>
 #include <vector>
@@ -125,4 +125,4 @@ class Delta {
 
 }  // namespace bcd
 }  // namespace difacto
-#endif  // _BCD_UTILS_H_
+#endif  // DIFACTO_BCD_BCD_UTILS_H_

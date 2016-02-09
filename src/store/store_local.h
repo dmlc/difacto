@@ -47,6 +47,7 @@ class StoreLocal : public Store {
   int Rank() override { return 0; }
   int NumWorkers() override { return 1; }
   int NumServers() override { return 1; }
+
  private:
   int time_;
 };

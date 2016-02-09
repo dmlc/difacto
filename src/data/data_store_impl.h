@@ -66,6 +66,7 @@ class DataStoreMemory : public DataStoreImpl {
   }
   void Prefetch(const std::string& key, Range range) override { }
   void Remove(const std::string& key) override { store_.erase(key); }
+
  private:
   std::unordered_map<std::string,SArray<char>> store_;
 };

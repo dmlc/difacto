@@ -1,8 +1,9 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _LBFGS_PARAM_H_
-#define _LBFGS_PARAM_H_
+#ifndef DIFACTO_LBFGS_LBFGS_PARAM_H_
+#define DIFACTO_LBFGS_LBFGS_PARAM_H_
+#include <string>
 #include "dmlc/parameter.h"
 namespace difacto {
 
@@ -51,4 +52,4 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
 };
 
 }  // namespace difacto
-#endif  // _LBFGS_PARAM_H_
+#endif  // DIFACTO_LBFGS_LBFGS_PARAM_H_

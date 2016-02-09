@@ -1,8 +1,10 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef DEFACTO_LEARNER_BCD_LEARNER_H_
-#define DEFACTO_LEARNER_BCD_LEARNER_H_
+#ifndef DEFACTO_BCD_BCD_LEARNER_H_
+#define DEFACTO_BCD_BCD_LEARNER_H_
+#include <vector>
+#include <string>
 #include "difacto/learner.h"
 #include "difacto/store.h"
 #include "data/data_store.h"
@@ -126,4 +128,4 @@ class BCDLearner : public Learner {
 };
 
 }  // namespace difacto
-#endif  // DEFACTO_LEARNER_BCD_LEARNER_H_
+#endif  // DEFACTO_BCD_BCD_LEARNER_H_

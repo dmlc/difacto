@@ -1,8 +1,9 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_DATA_CONVERTER_H_
-#define DIFACTO_DATA_CONVERTER_H_
+#ifndef DIFACTO_READER_CONVERTER_H_
+#define DIFACTO_READER_CONVERTER_H_
+#include <string>
 #include "dmlc/parameter.h"
 #include "reader/reader.h"
 #include "dmlc/io.h"
@@ -108,6 +109,7 @@ class Converter {
     delete out;
     LOG(INFO) << "done. written " << nwrite << "bytes";
   }
+
  private:
   ConverterParam param_;
 };
@@ -115,4 +117,4 @@ class Converter {
 }  // namespace difacto
 
 
-#endif  // DIFACTO_DATA__CONVERTER_H_
+#endif  // DIFACTO_READER_CONVERTER_H_

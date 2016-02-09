@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _VECTOR_FREE_H_
-#define _VECTOR_FREE_H_
+#ifndef DIFACTO_LBFGS_LBFGS_TWOLOOP_H_
+#define DIFACTO_LBFGS_LBFGS_TWOLOOP_H_
 #include "./lbfgs_utils.h"
 namespace difacto {
 namespace lbfgs {
@@ -40,15 +40,15 @@ class Twoloop {
     for (int i = 0; i < 2*m+1; ++i) {
       std::vector<double> b(2*m+1);
       if (i < m - 1) {
-        const auto& old = B_[i+(m==m_?1:0)];
-        for (int j = 0; j <= i; ++j) b[j] = old[j+(m==m_?1:0)];
+        const auto& old = B_[i+(m == m_?1:0)];
+        for (int j = 0; j <= i; ++j) b[j] = old[j+(m == m_ ? 1 : 0)];
       } else if (i == m-1) {
         for (int j = 0; j <= i; ++j) b[j] = incr_B[j];
       } else if (i < 2*m-1) {
-        const auto& old = B_[i+(m==m_?1:-1)];
-        for (int j = 0; j < m; ++j) b[j] = old[j+(m==m_?1:0)];
+        const auto& old = B_[i+(m == m_?1:-1)];
+        for (int j = 0; j < m; ++j) b[j] = old[j+(m == m_ ? 1 : 0)];
         b[m-1] = incr_B[i];
-        for (int j = m; j <= i; ++j) b[j] = old[j+(m==m_?1:-1)];
+        for (int j = m; j <= i; ++j) b[j] = old[j+(m == m_ ? 1 : -1)];
       } else if (i == 2*m-1) {
         for (int j = 0; j < 2*m; ++j) b[j] = incr_B[2*m+j];
       } else {
@@ -126,4 +126,4 @@ class Twoloop {
 };
 }  // namespace lbfgs
 }  // namespace difacto
-#endif  // _VECTOR_FREE_H_
+#endif  // DIFACTO_LBFGS_LBFGS_TWOLOOP_H_

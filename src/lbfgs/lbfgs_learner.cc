@@ -64,7 +64,7 @@ void LBFGSLearner::RunScheduler() {
     alpha = param_.alpha;
     LOG(INFO) << "epoch " << epoch << ": objv " << objv << ", <g,p> " << gp;
 
-    std::vector<real_t> status; // = {f(w+αp), <∇f(w+αp), p>}
+    std::vector<real_t> status;  // = {f(w+αp), <∇f(w+αp), p>}
     for (int i = 0; i < 10; ++i) {
       status.clear();
       IssueJobAndWait(NodeID::kWorkerGroup, Job::kLinearSearch, {alpha}, &status);
@@ -86,7 +86,7 @@ void LBFGSLearner::RunScheduler() {
     IssueJobAndWait(NodeID::kWorkerGroup, Job::kEvaluate, {}, &prog);
 
     // check stop critea
-    // TODO
+    // TODO(mli)
   }
 }
 

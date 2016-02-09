@@ -32,7 +32,7 @@ size_t FindPosition(K const* src_begin, K const* src_end,
       } else {
         *pos = -1;
       }
-      ++ dst; ++pos;
+      ++dst; ++pos;
     }
   }
   while (pos != pos_end) {*pos = -1; ++pos; }

@@ -1,8 +1,8 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_LOSS_BIN_CLASS_EVAL_H_
-#define DIFACTO_LOSS_BIN_CLASS_EVAL_H_
+#ifndef DIFACTO_LOSS_BIN_CLASS_METRIC_H_
+#define DIFACTO_LOSS_BIN_CLASS_METRIC_H_
 #include <algorithm>
 #include <vector>
 #include "difacto/base.h"
@@ -98,4 +98,4 @@ class BinClassMetric {
 };
 
 }  // namespace difacto
-#endif  // DIFACTO_LOSS_BIN_CLASS_EVAL_H_
+#endif  // DIFACTO_LOSS_BIN_CLASS_METRIC_H_

@@ -14,9 +14,9 @@ Loss* Loss::Create(const std::string& type, int nthreads) {
   Loss* loss = nullptr;
   if (type == "fm") {
     loss = new FMLoss();
-  } else if (type == "logit"){
+  } else if (type == "logit") {
     loss = new LogitLoss();
-  } else if (type == "logit_delta"){
+  } else if (type == "logit_delta") {
     loss = new LogitLossDelta();
   } else {
     LOG(FATAL) << "unknown loss type";

@@ -35,7 +35,7 @@ KWArgs BCDLearner::Init(const KWArgs& kwargs) {
 
 void BCDLearner::IssueJobAndWait(int node_group, const bcd::JobArgs& job,
                                  Tracker::Monitor monitor) {
-  // TODO
+  // TODO(mli)
   int nworker = model_store_->NumWorkers();
   std::vector<std::pair<int, std::string>> jobs(nworker);
   for (int i = 0; i < nworker; ++i) {
@@ -92,7 +92,6 @@ void BCDLearner::RunScheduler() {
   for (size_t i = 0; i < feablks.size(); ++i) feablks[i] = i;
   epoch_ = 0;
   for (; epoch_ < param_.max_num_epochs; ++epoch_) {
-
     bcd::JobArgs iter; iter.type = bcd::JobArgs::kIterateData;
     std::random_shuffle(feablks.begin(), feablks.end());
     iter.fea_blks = feablks;

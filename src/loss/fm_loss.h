@@ -98,7 +98,8 @@ class FMLoss : public Loss {
     SArray<real_t> VV(V.size());
 #pragma omp parallel for num_threads(nthreads_)
     for (size_t i = 0; i < V_pos.size(); ++i) {
-      int p = V_pos[i]; if (p < 0) continue;
+      int p = V_pos[i];
+      if (p < 0) continue;
       for (int j = 0; j < V_dim; ++j) VV[p+j] = V[p+j] * V[p+j];
     }
 
@@ -165,7 +166,8 @@ class FMLoss : public Loss {
     // grad_u = - diag(XXp) * V,
 #pragma omp parallel for num_threads(nthreads_)
     for (size_t i = 0; i < V_pos.size(); ++i) {
-      int p = V_pos[i]; if (p < 0) continue;
+      int p = V_pos[i];
+      if (p < 0) continue;
       for (int j = 0; j < V_dim; ++j) {
         (*grad)[p+j] = - V[p+j] * XXp[i];
       }

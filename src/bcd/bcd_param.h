@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _BCD_PARAM_H_
-#define _BCD_PARAM_H_
+#ifndef DIFACTO_BCD_BCD_PARAM_H_
+#define DIFACTO_BCD_BCD_PARAM_H_
 #include "dmlc/parameter.h"
 namespace difacto {
 
@@ -49,4 +49,4 @@ struct BCDLearnerParam : public dmlc::Parameter<BCDLearnerParam> {
   }
 };
 }  // namespace difacto
-#endif  // _BCD_PARAM_H_
+#endif  // DIFACTO_BCD_BCD_PARAM_H_

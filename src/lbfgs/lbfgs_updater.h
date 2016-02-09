@@ -1,8 +1,9 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _LBFGS_UPDATER_H_
-#define _LBFGS_UPDATER_H_
+#ifndef DIFACTO_LBFGS_LBFGS_UPDATER_H_
+#define DIFACTO_LBFGS_LBFGS_UPDATER_H_
+#include <vector>
 #include "./lbfgs_twoloop.h"
 #include "difacto/updater.h"
 namespace difacto {
@@ -133,4 +134,4 @@ class LBFGSUpdater : public Updater {
   int nthreads_ = DEFAULT_NTHREADS;
 };
 }  // namespace difacto
-#endif  // _LBFGS_UPDATER_H_
+#endif  // DIFACTO_LBFGS_LBFGS_UPDATER_H_

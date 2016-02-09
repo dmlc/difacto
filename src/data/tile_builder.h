@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _TILE_BUILDER_H_
-#define _TILE_BUILDER_H_
+#ifndef DIFACTO_DATA_TILE_BUILDER_H_
+#define DIFACTO_DATA_TILE_BUILDER_H_
 #include "common/kv_union.h"
 #include "common/spmt.h"
 #include "data/localizer.h"
@@ -149,4 +149,4 @@ class TileBuilder {
 };
 
 }  // namespace difacto
-#endif  // _TILE_BUILDER_H_
+#endif  // DIFACTO_DATA_TILE_BUILDER_H_

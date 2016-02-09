@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _SGD_JOB_H_
-#define _SGD_JOB_H_
+#ifndef DIFACTO_SGD_SGD_JOB_H_
+#define DIFACTO_SGD_SGD_JOB_H_
 #include <string>
 #include "dmlc/memory_io.h"
 namespace difacto {
@@ -28,7 +28,7 @@ struct Job {
 
   Job() { }
   /** \brief construct from a string */
-  Job(const std::string& str) {
+  explicit Job(const std::string& str) {
     ParseFromString(str);
   }
   void SerializeToString(std::string* str) const {
@@ -64,4 +64,4 @@ struct Progress {
 
 }  // namespace sgd
 }  // namespace difacto
-#endif  // _SGD_JOB_H_
+#endif  // DIFACTO_SGD_SGD_JOB_H_
