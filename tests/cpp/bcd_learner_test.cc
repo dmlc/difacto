@@ -5,8 +5,7 @@ using namespace difacto;
 
 TEST(BCDLearer, DiagNewton) {
   BCDLearner learner;
-  KWArgs args = {{"task", "train"},
-                 {"data_in", "../tests/data"},
+  KWArgs args = {{"data_in", "../tests/data"},
                  {"l1", ".1"},
                  {"lr", ".05"},
                  {"block_ratio", "0.001"},
@@ -45,13 +44,12 @@ TEST(BCDLearer, Convergence) {
   for (real_t r : ratio) {
     real_t objv;
     BCDLearner learner;
-    KWArgs args = {{"task", "train"},
-                   {"data_in", "../tests/data"},
+    KWArgs args = {{"data_in", "../tests/data"},
                    {"l1", ".1"},
                    {"lr", ".8"},
                    {"block_ratio", std::to_string(r)},
                    {"tail_feature_filter", "0"},
-                   {"max_num_epochs", "100"}};
+                   {"max_num_epochs", "30"}};
     auto remain = learner.Init(args);
     EXPECT_EQ(remain.size(), 0);
 

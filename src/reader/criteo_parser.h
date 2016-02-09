@@ -69,7 +69,7 @@ class CriteoParser : public dmlc::data::ParserImpl<feaid_t> {
         pp = Find(p, end, '\t');
         CHECK_NOTNULL(pp);
         if (pp > p) {
-          blk.index.push_back(EncodeFeaGrpID(Hash(p, pp-p), i));
+          blk.index.push_back(EncodeFeaGrpID(Hash(p, pp-p), i, 12));
         }
         p = pp + 1;
       }
@@ -81,7 +81,7 @@ class CriteoParser : public dmlc::data::ParserImpl<feaid_t> {
         pp = p + 8; CHECK(isspace(*pp)) << i << " " << end - p << " " << *p;
         size_t len = pp - p;
         if (len) {
-          blk.index.push_back(EncodeFeaGrpID(Hash(p, len), i+13));
+          blk.index.push_back(EncodeFeaGrpID(Hash(p, len), i+13, 12));
         }
         p = pp + 1;
         if (*pp == '\n' || *pp == '\r') break;

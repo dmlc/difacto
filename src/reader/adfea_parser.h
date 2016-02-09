@@ -60,7 +60,7 @@ class AdfeaParser : public dmlc::data::ParserImpl<feaid_t> {
         ++p;
         feaid_t idx = strtoull(head, NULL, 10);
         feaid_t gid = strtoull(p, NULL, 10);
-        blk.index.push_back(EncodeFeaGrpID(idx, gid));
+        blk.index.push_back(EncodeFeaGrpID(idx, gid, 12));
         while (isdigit(*p) && p != end) ++p;
       } else {
         // skip the lineid and the first count

@@ -25,8 +25,8 @@ class FeatureBlock {
     feablks->clear();
     for (auto f : feagrps) {
       int gid = f.first;
-      Range rg(ReverseBytes(EncodeFeaGrpID(0, gid)),
-               ReverseBytes(EncodeFeaGrpID(std::numeric_limits<feaid_t>::max(), gid)));
+      Range rg(ReverseBytes(EncodeFeaGrpID(0, gid, feagrp_nbits)),
+               ReverseBytes(EncodeFeaGrpID(std::numeric_limits<feaid_t>::max(), gid, feagrp_nbits)));
       for (int i = 0; i < f.second; ++i) {
         feablks->push_back(rg.Segment(i, f.second));
         CHECK(feablks->back().Valid());

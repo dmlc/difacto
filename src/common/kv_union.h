@@ -56,7 +56,7 @@ void KVUnion(
   joined_keys->resize(end - joined_keys->begin());
 
   // merge value of list a
-  size_t val_len = vals_a.size() / vals_a.size();
+  size_t val_len = vals_a.size() / keys_a.size();
   CHECK_NOTNULL(joined_vals)->clear();
   size_t n1 = KVMatch<K, V>(
       keys_a, vals_a, *joined_keys, joined_vals, ASSIGN, num_threads);

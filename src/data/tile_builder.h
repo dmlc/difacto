@@ -38,14 +38,13 @@ class TileBuilder {
       auto transposed = new dmlc::data::RowBlockContainer<unsigned>();
       SpMT::Transpose(compacted->GetBlock(), transposed, ids->size(), nthreads_);
       delete compacted;
-
       SharedRowBlockContainer<unsigned> data(&transposed);
       data.label.CopyFrom(rowblk.label, rowblk.size);
-      // store_->data_->Store(std::to_string(id) + "_data", data);
+      store_->Store(id, data);
       delete transposed;
     } else {
       SharedRowBlockContainer<unsigned> data(&compacted);
-      // store_->data_->Store(std::to_string(id) + "_data", data);
+      store_->Store(id, data);
       delete compacted;
     }
 
@@ -72,24 +71,40 @@ class TileBuilder {
     for (size_t i = 0; i < map.size(); ++i) {
       map[i] = i+1;  // start from 1
     }
-
+    store_->meta_.resize(blk_feaids_.size());
     for (size_t i = 0; i < blk_feaids_.size(); ++i) {
       // store colmap
       SArray<int> colmap;
       KVMatch(feaids, map, blk_feaids_[i], &colmap, ASSIGN, nthreads_);
       for (int& c : colmap) --c;  // unmatched will get -1
-      store_->data_->Store(std::to_string(i) + "_colmap", colmap);
+      store_->Store(i, colmap);
 
-      // store position
+      // update meta
       std::vector<Range> pos;
       if (feablk_range.size()) {
         CHECK(multicol_) << "you should set allow_multi_columns = true";
         FindPosition(blk_feaids_[i], feablk_range, &pos);
-      } else {
-        pos.push_back(Range::All());
       }
-      store_->colblk_pos_.push_back(pos);
 
+      auto key = std::to_string(i) + "_";
+      if (pos.empty()) {
+        TileStore::Meta c;
+        c.colmap = Range(0, colmap.size());
+        c.offset = Range(0, store_->data_->size(key+"offset"));
+        c.index = Range(0, store_->data_->size(key+"index"));
+        store_->meta_[i].push_back(c);
+      } else {
+        SArray<size_t> offset;
+        store_->data_->Fetch(key+"offset", &offset);
+        CHECK_EQ(offset.size(), colmap.size()+1);
+        for (auto p : pos) {
+          TileStore::Meta c;
+          c.colmap = p;
+          c.offset = Range(p.begin, p.end+1);
+          c.index = Range(offset[p.begin], offset[p.end]);
+          store_->meta_[i].push_back(c);
+        }
+      }
       // clear
       blk_feaids_[i].clear();
     }

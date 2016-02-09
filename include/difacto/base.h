@@ -48,7 +48,7 @@ inline feaid_t ReverseBytes(feaid_t x) {
  * @param nbits number of bits used to encode gid
  * @return the new feature index
  */
-inline feaid_t EncodeFeaGrpID(feaid_t x, int gid, int nbits = 12) {
+inline feaid_t EncodeFeaGrpID(feaid_t x, int gid, int nbits) {
   CHECK_GE(gid, 0); CHECK_LT(gid, 1 << nbits);
   return (x << nbits) | gid;
 }
@@ -59,7 +59,7 @@ inline feaid_t EncodeFeaGrpID(feaid_t x, int gid, int nbits = 12) {
  * @param nbits number of bits used to encode gid
  * @return the feature group id
  */
-inline feaid_t DecodeFeaGrpID(feaid_t x, int nbits = 12) {
+inline feaid_t DecodeFeaGrpID(feaid_t x, int nbits) {
   return x % (1 << nbits);
 }
 /**

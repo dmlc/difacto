@@ -55,7 +55,7 @@ class DataStore {
     meta.type_size = sizeof(V);
     meta.data_size = data.size();
     data_meta_[key] = meta;
-    store_->Store(key, SArray<char>(data));
+    if (data.size()) store_->Store(key, SArray<char>(data));
   }
   /**
    * \brief pull data from the store
@@ -77,7 +77,7 @@ class DataStore {
     auto char_range = GetCharRange(key, range);
     CHECK_EQ(data_meta_[key].type_code, typeid(V).hash_code());
     SArray<char> char_data;
-    store_->Fetch(key, char_range, &char_data);
+    if (char_range.Valid()) store_->Fetch(key, char_range, &char_data);
     *CHECK_NOTNULL(data) = char_data;
   }
   /**
@@ -89,39 +89,14 @@ class DataStore {
    * @param range an optional range
    */
   void Prefetch(const std::string& key, Range range = Range::All()) {
-    store_->Prefetch(key, GetCharRange(key, range));
+    auto char_range = GetCharRange(key, range);
+    if (char_range.Valid()) store_->Prefetch(key, char_range);
   }
   /**
    * \brief remove data from the store
    * \param key the unique key of the data
    */
   void Remove(const std::string& key) { store_->Remove(key); }
-
-  /** \brief load meta data */
-  void Load(dmlc::Stream *fi) {
-    dmlc::istream is(fi);
-    std::string header;
-    is >> header;
-    CHECK_EQ(header, meta_header_) << "invalid meta header";
-    size_t size; is >> size;
-    for (size_t i = 0; i < size; ++i) {
-      std::string key; is >> key;
-      DataMeta meta; is >> meta.data_size >> meta.type_code >> meta.type_size;
-      data_meta_[key] = meta;
-    }
-  }
-
-  /** \brief save meta data */
-  void Save(dmlc::Stream *fo) const {
-    dmlc::ostream os(fo);
-    os << meta_header_ << "\t";
-    os << data_meta_.size() << "\n";
-    for (const auto it : data_meta_) {
-      os << it.first << "\t" << it.second.data_size << "\t"
-         << it.second.type_code << "\t" << it.second.type_size << "\n";
-    }
-  }
-
   /**
    * \brief return the data size of a key
    **/
@@ -130,11 +105,40 @@ class DataStore {
     CHECK(it != data_meta_.end()) << "key " << key << " dosen't exist";
     return it->second.data_size;
   }
+  /**
+   * \brief load meta data
+   */
+  void Load(dmlc::Stream *fi) {
+    dmlc::istream is(fi);
+    std::string header; is >> header;
+    CHECK_EQ(header, meta_header_) << "invalid meta header";
+    size_t size; is >> size;
+    std::string format; is >> format;
+    CHECK_EQ(format, meta_format_) << "invalid meta header";
+    for (size_t i = 0; i < size; ++i) {
+      std::string key; is >> key;
+      DataMeta meta; is >> meta.data_size >> meta.type_code >> meta.type_size;
+      data_meta_[key] = meta;
+    }
+  }
+  /**
+   * \brief save meta data
+   */
+  void Save(dmlc::Stream *fo) const {
+    dmlc::ostream os(fo);
+    os << meta_header_ << "\t" << data_meta_.size() << "\n" << meta_format_ << "\n";
+    for (const auto it : data_meta_) {
+      os << it.first << "\t" << it.second.data_size << "\t"
+         << it.second.type_code << "\t" << it.second.type_size << "\n";
+    }
+  }
 
  private:
   inline Range GetCharRange(const std::string& key, Range range) {
+    if (range.Size() == 0) return range;
     CHECK(range.Valid());
     size_t siz = size(key);
+    if (siz == 0) return Range(0,0);
     if (range == Range::All()) range = Range(0, siz);
     CHECK_LE(range.end, siz);
     return range * data_meta_[key].type_size;
@@ -150,8 +154,8 @@ class DataStore {
   };
   std::unordered_map<std::string, DataMeta> data_meta_;
   DataStoreImpl* store_;
-  const std::string meta_header_ = "data_store_meta(key,value_size,type_code,type_size)";
-
+  const std::string meta_header_ = "data_store_meta";
+  const std::string meta_format_ = "format:key,value_size,type_code,type_size";
 };
 
 }  // namespace difacto

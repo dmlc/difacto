@@ -39,140 +39,117 @@ class TileStore {
   }
   friend class TileBuilder;
 
-  void Prefetch(int rowblk_id, int colblk_id) {
-    auto id = std::to_string(rowblk_id);
-    auto rg = colblk_pos_[rowblk_id][colblk_id];
-    // data_->Prefetch(id + "_data", rg);
-    // data_->Prefetch(id + "_colmap", rg);
+  /**
+   * \brief store a shared rowblock container into the store (no memory copy)
+   * @param rowblk_id rowblock id
+   * @param data the rowblock container
+   */
+  void Store(int rowblk_id,
+             const SharedRowBlockContainer<unsigned>& data) {
+    auto key = std::to_string(rowblk_id) + "_";
+    data_->Store(key+"label", data.label);
+    data_->Store(key+"offset", data.offset);
+    data_->Store(key+"index", data.index);
+    data_->Store(key+"value", data.value);
   }
 
+  /**
+   * \brief store a the column map of a row block into the store (no memory copy)
+   */
+  void Store(int rowblk_id, const SArray<int>& colmap) {
+    data_->Store(std::to_string(rowblk_id) + "_colmap", colmap);
+  }
+
+  /**
+   * \brief prefetch a tile
+   *
+   * @param rowblk_id
+   * @param colblk_id
+   */
+  void Prefetch(int rowblk_id, int colblk_id) {
+    auto key = std::to_string(rowblk_id) + "_";
+    auto rg = meta_[rowblk_id][colblk_id];
+    data_->Prefetch(key+"label");
+    data_->Prefetch(key+"colmap", rg.colmap);
+    data_->Prefetch(key+"offset", rg.offset);
+    data_->Prefetch(key+"index", rg.index);
+    data_->Prefetch(key+"value", rg.index);
+  }
+
+  /**
+   * \brief fetch a tile
+   *
+   * @param rowblk_id
+   * @param colblk_id
+   * @param tile
+   */
   void Fetch(int rowblk_id, int colblk_id, Tile* tile) {
-    auto id = std::to_string(rowblk_id);
-    auto rg = colblk_pos_[rowblk_id][colblk_id];
-    CHECK_NOTNULL(tile);
-    // data_->Fetch(id + "_data", &tile->data, rg);
-    // data_->Fetch(id + "_colmap", &tile->colmap, rg);
+    auto& data = CHECK_NOTNULL(tile)->data;
+    auto key = std::to_string(rowblk_id) + "_";
+    auto rg = meta_[rowblk_id][colblk_id];
+    data_->Fetch(key+"label", &data.label);
+    data_->Fetch(key+"colmap", &tile->colmap, rg.colmap);
+    data_->Fetch(key+"offset", &data.offset, rg.offset);
+    if (rg.offset.begin != 0) {
+      // force to start from 0
+      SArray<size_t> offset; offset.CopyFrom(data.offset);
+      for (size_t i = 0; i < offset.size(); ++i) {
+        offset[i] -= data.offset[0];
+      }
+      data.offset = offset;
+    }
+    data_->Fetch(key+"index", &data.index, rg.index);
+    data_->Fetch(key+"value", &data.value, rg.index);
+  }
+
+  /**
+   * \brief load meta data
+   */
+  void Load(dmlc::Stream *fi) {
+    dmlc::istream is(fi);
+    std::string header; is >> header;
+    CHECK_EQ(header, meta_header_) << "invalid meta header";
+    size_t size; is >> size; meta_.resize(size);
+    std::string format; is >> format;
+    CHECK_EQ(format, meta_format_) << "invalid meta header";
+    for (size_t i = 0; i < size; ++i) {
+      size_t col_size; is >> col_size;
+      for (size_t j = 0; j < col_size; ++j) {
+        Meta c; is >> c.colmap.begin >> c.colmap.end
+                   >> c.offset.begin >> c.offset.end
+                   >> c.index.begin >> c.index.end;
+        meta_[i].push_back(c);
+      }
+    }
+  }
+
+  /**
+   * \brief save meta data
+   */
+  void Save(dmlc::Stream *fo) const {
+    dmlc::ostream os(fo);
+    os << meta_header_ << "\t" << meta_.size() << "\n" << meta_format_ << "\n";
+    for (size_t i = 0; i < meta_.size(); ++i) {
+      os << meta_[i].size();
+      for (auto c : meta_[i]) {
+        os << "\t" << c.colmap.begin << "\t" << c.colmap.end
+           << "\t" << c.offset.begin << "\t" << c.offset.end
+           << "\t" << c.index.begin << "\t" << c.index.end;
+      }
+      os << "\n";
+    }
   }
 
  private:
   DataStore* data_;
-  std::vector<std::vector<Range>> colblk_pos_;
+  /** \brief meta data for a rowblk */
+  struct Meta { Range colmap; Range offset; Range index; };
+  std::vector<std::vector<Meta>> meta_;  // row x col
+
+  const std::string meta_header_ = "tile_store_meta";
+  const std::string meta_format_ = "format:transposed,colblk_size,colmap_range,offset_range,index_range,...";
+
 };
 
 }  // namespace difacto
 #endif  // _TILE_STORE_H_
-
-
-
-//   std::vector<std::string> GetRowBlockKeys(const std::string& key) {
-//     return {key+"_offset", key+"_label", key+"_weight", key+"_index", key+"_value"};
-//   }
-
-//   inline bool IsRowBlockKey(const std::string& key) {
-//     return rowblk_keys_.count(key) != 0;
-//   }
-//   std::unordered_set<std::string> rowblk_keys_;
-
-
-//     if (IsRowBlockKey(key)) {
-//       auto keys = GetRowBlockKeys(key);
-//       Range rg1 = range == Range::All() ? range
-//                   : Range(range.begin, range.end+1) * sizeof(size_t);
-//       store_->Prefetch(keys[0], rg1, [this, key, keys, range](const SArray<char>& data) {
-//           SArray<size_t> offset(data);
-//           Range rg = Range(offset.front(), offset.back());
-//           store_->Prefetch(keys[3], GetCharRange(keys[3], rg));
-//           store_->Prefetch(keys[4], GetCharRange(keys[4], rg));
-//         });
-//       store_->Prefetch(keys[1], GetCharRange(keys[1], range));
-//       store_->Prefetch(keys[2], GetCharRange(keys[2], range));
-//     } else {
-//     }
-//   }
-
-//     if (IsRowBlockKey(key)) {
-//       for (const auto& s : GetRowBlockKeys(key)) {
-//         store_->Remove(s);
-//       }
-//     } else {
-
-
-// #include "./shared_row_block_container.h"
-//   /**
-//    * \brief copy a rowblock into the store
-//    *
-//    * @param key the unique key
-//    * @param data the rowblock
-//    */
-//   template <typename T>
-//   void Store(const std::string& key, const dmlc::RowBlock<T>& data) {
-//     SharedRowBlockContainer<T> blk(data);
-//     Store(key, blk);
-//   }
-//   /**
-//    * \brief push a shared rowblock container into the store (no memory copy)
-//    *
-//    * @param key the unique key
-//    * @param data the rowblock container
-//    */
-//   template <typename T>
-//   void Store(const std::string& key, const SharedRowBlockContainer<T>& data) {
-//     rowblk_keys_.insert(key);
-//     CHECK_EQ(data.offset[0], 0);
-//     auto keys = GetRowBlockKeys(key);
-//     Store(keys[0], data.offset);
-//     Store(keys[1], data.label);
-//     Store(keys[2], data.weight);
-//     Store(keys[3], data.index);
-//     Store(keys[4], data.value);
-//   }
-//   /**
-//    * \brief pull rowblock from the store
-//    *
-//    * @param key the unique key
-//    * @param range an optional row range for pulling
-//    * @param data the pulled data
-//    */
-//   template <typename T>
-//   void Fetch(const std::string& key, SharedRowBlockContainer<T>* data,
-//             Range range = Range::All()) {
-//     CHECK_NOTNULL(data);
-//     CHECK(IsRowBlockKey(key));
-//     auto keys = GetRowBlockKeys(key);
-//     Range rg1 = range == Range::All() ? range
-//                 : Range(range.begin, range.end+1);
-//     Fetch(keys[0], &data->offset, rg1);
-//     Fetch(keys[1], &data->label, range);
-//     Fetch(keys[2], &data->weight, range);
-//     Range rg3 = Range(data->offset[0], data->offset.back());
-//     Fetch(keys[3], &data->index, rg3);
-//     Fetch(keys[4], &data->value, rg3);
-//     if (rg3.begin != 0) {
-//       SArray<size_t> offset; offset.CopyFrom(data->offset);
-//       for (size_t& o : offset) o -= rg3.begin;
-//       data->offset = offset;
-//     }
-
-//   }
-
-// #include "dmlc/data.h"
-
-
-
-// #include "reader/batch_reader.h"
-// TEST(DataStore, RowBlock) {
-//   BatchReader reader("../tests/data", "libsvm", 0, 1, 100);
-//   CHECK(reader.Next());
-//   auto data = reader.Value();
-
-//   DataStore store;
-//   store.Store("1", data);
-
-//   SharedRowBlockContainer<feaid_t> blk1;
-//   store.Fetch("1", &blk1);
-//   check_equal(data, blk1.GetBlock());
-
-//   SharedRowBlockContainer<feaid_t> blk2;
-//   store.Fetch("1", &blk2, Range(10, 40));
-//   check_equal(data.Slice(10, 40), blk2.GetBlock());
-// }

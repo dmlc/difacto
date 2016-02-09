@@ -31,16 +31,14 @@ class DataStoreImpl {
    */
   virtual void Fetch(const std::string& key, Range range, SArray<char>* data) = 0;
 
-  typedef std::function<void(const SArray<char>& data)> Callback;
   /**
    * \brief pretech a data
    *
    * @param key
    * @param range
-   * @param on_complete the callback when prefetch is done
    */
-  virtual void Prefetch(const std::string& key, Range range,
-                        Callback on_complete = nullptr) = 0;
+  virtual void Prefetch(const std::string& key, Range range) = 0;
+
   /**
    * \brief remove data from the store
    * \param key the unique key of the data
@@ -55,31 +53,16 @@ class DataStoreMemory : public DataStoreImpl {
  public:
   DataStoreMemory() { }
   virtual ~DataStoreMemory() { }
-
   void Store(const std::string& key, const SArray<char>& data) override {
     store_[key] = data;
   }
-
   void Fetch(const std::string& key, Range range, SArray<char>* data) override {
     auto it = store_.find(key);
     CHECK(it != store_.end());
-    if (range == Range::All() || it->second.empty()) {
-      *CHECK_NOTNULL(data) = it->second;
-    } else {
-      *CHECK_NOTNULL(data) = it->second.segment(range.begin, range.end);
-    }
+    *CHECK_NOTNULL(data) = it->second.segment(range.begin, range.end);
   }
-  void Prefetch(const std::string& key, Range range, Callback on_complete) override {
-    if (on_complete) {
-      SArray<char> data;
-      Fetch(key, range, &data);
-      on_complete(data);
-    }
-  }
-
-  void Remove(const std::string& key) override {
-    store_.erase(key);
-  }
+  void Prefetch(const std::string& key, Range range) override { }
+  void Remove(const std::string& key) override { store_.erase(key); }
  private:
   std::unordered_map<std::string,SArray<char>> store_;
 };

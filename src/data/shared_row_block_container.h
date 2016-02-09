@@ -7,7 +7,7 @@
 namespace difacto {
 
 /**
- * \brief a shared data structure holds a row block
+ * \brief a shared data structure holds a data block
  * \tparam IndexType the type of index we are using
  */
 template<typename IndexType>
