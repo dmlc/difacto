@@ -28,7 +28,7 @@ void KVMatch(
   size_t dst_len = std::distance(dst_key, dst_key_end);
   if (dst_len == 0 || src_len == 0) return;
 
-  // drop the unmatched tail of src
+  // drop the unmatched head of src
   src_key = std::lower_bound(src_key, src_key_end, *dst_key);
   src_val += (src_key - (src_key_end - src_len)) * k;
 
@@ -57,6 +57,66 @@ void KVMatch(
         src_key, src_key_end, src_val,
         dst_key + dst_len / 2, dst_key_end, dst_val + (dst_len / 2) * k,
         k, op, grainsize, &m);
+    thr.join();
+    *n += m;
+  }
+}
+
+/**
+ * \brief thread function, internal use
+ */
+template <typename K, typename I, typename V>
+void KVMatchVaryLen(
+    const K* src_key,
+    const K* src_key_end,
+    const I* src_len,
+    const V* src_val,
+    const K* dst_key,
+    const K* dst_key_end,
+    const I* dst_len,
+    V* dst_val,
+    AssignOp op,
+    size_t grainsize,
+    size_t* n) {
+  size_t src_size = std::distance(src_key, src_key_end);
+  size_t dst_size = std::distance(dst_key, dst_key_end);
+  if (dst_size == 0 || src_size == 0) return;
+
+  // drop the unmatched head of src
+  src_key = std::lower_bound(src_key, src_key_end, *dst_key);
+  size_t k = (src_key - (src_key_end - src_size));
+  for (size_t i = 0; i < k; ++i) src_val += src_len[i];
+  src_len += k;
+
+  if (dst_size <= grainsize) {
+    while (dst_key != dst_key_end && src_key != src_key_end) {
+      if (*src_key < *dst_key) {
+        ++src_key; src_val += *src_len; ++src_len;
+      } else {
+        if (!(*dst_key < *src_key)) {  // equal
+          I k = *src_len;
+          CHECK_EQ(k, *dst_len);
+          for (I i = 0; i < k; ++i) {
+            AssignFunc(src_val[i], op, &dst_val[i]);
+          }
+          ++src_key; src_val += k; ++src_len;
+          *n += k;
+        }
+        ++dst_key; dst_val += *dst_len; ++dst_len;
+      }
+    }
+  } else {
+    size_t step = dst_size / 2;
+    std::thread thr(
+        KVMatchVaryLen<K, I, V>, src_key, src_key_end, src_len, src_val,
+        dst_key, dst_key + step, dst_len, dst_val,
+        op, grainsize, n);
+    for (size_t i = 0; i < step; ++i) dst_val += dst_len[i];
+    size_t m = 0;
+    KVMatchVaryLen<K, I, V>(
+        src_key, src_key_end, src_len, src_val,
+        dst_key + step, dst_key_end, dst_len + step, dst_val,
+        op, grainsize, &m);
     thr.join();
     *n += m;
   }

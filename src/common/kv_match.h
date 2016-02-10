@@ -71,7 +71,7 @@ namespace difacto {
  * \param dst_key the destination keys
  * \param dst_val the destination values.
  * \param op the assignment operator (default is ASSIGN)
- * \param num_threads number of thread (default is 2)
+ * \param nthreads number of thread (default is 2)
  * \return the number of matched values
  */
 template <typename K, typename V>
@@ -81,18 +81,18 @@ size_t KVMatch(
     const SArray<K>& dst_key,
     SArray<V>* dst_val,
     AssignOp op = ASSIGN,
-    int num_threads = DEFAULT_NTHREADS) {
+    int nthreads = DEFAULT_NTHREADS) {
   // do check
   if (src_key.empty() || src_key.empty()) return 0;
-  CHECK_GT(num_threads, 0);
+  CHECK_GT(nthreads, 0);
   size_t val_len = src_val.size() / src_key.size();
   CHECK_EQ(src_key.size() * val_len, src_val.size());
   CHECK_NOTNULL(dst_val)->resize(dst_key.size() * val_len);
 
   // shorten the matching range
   auto range = ps::FindRange(dst_key, src_key.front(), src_key.back()+1);
-  size_t grainsize = std::max(range.size() * val_len / num_threads + 5,
-                              static_cast<uint64_t>(1024*1024));
+  size_t grainsize = std::max(range.size() / nthreads + 5,
+                              static_cast<size_t>(1024*1024));
   size_t n = 0;
   KVMatch<K, V>(
       src_key.data(), src_key.data() + src_key.size(), src_val.data(),
@@ -108,30 +108,58 @@ size_t KVMatch(
  *
  * \param src_key the source keys
  * \param src_val the source values
- * \param src_offset the offsets for source values, can be empty
+ * \param src_len the length of the i-th source value, can be empty
  * \param dst_key the destination keys
  * \param dst_val the destination values.
- * \param dst_offset the offsets for destination values, can be empty
+ * \param dst_len the length of the i-th desstination values, might be empty
  * \param op the assignment operator (default is ASSIGN)
- * \param num_threads number of thread (default is 2)
+ * \param nthreads number of thread (default is 2)
  * \return the number of matched kv pairs
  */
 template <typename K, typename I, typename V>
 size_t KVMatch(
     const SArray<K>& src_key,
     const SArray<V>& src_val,
-    const SArray<I>& src_offset,
+    const SArray<I>& src_len,
     const SArray<K>& dst_key,
     SArray<V>* dst_val,
-    SArray<I>* dst_offset,
+    SArray<I>* dst_len,
     AssignOp op = ASSIGN,
-    int num_threads = DEFAULT_NTHREADS) {
-  if (src_offset.empty()) {
-    if (dst_offset) dst_offset->clear();
-    return KVMatch(src_key, src_val, dst_key, dst_val, op, num_threads);
+    int nthreads = DEFAULT_NTHREADS) {
+  // fallback to the fixed value length version
+  if (src_len.empty()) {
+    if (dst_len) dst_len->clear();
+    return KVMatch(src_key, src_val, dst_key, dst_val, op, nthreads);
   }
-  LOG(FATAL) << "TODO";
-  return 0;
+
+  // do check
+  CHECK_EQ(src_key.size(), src_len.size());
+
+  // match length
+  dst_len->clear();
+  dst_len->resize(dst_key.size(), 0);
+  KVMatch(src_key, src_len, dst_key, dst_len, ASSIGN, nthreads);
+
+  // match value
+  size_t size = 0;
+  for (I i : *dst_len) size += i;
+  dst_val->clear();
+  dst_val->resize(size, 0);
+
+  size_t matched = 0;
+  size_t grainsize = std::max(dst_key.size() / nthreads + 5,
+                              static_cast<size_t>(1024*1024));
+  KVMatchVaryLen<K, I, V>(src_key.begin(),
+                          src_key.end(),
+                          src_len.begin(),
+                          src_val.begin(),
+                          dst_key.begin(),
+                          dst_key.end(),
+                          dst_len->begin(),
+                          dst_val->begin(),
+                          op, grainsize, &matched);
+  CHECK_EQ(matched, size);
+  return size;
 }
 
 }  // namespace difacto

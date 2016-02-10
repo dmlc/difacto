@@ -89,23 +89,6 @@ void gen_vals(int len, real_t min_val, real_t max_val, SArray<V>* val) {
     (*val)[i] = static_cast<V>(dis(generator));
   }
 }
-
-/**
- * \brief generate a list of random values
- *
- * @param len the length
- * @param max_val random value in [min_val, max_val)
- * @param val results
- */
-template <typename V>
-void gen_vals(int len, SArray<V>* val, real_t min_val = -10, real_t max_val = 10) {
-  val->resize(len);
-  std::uniform_real_distribution<real_t> dis(min_val, max_val);
-  for (int i = 0; i < len; ++i) {
-    (*val)[i] = static_cast<V>(dis(generator));
-  }
-}
-
 /**
  * \brief check rowblock a == b
  */
@@ -125,6 +108,16 @@ void check_equal(RowBlock<T> a, RowBlock<T> b) {
   if (a.value) {
     EXPECT_EQ(norm2(a.value+a.offset[0], nnz), norm2(b.value+b.offset[0], nnz));
   }
+}
+
+/**
+ * \brief check rowblock a == b
+ */
+template <typename T>
+void check_equal(const SArray<T>& a, const SArray<T>& b) {
+   EXPECT_EQ(a.size(), b.size());
+   size_t n = std::min(a.size(), b.size());
+   for (size_t i = 0; i < n; ++i) EXPECT_EQ(a[i], b[i]);
 }
 
 /**
