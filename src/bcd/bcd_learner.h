@@ -10,8 +10,8 @@
 #include "data/data_store.h"
 #include "data/tile_store.h"
 #include "data/tile_builder.h"
+#include "common/learner_utils.h"
 #include "./bcd_param.h"
-#include "./bcd_job.h"
 #include "./bcd_utils.h"
 #include "loss/logit_loss_delta.h"
 namespace difacto {
@@ -29,7 +29,7 @@ class BCDLearner : public Learner {
   KWArgs Init(const KWArgs& kwargs) override;
 
   void AddEpochEndCallback(
-      const std::function<void(int epoch, const bcd::Progress& prog)>& callback) {
+      const std::function<void(int epoch, const std::vector<real_t>& prog)>& callback) {
     epoch_end_callback_.push_back(callback);
   }
 
@@ -39,25 +39,17 @@ class BCDLearner : public Learner {
   void Process(const std::string& args, std::string* rets) override;
 
  private:
-  /**
-   * \brief sleep for a moment
-   * \param ms the milliseconds (1e-3 sec) for sleeping
-   */
-  inline void Sleep(int ms = 5) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+
+  void IssueJobAndWait(int node_group, const bcd::Job& job, std::vector<real_t>*
+                       rets = nullptr) {
+    std::string args; job.SerializeToString(&args);
+    SendJobAndWait(node_group, args, tracker_, rets);
   }
+  void PrepareData(std::vector<real_t>* fea_stats);
 
-  /**
-   * \brief send jobs to nodes and wait them finished.
-   */
-  void IssueJobAndWait(int node_group, const bcd::JobArgs& job,
-                       Tracker::Monitor monitor = nullptr);
+  void BuildFeatureMap(const std::vector<Range>& feablk_ranges);
 
-  void PrepareData(const bcd::JobArgs& job, bcd::PrepDataRets* rets);
-
-  void BuildFeatureMap(const bcd::JobArgs& job);
-
-  void IterateData(const bcd::JobArgs& job, bcd::Progress* progress);
+  void IterateData(const std::vector<int>& feablks, std::vector<real_t>* progress);
 
   /**
    * \brief iterate a feature block
@@ -83,7 +75,7 @@ class BCDLearner : public Learner {
    */
   void IterateFeablk(int blk_id,
                      const std::function<void()>& on_complete,
-                     bcd::Progress* progress);
+                     std::vector<real_t>* progress);
 
   void CalcGrad(int rowblk_id, int colblk_id,
                 const SArray<int>& grad_offset,
@@ -92,7 +84,7 @@ class BCDLearner : public Learner {
   void UpdtPred(int rowblk_id, int colblk_id,
                 const SArray<int> delta_w_offset,
                 const SArray<real_t> delta_w,
-                bcd::Progress* progress);
+                std::vector<real_t>* progress);
 
   /** \brief the current epoch */
   int epoch_ = 0;
@@ -124,7 +116,7 @@ class BCDLearner : public Learner {
 
   std::vector<SArray<real_t>> pred_;
 
-  std::vector<std::function<void(int epoch, const bcd::Progress& prog)>> epoch_end_callback_;
+  std::vector<std::function<void(int epoch, std::vector<real_t>const & prog)>> epoch_end_callback_;
 };
 
 }  // namespace difacto

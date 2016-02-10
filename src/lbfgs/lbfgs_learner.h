@@ -12,6 +12,7 @@
 #include "difacto/store.h"
 #include "data/tile_store.h"
 #include "data/tile_builder.h"
+#include "common/learner_utils.h"
 #include "./lbfgs_param.h"
 #include "./lbfgs_utils.h"
 #include "./lbfgs_updater.h"
@@ -38,7 +39,11 @@ class LBFGSLearner : public Learner {
   void IssueJobAndWait(int node_group,
                        int job_type,
                        const std::vector<real_t>& job_args = {},
-                       std::vector<real_t>* job_rets = nullptr);
+                       std::vector<real_t>* job_rets = nullptr) {
+    lbfgs::Job job; job.type = job_type; job.value = job_args;
+    std::string args; job.SerializeToString(&args);
+    SendJobAndWait(node_group, args, tracker_, job_rets);
+  }
 
   /**
    * \brief a wrapper to above

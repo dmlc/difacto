@@ -3,7 +3,6 @@
  */
 #include "./lbfgs_learner.h"
 #include "./lbfgs_utils.h"
-#include "dmlc/memory_io.h"
 #include "difacto/node_id.h"
 #include "reader/reader.h"
 namespace difacto {
@@ -47,7 +46,6 @@ void LBFGSLearner::RunScheduler() {
 
   real_t objv;
   IssueJobAndWait(NodeID::kWorkerGroup, Job::kInitWorker, {}, &objv);
-  LL << objv;
 
   // iterate over data
   real_t alpha = 0;
@@ -117,41 +115,6 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
   ss->Write(job_rets);
   delete ss;
 }
-
-void LBFGSLearner::IssueJobAndWait(
-    int node_group, int job_type, const std::vector<real_t>& job_args,
-    std::vector<real_t>* job_rets) {
-  // set monitor
-  Tracker::Monitor monitor = nullptr;
-  if (job_rets != nullptr) {
-    monitor = [job_rets](int node_id, const std::string& rets) {
-      auto copy = rets; dmlc::Stream* ss = new dmlc::MemoryStringStream(&copy);
-      std::vector<real_t> vec; ss->Read(&vec); delete ss;
-      if (job_rets->empty()) {
-        *job_rets = vec;
-      } else {
-        CHECK_EQ(job_rets->size(), vec.size());
-        for (size_t i = 0; i < vec.size(); ++i) (*job_rets)[i] += vec[i];
-      }
-    };
-  }
-  tracker_->SetMonitor(monitor);
-
-  // serialize and sent job
-  std::pair<int, std::string> job;
-  job.first = node_group;
-  lbfgs::Job lbfgs_job;
-  lbfgs_job.type = job_type;
-  lbfgs_job.value = job_args;
-  lbfgs_job.SerializeToString(&job.second);
-  tracker_->Issue({job});
-
-  // wait until finished
-  while (tracker_->NumRemains() != 0) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  }
-}
-
 
 size_t LBFGSLearner::PrepareData() {
   // read train data

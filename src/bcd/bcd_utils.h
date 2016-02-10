@@ -11,43 +11,79 @@
 #include <algorithm>
 #include "dmlc/data.h"
 #include "difacto/sarray.h"
+#include "dmlc/memory_io.h"
 namespace difacto {
 namespace bcd {
 
-class FeatureBlock {
- public:
-  /**
-   * \brief partition the whole feature space into blocks
-   *
-   * @param feagrp_nbits number of bit for encoding the feature group
-   * @param feagrps a list of (feature_group, num_partitions_this_group)
-   * @param feablks a list of feature blocks with the start and end ID
-   */
-  static void Partition(int feagrp_nbits,
-                        const std::vector<std::pair<int, int>>& feagrps,
-                        std::vector<Range>* feablks) {
-    CHECK_EQ(feagrp_nbits % 4, 0) << "should be 0, 4, 8, ...";
-    feablks->clear();
-    for (auto f : feagrps) {
-      int gid = f.first;
-      Range rg(ReverseBytes(EncodeFeaGrpID(0, gid, feagrp_nbits)),
-               ReverseBytes(EncodeFeaGrpID(
-                   std::numeric_limits<feaid_t>::max(), gid, feagrp_nbits)));
-      for (int i = 0; i < f.second; ++i) {
-        feablks->push_back(rg.Segment(i, f.second));
-        CHECK(feablks->back().Valid());
-      }
+struct Job {
+  static const int kLoadModel = 1;
+  static const int kSaveModel = 2;
+  static const int kIterateData = 3;
+  static const int kPrepareData = 6;
+  static const int kBuildFeatureMap = 7;
+  /** \brief job type */
+  int type;
+  /** \brief the order to process feature blocks */
+  std::vector<int> feablks;
+  /** \brief the ID range of each feature block */
+  std::vector<Range> feablk_ranges;
+
+  void SerializeToString(std::string* str) const {
+    dmlc::Stream* ss = new dmlc::MemoryStringStream(str);
+    ss->Write(type);
+    ss->Write(feablks);
+    ss->Write(feablk_ranges.size());
+    for (auto r : feablk_ranges) {
+      ss->Write(r.begin); ss->Write(r.end);
     }
-    std::sort(feablks->begin(), feablks->end(),
-              [](const Range& a, const Range& b) { return a.begin < b.begin;});
-    for (size_t i = 1; i < feablks->size(); ++i) {
-      auto& before = feablks->at(i-1), after = feablks->at(i);
-      if (before.end < after.begin) ++before.end;
-      CHECK_LE(before.end, after.begin);
-    }
+    delete ss;
   }
+  void ParseFromString(const std::string& str) {
+    auto pstr = str;
+    dmlc::Stream* ss = new dmlc::MemoryStringStream(&pstr);
+    ss->Read(&type);
+    ss->Read(&feablks);
+    size_t size; ss->Read(&size);
+    feablk_ranges.resize(size);
+    for (size_t i = 0; i < size; ++i) {
+      ss->Read(&feablk_ranges[i].begin);
+      ss->Read(&feablk_ranges[i].end);
+    }
+    delete ss;
+  }
+
 };
 
+/**
+ * \brief partition the whole feature space into blocks
+ *
+ * @param feagrp_nbits number of bit for encoding the feature group
+ * @param feagrps a list of (feature_group, num_partitions_this_group)
+ * @param feablks a list of feature blocks with the start and end ID
+ */
+inline void PartitionFeature(int feagrp_nbits,
+                             const std::vector<std::pair<int, int>>& feagrps,
+                             std::vector<Range>* feablks) {
+  CHECK_EQ(feagrp_nbits % 4, 0) << "should be 0, 4, 8, ...";
+  feablks->clear();
+  for (auto f : feagrps) {
+    int gid = f.first;
+    Range rg(ReverseBytes(EncodeFeaGrpID(0, gid, feagrp_nbits)),
+             ReverseBytes(EncodeFeaGrpID(
+                 std::numeric_limits<feaid_t>::max(), gid, feagrp_nbits)));
+    for (int i = 0; i < f.second; ++i) {
+      feablks->push_back(rg.Segment(i, f.second));
+      CHECK(feablks->back().Valid());
+    }
+  }
+  std::sort(feablks->begin(), feablks->end(),
+            [](const Range& a, const Range& b) { return a.begin < b.begin;});
+  for (size_t i = 1; i < feablks->size(); ++i) {
+    auto& before = feablks->at(i-1), after = feablks->at(i);
+    if (before.end < after.begin) ++before.end;
+    CHECK_LE(before.end, after.begin);
+  }
+}
 
 /**
  * \brief count statistics for feature groups

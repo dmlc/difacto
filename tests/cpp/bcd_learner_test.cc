@@ -30,8 +30,8 @@ TEST(BCDLearer, DiagNewton) {
     21.137216
   };
 
-  auto callback = [objv](int epoch, const bcd::Progress& prog) {
-    EXPECT_LT(abs(prog.value[1] - objv[epoch]), 1e-5);
+  auto callback = [objv](int epoch, const std::vector<real_t>& prog) {
+    EXPECT_LT(abs(prog[1] - objv[epoch]), 1e-5);
   };
   learner.AddEpochEndCallback(callback);
   learner.Run();
@@ -55,8 +55,8 @@ TEST(BCDLearer, Convergence) {
     auto remain = learner.Init(args);
     EXPECT_EQ(remain.size(), 0);
 
-    auto callback = [&objv](int epoch, const bcd::Progress& prog) {
-      objv = prog.value[1];
+    auto callback = [&objv](int epoch, const std::vector<real_t>& prog) {
+      objv = prog[1];
     };
     learner.AddEpochEndCallback(callback);
     learner.Run();
