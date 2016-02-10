@@ -26,10 +26,17 @@ typedef std::vector<std::pair<std::string, std::string>> KWArgs;
  */
 #define DEFAULT_NTHREADS 2
 /**
+ * \brief reverse the feature ID to make it more uniform in default
+ */
+#ifndef REVERSE_FEATURE_ID
+#define REVERSE_FEATURE_ID 1
+#endif
+/**
  * \brief reverse the bytes of x to make it more uniformly spanning the space
  * \param x the feature index
  */
 inline feaid_t ReverseBytes(feaid_t x) {
+#if REVERSE_FEATURE_ID
   // return x;
   x = x << 32 | x >> 32;
   x = (x & 0x0000FFFF0000FFFFULL) << 16 |
@@ -38,6 +45,7 @@ inline feaid_t ReverseBytes(feaid_t x) {
       (x & 0xFF00FF00FF00FF00ULL) >> 8;
   x = (x & 0x0F0F0F0F0F0F0F0FULL) << 4 |
       (x & 0xF0F0F0F0F0F0F0F0ULL) >> 4;
+#endif
   return x;
 }
 /**

@@ -3,7 +3,7 @@
 %%
 load data
 [i,j,k]=find(x);
-z = full(sum(sparse(i,j,ones(size(i))))>0);
+z = full(sum(sparse(i,j,ones(size(i))))>2);
 X = x(:,z);
 Y = y;
 
@@ -19,9 +19,9 @@ rho = .5;
 
 [n, p] = size(X);
 w = zeros(p,1);
+g = grad(Y, X, w);
 s = [];
 y = [];
-g = grad(Y, X, w);
 
 for k = 1 : 20
 % two loop

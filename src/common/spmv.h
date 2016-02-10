@@ -94,7 +94,7 @@ class SpMV {
     CHECK_NOTNULL(y);
     CheckPos(x_pos, x.size());
     CheckPos(y_pos, y->size());
-    TransTimes(D, x.data(), y->data(), y->size(),
+    TransTimes(D, x.data(), y->data(), (y_pos.size() ? y_pos.size() : y->size()),
                (x_pos.empty() ? nullptr : x_pos.data()),
                (y_pos.empty() ? nullptr : y_pos.data()),
                nthreads);
@@ -140,13 +140,13 @@ class SpMV {
   static void TransTimes(const SpMat& D,
                          V const* x,
                          V* y,
-                         size_t y_size,
+                         size_t ncol,
                          I const* x_pos,
                          I const* y_pos,
                          int nthreads) {
 #pragma omp parallel num_threads(nthreads)
     {
-      Range rg = Range(0, y_size).Segment(
+      Range rg = Range(0, ncol).Segment(
           omp_get_thread_num(), omp_get_num_threads());
 
       for (size_t i = 0; i < D.size; ++i) {

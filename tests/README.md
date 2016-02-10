@@ -26,3 +26,11 @@ dataset in libsvm format
   ```bash
   cd build; ./difacto_tests
   ```
+
+  Use `./difacto_tests --gtest_list_tests` to list all tests and
+  `./difacto_tests --gtest_filter=PATTERN` to run some particular tests
+
+
+## matlab tests
+
+  Some scripts used to generate the *ground truth*.
