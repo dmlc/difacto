@@ -30,3 +30,4 @@
 deps/*
 build/*
 data/*
+*.gc*

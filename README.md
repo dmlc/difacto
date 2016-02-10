@@ -1,6 +1,7 @@
 # <img src=https://raw.githubusercontent.com/dmlc/dmlc.github.io/master/img/logo-m/difacto.png width=130/> *Distributed Factorization Machines*
 
 [![Build Status](https://travis-ci.org/dmlc/difacto.svg?branch=master)](https://travis-ci.org/dmlc/difacto)
+[![codecov.io](https://codecov.io/github/dmlc/difacto/coverage.svg?branch=master)](https://codecov.io/github/dmlc/difacto?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/difacto/badge/?version=latest)](http://difacto.readthedocs.org/en/latest/?badge=latest)
 [![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)
 
