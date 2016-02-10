@@ -11,9 +11,9 @@
 namespace difacto {
 namespace test {
 
-void gen_sliced_vec(const SArray<real_t>& x,
-                    SArray<real_t>* x_val,
-                    SArray<int>* x_pos) {
+inline void gen_sliced_vec(const SArray<real_t>& x,
+                           SArray<real_t>* x_val,
+                           SArray<int>* x_pos) {
   x_pos->resize(x.size());
   SArray<real_t> itv;
   gen_vals(x.size(), 1, 10, &itv);
@@ -28,9 +28,9 @@ void gen_sliced_vec(const SArray<real_t>& x,
   }
 }
 
-void slice_vec(const SArray<real_t>& x_val,
-              const SArray<int>& x_pos,
-              SArray<real_t>* x) {
+inline void slice_vec(const SArray<real_t>& x_val,
+                      const SArray<int>& x_pos,
+                      SArray<real_t>* x) {
   x->resize(x_pos.size());
   for (size_t i = 0; i < x->size(); ++i) {
     (*x)[i] = x_pos[i] == -1 ? 0 : x_val[x_pos[i]];

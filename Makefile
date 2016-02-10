@@ -45,11 +45,9 @@ dmlc-core/libdmlc.a:
 	$(MAKE) -C dmlc-core libdmlc.a DEPS_PATH=$(DEPS_PATH) CXX=$(CXX)
 
 include tests/cpp/test.mk
-cpp-test: $(CPPTEST)
-	echo $(CPPTEST)
-cpp-perf: $(CPPPERF)
 
-test: cpp-test
+
+test: build/difacto_tests
 
 -include build/*.d
 -include build/*/*.d

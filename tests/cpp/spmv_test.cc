@@ -9,8 +9,10 @@
 
 using namespace difacto;
 
+namespace {
 dmlc::data::RowBlockContainer<unsigned> data;
 std::vector<feaid_t> uidx;
+}  // namespace
 
 
 TEST(SpMV, Times) {

@@ -55,14 +55,14 @@ double norm2(const T& data) {
 }
 
 
-std::default_random_engine generator;
+static std::default_random_engine generator;
 
 /**
  * \brief generate a list of unique and sorted keys
  * \param key_len the expected key length
  * \param max_key the maximal key size
  */
-void gen_keys(int key_len, uint32_t max_key, SArray<uint32_t>* key) {
+inline void gen_keys(int key_len, uint32_t max_key, SArray<uint32_t>* key) {
   key->resize(key_len);
   std::uniform_int_distribution<uint32_t> distribution(
       0, max_key);
@@ -130,8 +130,8 @@ void check_equal(RowBlock<T> a, RowBlock<T> b) {
 /**
  * \brief load ../tests/data
  */
-void load_data(dmlc::data::RowBlockContainer<unsigned>* data,
-               std::vector<feaid_t>* uidx) {
+inline void load_data(dmlc::data::RowBlockContainer<unsigned>* data,
+                        std::vector<feaid_t>* uidx) {
   CHECK_NOTNULL(data);
   BatchReader reader("../tests/data", "libsvm", 0, 1, 100);
   CHECK(reader.Next());

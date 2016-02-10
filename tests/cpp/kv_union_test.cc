@@ -49,6 +49,7 @@ void KVUnionRefer(
   }
 }
 
+namespace  {
 void test(int n, int k) {
   SArray<uint32_t> key1, key2, jkey1, jkey2;
   SArray<real_t> val1, val2, jval1, jval2;
@@ -68,6 +69,7 @@ void test(int n, int k) {
   EXPECT_EQ(norm1(jval1.data(), jval1.size()),
             norm1(jval2.data(), jval2.size()));
 }
+}  // namespace
 
 
 TEST(KVUnion, Union) {
