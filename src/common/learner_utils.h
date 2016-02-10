@@ -1,5 +1,9 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_COMMON_LEARNER_UTILS_H_
 #define DIFACTO_COMMON_LEARNER_UTILS_H_
+#include <utility>
 #include <string>
 #include <vector>
 #include "difacto/tracker.h"

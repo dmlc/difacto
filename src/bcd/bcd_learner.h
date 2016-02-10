@@ -39,7 +39,6 @@ class BCDLearner : public Learner {
   void Process(const std::string& args, std::string* rets) override;
 
  private:
-
   void IssueJobAndWait(int node_group, const bcd::Job& job, std::vector<real_t>*
                        rets = nullptr) {
     std::string args; job.SerializeToString(&args);

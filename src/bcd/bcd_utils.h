@@ -4,6 +4,7 @@
 #ifndef DIFACTO_BCD_BCD_UTILS_H_
 #define DIFACTO_BCD_BCD_UTILS_H_
 #include <mutex>
+#include <string>
 #include <limits>
 #include <utility>
 #include <condition_variable>
@@ -38,6 +39,7 @@ struct Job {
     }
     delete ss;
   }
+
   void ParseFromString(const std::string& str) {
     auto pstr = str;
     dmlc::Stream* ss = new dmlc::MemoryStringStream(&pstr);
@@ -51,7 +53,6 @@ struct Job {
     }
     delete ss;
   }
-
 };
 
 /**
