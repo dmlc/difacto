@@ -115,9 +115,9 @@ void check_equal(RowBlock<T> a, RowBlock<T> b) {
  */
 template <typename T>
 void check_equal(const SArray<T>& a, const SArray<T>& b) {
-   EXPECT_EQ(a.size(), b.size());
-   size_t n = std::min(a.size(), b.size());
-   for (size_t i = 0; i < n; ++i) EXPECT_EQ(a[i], b[i]);
+  EXPECT_EQ(a.size(), b.size());
+  size_t n = std::min(a.size(), b.size());
+  for (size_t i = 0; i < n; ++i) EXPECT_EQ(a[i], b[i]);
 }
 
 /**
