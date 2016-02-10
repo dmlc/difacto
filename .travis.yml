@@ -22,7 +22,6 @@ addons:
       - g++-4.8
 
 before_install:
-  - pip install codecov --user `whoami`
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
