@@ -3,6 +3,7 @@
  */
 #ifndef DIFACTO_DATA_TILE_BUILDER_H_
 #define DIFACTO_DATA_TILE_BUILDER_H_
+#include <vector>
 #include "common/kv_union.h"
 #include "common/spmt.h"
 #include "data/localizer.h"

@@ -9,12 +9,12 @@ using namespace difacto;
 
 // a referance impl based std::map
 template <typename K, typename V>
-size_t KVMatchRefer (
-  const SArray<K>& src_key,
-  const SArray<V>& src_val,
-  const SArray<K>& dst_key,
-  SArray<V>* dst_val,
-  int val_len = 1) {
+size_t KVMatchRefer(
+    const SArray<K>& src_key,
+    const SArray<V>& src_val,
+    const SArray<K>& dst_key,
+    SArray<V>* dst_val,
+    int val_len = 1) {
   std::unordered_map<K, SArray<V>> data;
   for (size_t i = 0; i < src_key.size(); ++i) {
     auto& v = data[src_key[i]];

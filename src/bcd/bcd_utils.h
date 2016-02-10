@@ -4,6 +4,8 @@
 #ifndef DIFACTO_BCD_BCD_UTILS_H_
 #define DIFACTO_BCD_BCD_UTILS_H_
 #include <mutex>
+#include <limits>
+#include <utility>
 #include <condition_variable>
 #include <vector>
 #include <algorithm>
@@ -22,14 +24,15 @@ class FeatureBlock {
    * @param feablks a list of feature blocks with the start and end ID
    */
   static void Partition(int feagrp_nbits,
-                        const std::vector<std::pair<int,int>>& feagrps,
+                        const std::vector<std::pair<int, int>>& feagrps,
                         std::vector<Range>* feablks) {
     CHECK_EQ(feagrp_nbits % 4, 0) << "should be 0, 4, 8, ...";
     feablks->clear();
     for (auto f : feagrps) {
       int gid = f.first;
       Range rg(ReverseBytes(EncodeFeaGrpID(0, gid, feagrp_nbits)),
-               ReverseBytes(EncodeFeaGrpID(std::numeric_limits<feaid_t>::max(), gid, feagrp_nbits)));
+               ReverseBytes(EncodeFeaGrpID(
+                   std::numeric_limits<feaid_t>::max(), gid, feagrp_nbits)));
       for (int i = 0; i < f.second; ++i) {
         feablks->push_back(rg.Segment(i, f.second));
         CHECK(feablks->back().Valid());
@@ -51,10 +54,10 @@ class FeatureBlock {
  */
 class FeaGroupStats {
  public:
-  FeaGroupStats(int nbits) {
+  explicit FeaGroupStats(int nbits) {
     CHECK_LE(nbits, 16);
     nbits_ = nbits;
-    value_.resize((1<<nbits_)+2);
+    value_.resize((1 << nbits_)+2);
   }
 
   void Add(const dmlc::RowBlock<feaid_t>& rowblk) {
@@ -65,8 +68,8 @@ class FeaGroupStats {
       }
       ++nrows;
     }
-    value_[1<<nbits_] += nrows;
-    value_[(1<<nbits_)+1] += rowblk.size;
+    value_[1 << nbits_] += nrows;
+    value_[(1 << nbits_)+1] += rowblk.size;
   }
 
   void Get(std::vector<real_t>* value) {
@@ -75,7 +78,7 @@ class FeaGroupStats {
 
  private:
   int nbits_;
-  int skip_ = 10; // only count 10% data
+  int skip_ = 10;  // only count 10% data
   std::vector<real_t> value_;
 };
 
@@ -84,7 +87,7 @@ class FeaGroupStats {
  */
 class BlockTracker {
  public:
-  BlockTracker(int num_blks) : done_(num_blks) { }
+  explicit BlockTracker(int num_blks) : done_(num_blks) { }
   /** \brief mark id as finished */
   void Finish(int id) {
     mu_.lock();
@@ -120,7 +123,6 @@ class Delta {
   static void Update(real_t delta_w, real_t* delta, real_t max_val = 5.0) {
     *delta = std::min(max_val, static_cast<real_t>(std::abs(delta_w) * 2.0 + .1));
   }
-
 };
 
 }  // namespace bcd

@@ -3,6 +3,7 @@
  */
 #ifndef DIFACTO_BCD_BCD_PARAM_H_
 #define DIFACTO_BCD_BCD_PARAM_H_
+#include <string>
 #include "dmlc/parameter.h"
 namespace difacto {
 

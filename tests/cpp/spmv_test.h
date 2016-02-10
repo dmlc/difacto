@@ -1,6 +1,8 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
+#ifndef TESTS_CPP_SPMV_TEST_H_
+#define TESTS_CPP_SPMV_TEST_H_
 #include <cstring>
 #include <vector>
 #include "dmlc/data.h"
@@ -133,3 +135,4 @@ class SpMV {
 
 }  // namespace test
 }  // namespace difacto
+#endif  // TESTS_CPP_SPMV_TEST_H_

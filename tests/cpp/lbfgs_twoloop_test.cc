@@ -38,7 +38,6 @@ void TwoloopRefer(const std::vector<SArray<real_t>>& s,
 }
 
 TEST(Twoloop, naive) {
-
   SArray<real_t> g = {1, 2};
   std::vector<SArray<real_t>> s = {{2, 3}}, y = {{3, 4}};
   SArray<real_t> p0, p1;

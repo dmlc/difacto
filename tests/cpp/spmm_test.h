@@ -1,7 +1,10 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
+#ifndef TESTS_CPP_SPMM_TEST_H_
+#define TESTS_CPP_SPMM_TEST_H_
 #include <cstring>
+#include <vector>
 #include "dmlc/data.h"
 #include "dmlc/omp.h"
 #include "difacto/sarray.h"
@@ -161,3 +164,4 @@ class SpMM {
 
 }  // namespace test
 }  // namespace difacto
+#endif  // TESTS_CPP_SPMM_TEST_H_

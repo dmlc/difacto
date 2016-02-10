@@ -1,12 +1,15 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef DEFACTO_SGD_SGD_LEARNER_H_
-#define DEFACTO_SGD_SGD_LEARNER_H_
+#ifndef DIFACTO_SGD_SGD_LEARNER_H_
+#define DIFACTO_SGD_SGD_LEARNER_H_
 #include <stdlib.h>
 #include <chrono>
 #include <memory>
 #include <thread>
+#include <vector>
+#include <string>
+#include <utility>
 #include "dmlc/data.h"
 #include "difacto/learner.h"
 #include "reader/batch_reader.h"
@@ -33,7 +36,7 @@ class SGDLearner : public Learner {
   virtual ~SGDLearner() {
     delete loss_;
     delete store_;
-  };
+  }
 
   KWArgs Init(const KWArgs& kwargs) override {
     auto remain = Learner::Init(kwargs);
@@ -225,7 +228,7 @@ class SGDLearner : public Learner {
  private:
   void Evaluate(const SArray<real_t>& label, const SArray<real_t>& pred) {
     sgd::Progress prog;
-    // TODO
+    // TODO(mli)
     std::string report; prog.SerializeToString(&report);
     reporter_->Report(report);
   }
@@ -260,4 +263,4 @@ class SGDLearner : public Learner {
 };
 
 }  // namespace difacto
-#endif  // DEFACTO_SGD_SGD_LEARNER_H_
+#endif  // DIFACTO_SGD_SGD_LEARNER_H_

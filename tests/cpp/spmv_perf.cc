@@ -27,7 +27,8 @@ DMLC_REGISTER_PARAMETER(Param);
 int main(int argc, char *argv[]) {
   Param param;
   if (argc < 2) {
-    LOG(ERROR) << "not enough input.. \n\nusage: ./difacto key1=val1 key2=val2 ...\n\n" << param.__DOC__();
+    LOG(ERROR) << "not enough input.. \n\nusage: ./difacto key1=val1 key2=val2 ...\n\n"
+               << param.__DOC__();
     return 0;
   }
   ArgParser parser;

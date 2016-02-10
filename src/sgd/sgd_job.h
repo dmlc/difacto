@@ -4,6 +4,7 @@
 #ifndef DIFACTO_SGD_SGD_JOB_H_
 #define DIFACTO_SGD_SGD_JOB_H_
 #include <string>
+#include <vector>
 #include "dmlc/memory_io.h"
 namespace difacto {
 namespace sgd {

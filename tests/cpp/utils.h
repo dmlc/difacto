@@ -1,12 +1,13 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_TEST_CPP_UTILS_H_
-#define DIFACTO_TEST_CPP_UTILS_H_
+#ifndef TESTS_CPP_UTILS_H_
+#define TESTS_CPP_UTILS_H_
+#include <math.h>
+#include <vector>
 #include <random>
 #include <limits>
 #include <algorithm>
-#include <math.h>
 #include <sstream>
 #include "dmlc/data.h"
 #include "difacto/base.h"
@@ -143,4 +144,4 @@ void load_data(dmlc::data::RowBlockContainer<unsigned>* data,
 
 }  // namespace difacto
 
-#endif  // DIFACTO_TEST_CPP_UTILS_H_
+#endif  // TESTS_CPP_UTILS_H_

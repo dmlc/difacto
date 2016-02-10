@@ -75,7 +75,7 @@ void BCDLearner::RunScheduler() {
 
   // partition feature group and build feature map
   bcd::JobArgs build; build.type = bcd::JobArgs::kBuildFeatureMap;
-  std::vector<std::pair<int,int>> feagrp;
+  std::vector<std::pair<int, int>> feagrp;
   int nfeablk = load_data.value.size()-2;
   for (int i = 0; i < nfeablk; ++i) {
     int nblk = static_cast<int>(std::ceil(
@@ -221,7 +221,7 @@ void BCDLearner::IterateFeablk(int blk_id,
   // 1. calculate gradient
   auto& feablk = feablks_[blk_id];
   SArray<int> grad_offset = feablk.model_offset;
-  for (int& o : grad_offset) o += o; // it's ok to overwrite model_offset_[blk_id]
+  for (int& o : grad_offset) o += o;  // it's ok to overwrite model_offset_[blk_id]
   SArray<real_t> grad(
       grad_offset.empty() ? feablk.feaids.size() * 2 : grad_offset.back());
   for (int i = 0; i < ntrain_blks_; ++i) {

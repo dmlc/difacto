@@ -41,7 +41,6 @@ TEST(BCDLearer, DiagNewton) {
 // w = 47
 
 TEST(BCDLearer, Convergence) {
-
   std::vector<real_t> ratio = {.4, 1, 10};
 
   for (real_t r : ratio) {
@@ -64,5 +63,4 @@ TEST(BCDLearer, Convergence) {
 
     EXPECT_LT(abs(objv - 15.884923), .001);
   }
-
 }

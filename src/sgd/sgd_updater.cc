@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2015 by Contributors
  */
+#include <string.h>
 #include "./sgd_updater.h"
 #include "difacto/store.h"
-#include <string.h>
 namespace difacto {
 
 void SGDModel::Init(int V_dim, feaid_t start_id, feaid_t end_id) {
@@ -170,7 +170,7 @@ void SGDUpdater::Update(const SArray<feaid_t>& fea_ids,
   } else {
     LOG(FATAL) << ".....";
   }
-  // TODO
+  // TODO(mli)
   // Progress prog;
   // prog.new_w() = new_w_;
   // prog.new_V() = new_V_;

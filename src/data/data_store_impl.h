@@ -68,7 +68,7 @@ class DataStoreMemory : public DataStoreImpl {
   void Remove(const std::string& key) override { store_.erase(key); }
 
  private:
-  std::unordered_map<std::string,SArray<char>> store_;
+  std::unordered_map<std::string, SArray<char>> store_;
 };
 
 /**
@@ -76,12 +76,10 @@ class DataStoreMemory : public DataStoreImpl {
  */
 class DataStoreDisk : public DataStoreImpl {
  public:
-
   DataStoreDisk(const std::string& cache_prefix,
                 size_t max_mem_capacity) {
   }
   virtual ~DataStoreDisk() { }
-
 };
 
 }  // namespace difacto

@@ -24,7 +24,7 @@ TEST(BatchReader, Read) {
     EXPECT_EQ(os[i], norm1(batch.offset, size+1));
     EXPECT_EQ(idx[i], norm1(batch.index, batch.offset[size]));
     EXPECT_LE(fabs(val[i] - norm2(batch.value, batch.offset[size])), 1e-5);
-    ++ i;
+    ++i;
   }
 }
 
@@ -39,7 +39,7 @@ TEST(BatchReader, RandRead) {
     EXPECT_NE(os[i], norm1(batch.offset, size+1));
     EXPECT_EQ(idx[i], norm1(batch.index, batch.offset[size]));
     EXPECT_LE(fabs(val[i] - norm2(batch.value, batch.offset[size])), 1e-5);
-    ++ i;
+    ++i;
   }
 }
 

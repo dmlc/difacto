@@ -25,7 +25,7 @@ TEST(DataStore, MemBase) {
   SArray<real_t> ret1;
   SArray<int> ret2;
   store.Fetch("1", &ret1);
-  store.Fetch("2", &ret2, Range(10,30));
+  store.Fetch("2", &ret2, Range(10, 30));
 
   // overwrite key
   SArray<uint64_t> ret3;

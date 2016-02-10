@@ -5,6 +5,7 @@
 #define DIFACTO_BCD_BCD_UPDATER_H_
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <limits>
 #include "difacto/updater.h"
 #include "dmlc/parameter.h"
@@ -46,9 +47,7 @@ class BCDUpdater : public Updater {
 
   const BCDUpdaterParam& param() const { return param_; }
 
-  void Load(dmlc::Stream* fi, bool* has_aux) override {
-
-  }
+  void Load(dmlc::Stream* fi, bool* has_aux) override {}
 
   void Save(bool save_aux, dmlc::Stream *fo) const override {
   }
@@ -115,6 +114,7 @@ class BCDUpdater : public Updater {
       LOG(FATAL) << "...";
     }
   }
+
  private:
   void InitWeights() {
     // remove tail features

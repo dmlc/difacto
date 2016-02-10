@@ -3,6 +3,7 @@
  */
 #ifndef DIFACTO_LBFGS_LBFGS_TWOLOOP_H_
 #define DIFACTO_LBFGS_LBFGS_TWOLOOP_H_
+#include <vector>
 #include "./lbfgs_utils.h"
 namespace difacto {
 namespace lbfgs {
@@ -122,7 +123,6 @@ class Twoloop {
   int nthreads_ = DEFAULT_NTHREADS;
   /** \brief B_[i][j] = <b[i], b[j]> */
   std::vector<std::vector<double>> B_;
-
 };
 }  // namespace lbfgs
 }  // namespace difacto

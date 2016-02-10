@@ -3,6 +3,8 @@
  */
 #ifndef DIFACTO_DATA_TILE_STORE_H_
 #define DIFACTO_DATA_TILE_STORE_H_
+#include <string>
+#include <vector>
 #include "dmlc/data.h"
 #include "difacto/sarray.h"
 #include "./shared_row_block_container.h"
@@ -37,7 +39,7 @@ class TileBuilder;
 
 class TileStore {
  public:
-  TileStore(DataStore* data) {
+  explicit TileStore(DataStore* data) {
     data_ = CHECK_NOTNULL(data);
   }
   friend class TileBuilder;
@@ -150,8 +152,8 @@ class TileStore {
   std::vector<std::vector<Meta>> meta_;  // row x col
 
   const std::string meta_header_ = "tile_store_meta";
-  const std::string meta_format_ = "format:transposed,colblk_size,colmap_range,offset_range,index_range,...";
-
+  const std::string meta_format_ =
+    "format:transposed,colblk_size,colmap_range,offset_range,index_range,...";
 };
 
 }  // namespace difacto

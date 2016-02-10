@@ -43,7 +43,7 @@ struct SharedRowBlockContainer {
    *
    * \param blk the rowblock
    */
-  SharedRowBlockContainer(dmlc::data::RowBlockContainer<IndexType>** blk) {
+  explicit SharedRowBlockContainer(dmlc::data::RowBlockContainer<IndexType>** blk) {
     CHECK_NOTNULL(blk);
     CHECK_NOTNULL(*blk);
     std::shared_ptr<dmlc::data::RowBlockContainer<IndexType>> data(*blk);

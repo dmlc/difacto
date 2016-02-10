@@ -1,9 +1,10 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef _BCD_JOB_H_
-#define _BCD_JOB_H_
+#ifndef DIFACTO_BCD_BCD_JOB_H_
+#define DIFACTO_BCD_BCD_JOB_H_
 #include <string>
+#include <vector>
 #include "dmlc/memory_io.h"
 namespace difacto {
 namespace bcd {
@@ -39,7 +40,7 @@ struct JobArgs {
 
   JobArgs() { }
   /** \brief construct from a string */
-  JobArgs(const std::string& str) {
+  explicit JobArgs(const std::string& str) {
     ParseFromString(str);
   }
   void SerializeToString(std::string* str) const {
@@ -132,4 +133,4 @@ struct Progress {
 
 }  // namespace bcd
 }  // namespace difacto
-#endif // _BCD_JOB_H_
+#endif  // DIFACTO_BCD_BCD_JOB_H_

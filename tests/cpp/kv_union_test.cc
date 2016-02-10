@@ -10,7 +10,7 @@ using namespace difacto;
 
 // a referance impl based std::map
 template <typename K, typename V>
-void KVUnionRefer (
+void KVUnionRefer(
     const SArray<K>& keys_a,
     const SArray<V>& vals_a,
     const SArray<K>& keys_b,
