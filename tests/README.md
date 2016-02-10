@@ -20,10 +20,9 @@ dataset in libsvm format
   sudo mv libg* /usr/lib/
   ```
 
-- compile by `make cpp-test` on the project root directory
+- compile by `make test` on the project root directory
 
-- test by
+- run all tests by
   ```bash
-  cd ../build
-  find *_test -exec ./{} \;
+  cd build; ./difacto_tests
   ```

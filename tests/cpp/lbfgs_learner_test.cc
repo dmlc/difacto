@@ -6,7 +6,7 @@
 
 using namespace difacto;
 
-TEST(LBFGSLearer, Objective) {
+TEST(LBFGSLearer, Basic) {
   std::vector<real_t> objv = {
     69.314718,
     34.603421,

@@ -86,6 +86,6 @@ TEST(Twoloop, basic) {
     two.ApplyIncreB(B);
     two.CalcDirection(s, y, g, &p1);
 
-    EXPECT_LE(fabs(norm2(p0) - norm2(p1)) / norm2(p1), 5e-6);
+    EXPECT_LE(fabs(norm2(p0) - norm2(p1)) / norm2(p1), 1e-5);
   }
 }
