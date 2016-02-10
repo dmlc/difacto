@@ -115,7 +115,8 @@ class BCDLearner : public Learner {
 
   std::vector<SArray<real_t>> pred_;
 
-  std::vector<std::function<void(int epoch, std::vector<real_t>const & prog)>> epoch_end_callback_;
+  std::vector<std::function<void(
+      int epoch, const std::vector<real_t> & prog)>> epoch_end_callback_;
 };
 
 }  // namespace difacto

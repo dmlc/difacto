@@ -56,7 +56,7 @@ class LBFGSUpdater : public Updater {
 
   void PrepareCalcDirection(real_t alpha, std::vector<real_t>* aux) {
     if (y_.empty()) return;
-    if (static_cast<int>(s_.size()) > param_.m - 1) s_.erase(s_.begin());
+    if (static_cast<int>(s_.size()) == param_.m) s_.erase(s_.begin());
     SArray<real_t> new_s(models_.size());
     lbfgs::Add(alpha, models_, &new_s);
     s_.push_back(new_s);
@@ -77,7 +77,7 @@ class LBFGSUpdater : public Updater {
       memset(models_.data(), 0, models_.size()*sizeof(real_t));
       lbfgs::Add(-1, grads_, &models_);
     }
-    for (auto& p : models_) p = p > 5 ? 5 : (p < -5 ? -5 : p);
+    // for (auto& p : models_) p = p > 5 ? 5 : (p < -5 ? -5 : p);
     return lbfgs::Inner(grads_, models_, nthreads_);
   }
 
@@ -106,7 +106,7 @@ class LBFGSUpdater : public Updater {
       CHECK_EQ(feaids_.size(), feaids.size());
       // add y = new_grad - old_grad
       if (grads_.size()) {
-        if (static_cast<int>(y_.size()) == param_.m - 1) y_.erase(y_.begin());
+        if (static_cast<int>(y_.size()) == param_.m) y_.erase(y_.begin());
         SArray<real_t> new_y;
         new_y.CopyFrom(values);
         lbfgs::Add(-1, grads_, &new_y);

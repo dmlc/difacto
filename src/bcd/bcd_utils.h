@@ -158,7 +158,7 @@ class Delta {
    * \brief update delta given the change of w
    */
   static void Update(real_t delta_w, real_t* delta, real_t max_val = 5.0) {
-    *delta = std::min(max_val, static_cast<real_t>(std::abs(delta_w) * 2.0 + .1));
+    *delta = std::min(max_val, static_cast<real_t>(std::fabs(delta_w) * 2.0 + .1));
   }
 };
 

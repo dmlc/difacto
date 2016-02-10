@@ -28,6 +28,11 @@ class LBFGSLearner : public Learner {
   }
   KWArgs Init(const KWArgs& kwargs) override;
 
+  void AddEpochEndCallback(
+      const std::function<void(int epoch, const lbfgs::Progress& prog)>& callback) {
+    epoch_end_callback_.push_back(callback);
+  }
+
  protected:
   void RunScheduler() override;
   void Process(const std::string& args, std::string* rets) override;
@@ -112,6 +117,9 @@ class LBFGSLearner : public Learner {
   std::vector<SArray<real_t>> pred_;
 
   real_t alpha_;
+
+  std::vector<std::function<void(
+      int epoch, const lbfgs::Progress& prog)>> epoch_end_callback_;
 };
 }  // namespace difacto
 #endif  // DIFACTO_LBFGS_LBFGS_LEARNER_H_

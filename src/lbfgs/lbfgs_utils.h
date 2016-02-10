@@ -41,6 +41,20 @@ struct Job {
   }
 };
 
+struct Progress {
+  real_t objv;
+
+  void SerializeToVector(std::vector<real_t>* vec) const {
+    vec->resize(sizeof(Progress)/sizeof(real_t));
+    memcpy(vec->data(), reinterpret_cast<char const*>(this), sizeof(Progress));
+  }
+
+  void ParseFromVector(const std::vector<real_t>& vec) {
+    CHECK_EQ(sizeof(Progress), vec.size()*sizeof(real_t));
+    memcpy(reinterpret_cast<char*>(this), vec.data(), sizeof(Progress));
+  }
+};
+
 /**
  * \brief return <a, b>
  */

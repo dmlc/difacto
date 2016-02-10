@@ -71,18 +71,20 @@ void LBFGSLearner::RunScheduler() {
                 << ", new_objv " << status[0] << ", <g_new,p> " << status[1];
       if ((status[0] <= objv + param_.c1 * alpha * gp) &&
           (status[1] >= param_.c2 * gp)) {
-        // LOG(INFO) << "wolf condition is satisfied!";
         break;
       }
-      LOG(INFO) << "wolf condition is no satisfied, decrease alpha by " << param_.rho;
+      // LOG(INFO) << "wolf condition is no satisfied, decrease alpha by " << param_.rho;
       alpha *= param_.rho;
     }
+    objv = status[0];
 
     // evaluate
-    objv = status[0];
-    std::vector<real_t> prog;
-    IssueJobAndWait(NodeID::kWorkerGroup, Job::kEvaluate, {}, &prog);
+    // std::vector<real_t> eval;
+    // IssueJobAndWait(NodeID::kWorkerGroup, Job::kEvaluate, {}, &eval);
 
+    lbfgs::Progress prog;
+    prog.objv = objv;
+    for (const auto& cb : epoch_end_callback_) cb(epoch, prog);
     // check stop critea
     // TODO(mli)
   }
@@ -99,6 +101,10 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
     job_rets.push_back(GetUpdater()->InitWeights());
   } else if (type == Job::kInitWorker) {
     job_rets.push_back(InitWorker());
+
+      real_t x = 0;
+      for (auto y : grads_) x += y * y;
+      LL << x;
   } else if (type == Job::kPushGradient) {
     directions_.clear();
     int t = CHECK_NOTNULL(model_store_)->Push(

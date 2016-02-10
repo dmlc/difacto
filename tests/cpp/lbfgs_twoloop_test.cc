@@ -53,10 +53,10 @@ TEST(Twoloop, naive) {
   real_t a = (54.0-202)/25/9;
   real_t b = (-36.0-303)/25/9;
 
-  EXPECT_LE(abs(p0[0] - a), 1e-5);
-  EXPECT_LE(abs(p0[1] - b), 1e-5);
-  EXPECT_LE(abs(p1[0] - a), 1e-5);
-  EXPECT_LE(abs(p1[1] - b), 1e-5);
+  EXPECT_LE(fabs(p0[0] - a), 1e-5);
+  EXPECT_LE(fabs(p0[1] - b), 1e-5);
+  EXPECT_LE(fabs(p1[0] - a), 1e-5);
+  EXPECT_LE(fabs(p1[1] - b), 1e-5);
 }
 
 TEST(Twoloop, basic) {
@@ -86,6 +86,6 @@ TEST(Twoloop, basic) {
     two.ApplyIncreB(B);
     two.CalcDirection(s, y, g, &p1);
 
-    EXPECT_LE(abs(norm2(p0) - norm2(p1)) / norm2(p1), 5e-6);
+    EXPECT_LE(fabs(norm2(p0) - norm2(p1)) / norm2(p1), 5e-6);
   }
 }

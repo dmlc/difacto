@@ -1,5 +1,11 @@
 % load rcv1
-% y = Y;
+
+%%
+load data
+[i,j,k]=find(x);
+z = full(sum(sparse(i,j,ones(size(i))))>0);
+X = x(:,z);
+Y = y;
 
 %%
 
@@ -17,7 +23,7 @@ s = [];
 y = [];
 g = grad(Y, X, w);
 
-for i = 1 : 10
+for k = 1 : 20
 % two loop
   m = size(y, 2);
   p = - g;
@@ -39,7 +45,7 @@ for i = 1 : 10
   o = objv(Y, X, w);
   alpha = 1;
   gp = g'*p;
-  fprintf('epoch %d, objv %f, gp %f\n', i, o, gp);
+  fprintf('epoch %d, objv %f, gp %f\n', k, o, gp);
   for j = 1 : 10
     new_o = objv(Y, X, w+alpha*p);
     new_gp = grad(Y, X, w+alpha*p)' * p;
