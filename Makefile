@@ -3,7 +3,7 @@ DEPS_PATH = $(shell pwd)/deps
 
 INCPATH = -I./src -I./include -I./dmlc-core/include -I./ps-lite/include -I./dmlc-core/src -I$(DEPS_PATH)/include
 PROTOC = ${DEPS_PATH}/bin/protoc
-CFLAGS = -std=c++11 -fopenmp -fPIC -O0 -ggdb -Wall -finline-functions $(INCPATH) -DDMLC_LOG_FATAL_THROW=0
+CFLAGS = -std=c++11 -fopenmp -fPIC -O3 -ggdb -Wall -finline-functions $(INCPATH) -DDMLC_LOG_FATAL_THROW=0 $(ADD_CFLAGS)
 # LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
 
 OBJS = $(addprefix build/, loss/loss.o \
@@ -26,7 +26,7 @@ clean:
 	make -C ps-lite clean
 
 lint:
-	python2 dmlc-core/scripts/lint.py difacto all include src
+	python2 dmlc-core/scripts/lint.py difacto all include src tests/cpp
 
 # include ps-lite/make/deps.mk
 
