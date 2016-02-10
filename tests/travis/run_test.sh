@@ -6,6 +6,6 @@ if [ ${TASK} == "lint" ]; then
 fi
 
 if [ ${TASK} == "cpp-test" ]; then
-    make -j4 test CXX=g++-4.8 ADD_CFLAGS=-coverage
+    make -j4 test CXX=clang ADD_CFLAGS=-coverage
     cd build; find *_test -exec ./{} \;
 fi
