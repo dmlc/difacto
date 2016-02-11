@@ -14,6 +14,7 @@ tau = 1 ./ (1  + exp( y .* (x * w')));
 h = full((x.*x)' * (tau .* (1-tau)));
 sum(h.*h)
 
+
 %% fm
 
 V_dim = 5;
@@ -21,14 +22,7 @@ V_dim = 5;
 w = (1:size(x,2))'/5e4;
 V = w * (1:V_dim) / 10;
 
-py = x * w + .5 * sum((x*V).^2 - (x.*x)*(V.*V), 2);
+[objv, gw, gV] = fm_loss(y, x, w, x, V);
 
-sum(log(1 + exp ( - y .* py)))
-
-p = - y ./ (1 + exp (y .* py));
-
-gw = x' * p;
-gv = x' * bsxfun(@times, p, x*V) - bsxfun(@times, (x.*x)'*p, V);
-
-g = [gw, gv];
-sum(sum(g.*g))
+objv
+sum(gw.^2) + sum(gV(:).^2)
