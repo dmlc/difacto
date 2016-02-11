@@ -32,6 +32,7 @@ TEST(LBFGSLearner, Basic) {
   KWArgs args = {{"data_in", "../tests/data"},
                  {"m", "5"},
                  {"V_dim", "0"},
+                 {"l2", "0"},
                  {"tail_feature_filter", "0"},
                  {"max_num_epochs", "19"}};
   auto remain = learner.Init(args);
@@ -69,6 +70,7 @@ TEST(LBFGSLearner, RemoveTailFeatures) {
   KWArgs args = {{"data_in", "../tests/data"},
                  {"m", "5"},
                  {"V_dim", "0"},
+                 {"l2", "0"},
                  {"tail_feature_filter", "2"},
                  {"max_num_epochs", "19"}};
   auto remain = learner.Init(args);
@@ -77,5 +79,38 @@ TEST(LBFGSLearner, RemoveTailFeatures) {
     EXPECT_LT(fabs(objv[epoch] - prog.objv), 1e-5);
   };
   learner.AddEpochEndCallback(callback);
+  learner.Run();
+}
+
+TEST(LBFGSLearner, WithV) {
+  LBFGSLearner learner;
+  KWArgs args = {{"data_in", "../tests/data"},
+                 {"m", "5"},
+                 {"V_dim", "5"},
+                 {"V_threshold", "0"},
+                 {"l2", ".1"},
+                 {"V_l2", ".01"},
+                 {"tail_feature_filter", "0"},
+                 {"max_num_epochs", "19"}};
+  auto remain = learner.Init(args);
+  EXPECT_EQ(remain.size(), 0);
+
+  auto initializer = [](const SArray<int>& lens, SArray<real_t>* vals) {
+    int n = 0;
+    for (int l : lens) {
+      for (int i = 0; i < l; ++i) {
+        if (i > 0) {
+          real_t v = l - 1;
+          (*vals)[n] = (i - v / 2) * .01;
+        }
+        ++n;
+      }
+    }
+  };
+  learner.GetUpdater()->SetWeightInitializer(initializer);
+  // auto callback = [objv](int epoch, const lbfgs::Progress& prog) {
+  //   EXPECT_LT(fabs(objv[epoch] - prog.objv), 1e-5);
+  // };
+  // learner.AddEpochEndCallback(callback);
   learner.Run();
 }

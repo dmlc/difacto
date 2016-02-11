@@ -32,6 +32,10 @@ class LBFGSLearner : public Learner {
     epoch_end_callback_.push_back(callback);
   }
 
+  LBFGSUpdater* GetUpdater() {
+    return CHECK_NOTNULL(std::static_pointer_cast<LBFGSUpdater>(
+        CHECK_NOTNULL(model_store_)->updater()).get());
+  }
  protected:
   void RunScheduler() override;
   void Process(const std::string& args, std::string* rets) override;
@@ -87,10 +91,6 @@ class LBFGSLearner : public Learner {
 
   void LinearSearch(real_t alpha, std::vector<real_t>* status);
 
-  LBFGSUpdater* GetUpdater() {
-    return CHECK_NOTNULL(std::static_pointer_cast<LBFGSUpdater>(
-        CHECK_NOTNULL(model_store_)->updater()).get());
-  }
 
   SArray<int> GetPos(const SArray<int>& offset, const SArray<int>& colmap);
 

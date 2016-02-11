@@ -21,7 +21,7 @@ KWArgs BCDLearner::Init(const KWArgs& kwargs) {
   remain = updater->Init(remain);
   // init model store
   model_store_ = Store::Create();
-  model_store_->set_updater(updater);
+  model_store_->SetUpdater(updater);
   remain = model_store_->Init(remain);
   // init data stores
   tile_store_ = new TileStore();

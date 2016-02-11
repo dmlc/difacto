@@ -93,7 +93,7 @@ class Store {
   virtual int Rank() = 0;
 
   /** \brief set an updater for the store, only required for a server node */
-  void set_updater(const std::shared_ptr<Updater>& updater) {
+  void SetUpdater(const std::shared_ptr<Updater>& updater) {
     updater_ = updater;
   }
   /** \brief get the updater */

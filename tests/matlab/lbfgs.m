@@ -2,9 +2,9 @@
 load data
 [i,j,k]=find(x);
 cnt = full(sum(sparse(i,j,ones(size(i)))));
-X = x(:,cnt>2);
+X = x(:,cnt>0);
 Y = y;
-X2 = x(:,cnt>4);
+X2 = x(:,cnt>0);
 
 %%
 V_dim = 5;
@@ -12,7 +12,8 @@ if V_dim == 0
   X2 = [];
 end
 
-V = randn(size(X2,2),V_dim) * .01;
+V = repmat(((1:V_dim) - V_dim/2)*.01, size(X2,2), 1);
+% V = randn(size(X2,2),V_dim) * .01;
 
 max_m = 5;
 
@@ -34,7 +35,7 @@ gw = gw + lw * w;
 gV = gV + lV * V;
 g = [gw(:); gV(:)];
 
-
+g'*g
 %%
 for k = 1 : 20
 % two loop
