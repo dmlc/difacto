@@ -15,16 +15,16 @@ KWArgs LBFGSLearner::Init(const KWArgs& kwargs) {
   // init param
   remain = param_.InitAllowUnknown(kwargs);
   // init updater
-  std::shared_ptr<Updater> updater(new LBFGSUpdater());
+  auto updater = new LBFGSUpdater();
   remain = updater->Init(remain);
+  remain.push_back(std::make_pair("V_dim", std::to_string(updater->param().V_dim)));
   // init model store
   model_store_ = Store::Create();
-  model_store_->set_updater(updater);
+  model_store_->set_updater(std::shared_ptr<Updater>(updater));
   remain = model_store_->Init(remain);
   // init data stores
-  data_store_ = new DataStore();
-  remain = model_store_->Init(remain);
-  tile_store_ = new TileStore(data_store_);
+  tile_store_ = new TileStore();
+  remain = tile_store_->Init(remain);
   // init loss
   loss_ = Loss::Create(param_.loss, nthreads_);
   remain = loss_->Init(remain);
@@ -108,7 +108,7 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
   } else if (type == Job::kPushGradient) {
     directions_.clear();
     int t = CHECK_NOTNULL(model_store_)->Push(
-        feaids_, Store::kGradient, grads_, model_offsets_);
+        feaids_, Store::kGradient, grads_, model_lens_);
     model_store_->Wait(t);
   } else if (type == Job::kPrepareCalcDirection) {
     GetUpdater()->PrepareCalcDirection(job_args.value[0], &job_rets);
@@ -179,18 +179,18 @@ real_t LBFGSLearner::InitWorker() {
 
   // pull w
   int t = CHECK_NOTNULL(model_store_)->Pull(
-      feaids_, Store::kWeight, &weights_, &model_offsets_);
+      feaids_, Store::kWeight, &weights_, &model_lens_);
   model_store_->Wait(t);
 
-  return CalcGrad(weights_, model_offsets_, &grads_);
+  return CalcGrad(weights_, model_lens_, &grads_);
 }
 
 void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
   // w += αp
   if (directions_.empty()) {
-    SArray<int> dir_offsets;
+    SArray<int> dir_lens;
     int t = CHECK_NOTNULL(model_store_)->Pull(
-        feaids_, Store::kWeight, &directions_, &model_offsets_);
+        feaids_, Store::kWeight, &directions_, &model_lens_);
     model_store_->Wait(t);
     lbfgs::Add(alpha, directions_, &weights_);
   } else {
@@ -198,37 +198,41 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
   }
   alpha_ = alpha;
   status->resize(2);
-  (*status)[0] = CalcGrad(weights_, model_offsets_, &grads_);
+  (*status)[0] = CalcGrad(weights_, model_lens_, &grads_);
   (*status)[1] = lbfgs::Inner(grads_, directions_, nthreads_);
 }
 
-real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w,
-                              const SArray<int>& w_offset,
+real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w_val,
+                              const SArray<int>& w_len,
                               SArray<real_t>* grad) {
   for (int i = 0; i < ntrain_blks_; ++i) {
     tile_store_->Prefetch(i, 0);
   }
-  grad->resize(w.size());
+  grad->resize(w_val.size());
   real_t objv = 0;
   for (int i = 0; i < ntrain_blks_; ++i) {
     Tile tile; tile_store_->Fetch(i, 0, &tile);
     auto data = tile.data.GetBlock();
-    auto pos = GetPos(w_offset, tile.colmap);
+    auto pos = GetPos(w_len, tile.colmap);
     memset(pred_[i].data(), 0, pred_[i].size()*sizeof(real_t));
     memset(grad->data(), 0, grad->size()*sizeof(real_t));
-    loss_->Predict(data, {SArray<char>(w), SArray<char>(pos)}, &pred_[i]);
+    loss_->Predict(data, {SArray<char>(w_val), SArray<char>(pos)}, &pred_[i]);
     loss_->CalcGrad(
-        data, {SArray<char>(pred_[i]), SArray<char>(pos), SArray<char>(w)}, grad);
+        data, {SArray<char>(pred_[i]), SArray<char>(pos), SArray<char>(w_val)}, grad);
     objv += loss_->CalcObjv(data.label, pred_[i]);
   }
   return objv;
 }
 
-SArray<int> LBFGSLearner::GetPos(const SArray<int>& offset, const SArray<int>& colmap) {
-  if (offset.empty()) return colmap;
-  SArray<int> pos(colmap.size());
-  for (size_t i = 0; i < pos.size(); ++i) {
-    pos[i] = offset[colmap[i]];
+SArray<int> LBFGSLearner::GetPos(const SArray<int>& len, const SArray<int>& colmap) {
+  if (len.empty()) return colmap;
+  SArray<int> pos; pos.CopyFrom(colmap);
+  int i = 0, p = 0;
+  for (size_t j = 0; j < pos.size(); ++j) {
+    if (pos[j] == -1) continue;
+    for (; i < pos[j]; ++i) p += len[i];
+    i = pos[j];
+    pos[j] = p;
   }
   return pos;
 }

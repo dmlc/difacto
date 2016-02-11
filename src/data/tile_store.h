@@ -39,11 +39,14 @@ class TileBuilder;
 
 class TileStore {
  public:
-  explicit TileStore(DataStore* data) {
-    data_ = CHECK_NOTNULL(data);
-  }
+  TileStore() { }
+  ~TileStore() { delete data_; }
   friend class TileBuilder;
 
+  KWArgs Init(const KWArgs& kwargs) {
+    data_ = new DataStore();
+    return kwargs;
+  }
   /**
    * \brief store a shared rowblock container into the store (no memory copy)
    * @param rowblk_id rowblock id
@@ -146,7 +149,7 @@ class TileStore {
   }
 
  private:
-  DataStore* data_;
+  DataStore* data_ = nullptr;
   /** \brief meta data for a rowblk */
   struct Meta { Range colmap; Range offset; Range index; };
   std::vector<std::vector<Meta>> meta_;  // row x col

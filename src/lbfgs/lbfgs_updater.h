@@ -9,7 +9,14 @@
 namespace difacto {
 
 struct LBFGSUpdaterParam : public dmlc::Parameter<LBFGSUpdaterParam> {
-  int V_dim = 0;
+  int V_dim;
+
+  /** \brief features with occurence < threshold have no embedding */
+  int V_threshold = 2;
+
+  /** \brief initialize the weights into [-x, +x] */
+  float model_init_range;
+
   int tail_feature_filter;
   /** \brief the l1 regularizer for :math:`w`: :math:`\lambda_1 |w|_1` */
   float l1;
@@ -21,7 +28,9 @@ struct LBFGSUpdaterParam : public dmlc::Parameter<LBFGSUpdaterParam> {
     DMLC_DECLARE_FIELD(tail_feature_filter).set_default(4);
     DMLC_DECLARE_FIELD(l1).set_default(1);
     DMLC_DECLARE_FIELD(l2).set_default(.1);
+    DMLC_DECLARE_FIELD(V_dim);
     DMLC_DECLARE_FIELD(m).set_default(10);
+    DMLC_DECLARE_FIELD(model_init_range).set_default(.01);
   }
 };
 
@@ -44,13 +53,33 @@ class LBFGSUpdater : public Updater {
     if (param_.tail_feature_filter > 0) {
       SArray<feaid_t> filtered_ids;
       SArray<real_t> filtered_cnts;
-      lbfgs::RemoveTailFeatures(feaids_, feacnts_, param_.tail_feature_filter, &filtered_ids);
+      lbfgs::RemoveTailFeatures(
+          feaids_, feacnts_, param_.tail_feature_filter, &filtered_ids);
       KVMatch(feaids_, feacnts_, filtered_ids, &filtered_cnts, ASSIGN, nthreads_);
       feaids_ = filtered_ids;
       feacnts_ = filtered_cnts;
     }
-    models_.resize(feaids_.size());
 
+    if (param_.V_dim) {
+      model_lens_.resize(feaids_.size());
+      size_t n = 0;
+      for (size_t i = 0; i < feaids_.size(); ++i) {
+        model_lens_[i] = 1 + (feacnts_[i] > param_.V_threshold ? param_.V_dim : 0);
+        n +=  model_lens_[i];
+      }
+      models_.resize(n);
+
+      n = 0;
+      real_t scale = param_.model_init_range * 2;
+      for (size_t i = 0; i < feaids_.size(); ++i) {
+        for (int j = 1; j < model_lens_[i]; ++j) {
+          models_[n+j] = (rand() / static_cast<real_t>(RAND_MAX) - .5) * scale;
+        }
+        n += model_lens_[i];
+      }
+    } else {
+      models_.resize(feaids_.size());
+    }
     return models_.size();
   }
 
@@ -84,12 +113,12 @@ class LBFGSUpdater : public Updater {
   void Get(const SArray<feaid_t>& feaids,
            int value_type,
            SArray<real_t>* values,
-           SArray<int>* offsets) override {
+           SArray<int>* lengths) override {
     if (value_type == Store::kFeaCount) {
       KVMatch(feaids_, feacnts_, feaids, values, ASSIGN, nthreads_);
     } else if (value_type == Store::kWeight) {
       feacnts_.clear();
-      KVMatch(feaids_, models_, model_offsets_, feaids, values, offsets,
+      KVMatch(feaids_, models_, model_lens_, feaids, values, lengths,
               ASSIGN, nthreads_);
     } else {
       LOG(FATAL) << "...";
@@ -99,7 +128,7 @@ class LBFGSUpdater : public Updater {
   void Update(const SArray<feaid_t>& feaids,
               int value_type,
               const SArray<real_t>& values,
-              const SArray<int>& offsets) override {
+              const SArray<int>& lengths) override {
     if (value_type == Store::kFeaCount) {
       feaids_ = feaids; feacnts_ = values;
     } else if (value_type == Store::kGradient) {
@@ -127,7 +156,7 @@ class LBFGSUpdater : public Updater {
 
   /** \brief initilized with w, store p later */
   SArray<real_t> models_;
-  SArray<int> model_offsets_;
+  SArray<int> model_lens_;
   SArray<real_t> grads_;
 
   lbfgs::Twoloop twoloop_;

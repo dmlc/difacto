@@ -22,7 +22,6 @@ class LBFGSLearner : public Learner {
  public:
   virtual ~LBFGSLearner() {
     delete model_store_;
-    delete data_store_;
     delete tile_store_;
     delete loss_;
   }
@@ -82,8 +81,8 @@ class LBFGSLearner : public Learner {
    */
   real_t InitWorker();
 
-  real_t CalcGrad(const SArray<real_t>& w,
-                  const SArray<int>& w_offset,
+  real_t CalcGrad(const SArray<real_t>& w_val,
+                  const SArray<int>& w_len,
                   SArray<real_t>* grad);
 
   void LinearSearch(real_t alpha, std::vector<real_t>* status);
@@ -99,13 +98,12 @@ class LBFGSLearner : public Learner {
   int nthreads_ = DEFAULT_NTHREADS;
   SArray<feaid_t> feaids_;
   SArray<real_t> weights_, grads_, directions_;
-  SArray<int> model_offsets_;
+  SArray<int> model_lens_;
 
   // data
   int ntrain_blks_ = 0;
   int nval_blks_ = 0;
   /** \brief data store */
-  DataStore* data_store_ = nullptr;
   TileStore* tile_store_ = nullptr;
   TileBuilder* tile_builder_ = nullptr;
 

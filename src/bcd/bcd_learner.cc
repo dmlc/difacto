@@ -24,9 +24,8 @@ KWArgs BCDLearner::Init(const KWArgs& kwargs) {
   model_store_->set_updater(updater);
   remain = model_store_->Init(remain);
   // init data stores
-  data_store_ = new DataStore();
-  remain = model_store_->Init(remain);
-  tile_store_ = new TileStore(data_store_);
+  tile_store_ = new TileStore();
+  remain = tile_store_->Init(remain);
   // init loss
   loss_ = Loss::Create("logit_delta", DEFAULT_NTHREADS);
   remain = loss_->Init(remain);

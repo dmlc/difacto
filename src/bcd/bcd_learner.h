@@ -21,7 +21,6 @@ class BCDLearner : public Learner {
   BCDLearner() {}
   virtual ~BCDLearner() {
     delete model_store_;
-    delete data_store_;
     delete tile_store_;
     delete loss_;
   }
@@ -95,7 +94,6 @@ class BCDLearner : public Learner {
   /** \brief the loss function */
   Loss* loss_ = nullptr;
   /** \brief data store */
-  DataStore* data_store_ = nullptr;
   TileStore* tile_store_ = nullptr;
   TileBuilder* tile_builder_ = nullptr;
 
