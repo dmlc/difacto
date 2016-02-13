@@ -83,12 +83,14 @@ class FMLoss : public Loss {
     SArray<int> V_pos = GetVPos(SArray<int>(param[1]), V.size());
 
     // XV_ = X*V
-    XV_.resize(data.size * V_dim);
+    XV_.clear();
+    XV_.resize(data.size * V_dim, 0);
     SpMM::Times(data, V, V_dim, &XV_, nthreads_, V_pos);
 
     // XX = X.*X
     auto XX = data;
     if (XX.value) {
+      XX_.clear();
       XX_.CopyFrom(XX.value+XX.offset[0], XX.offset[XX.size] - XX.offset[0]);
       for (real_t& v : XX_) v *= v;
       XX.value = XX_.data();

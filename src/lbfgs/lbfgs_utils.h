@@ -19,7 +19,7 @@ struct Job {
   static const int kPushGradient = 4;
   static const int kPrepareCalcDirection = 5;
   static const int kCalcDirection = 6;
-  static const int kLinearSearch = 7;
+  static const int kLineSearch = 7;
   static const int kSaveModel = 8;
   static const int kEvaluate = 8;
 
@@ -77,11 +77,28 @@ inline void Add(real_t x, const SArray<real_t>& a,
                 SArray<real_t>* b,
                 int nthreads = DEFAULT_NTHREADS) {
   CHECK_EQ(a.size(), b->size());
+  if (x == 0) return;
   real_t const *ap = a.data();
   real_t *bp = b->data();
+  if (x == 1) {
 #pragma omp parallel for num_threads(nthreads)
-  for (size_t i = 0; i < a.size(); ++i) bp[i] += x * ap[i];
+    for (size_t i = 0; i < a.size(); ++i) bp[i] += ap[i];
+  } else {
+#pragma omp parallel for num_threads(nthreads)
+    for (size_t i = 0; i < a.size(); ++i) bp[i] += x * ap[i];
+  }
 }
+
+/**
+ * \brief a *= x
+ */
+inline void Times(real_t x, SArray<real_t>* a, int nthreads = DEFAULT_NTHREADS) {
+  if (x == 1) return;
+  real_t *ap = a->data();
+#pragma omp parallel for num_threads(nthreads)
+  for (size_t i = 0; i < a->size(); ++i) ap[i] *= x;
+}
+
 
 inline void RemoveTailFeatures(const SArray<feaid_t>& feaids,
                                const SArray<real_t>& feacnts,

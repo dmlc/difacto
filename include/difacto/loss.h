@@ -45,7 +45,7 @@ class Loss {
                        const std::vector<SArray<char>>& param,
                        SArray<real_t>* pred) = 0;
   /**
-   * \brief calculate the objective value
+   * \brief evaluate the loss
    *
    * return logit loss in default
    *
@@ -54,7 +54,7 @@ class Loss {
    *
    * @return the objective value
    */
-  virtual real_t CalcObjv(real_t const* label,
+  virtual real_t Evaluate(real_t const* label,
                           const SArray<real_t>& pred) {
     real_t objv = 0;
 #pragma omp parallel for reduction(+:objv) num_threads(nthreads_)
@@ -82,7 +82,7 @@ class Loss {
     nthreads_ = nthreads;
   }
 
- protected:
+
   int nthreads_;
 };
 }  // namespace difacto

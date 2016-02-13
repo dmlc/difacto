@@ -33,6 +33,7 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
   real_t c1;
   real_t c2;
   real_t rho;
+int max_num_linesearchs;
 
   DMLC_DECLARE_PARAMETER(LBFGSLearnerParam) {
     DMLC_DECLARE_FIELD(data_in);
@@ -45,6 +46,7 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
     DMLC_DECLARE_FIELD(alpha).set_default(1);
+    DMLC_DECLARE_FIELD(max_num_linesearchs).set_default(10);
     DMLC_DECLARE_FIELD(c1).set_default(1e-4);
     DMLC_DECLARE_FIELD(c2).set_default(.9);
     DMLC_DECLARE_FIELD(rho).set_default(.8);

@@ -54,18 +54,6 @@ class LBFGSLearner : public Learner {
   }
 
   /**
-   * \brief a wrapper to above
-   */
-  void IssueJobAndWait(int node_group,
-                       int job_type,
-                       const std::vector<real_t>& job_args,
-                       real_t* job_rets) {
-    std::vector<real_t> rets(1);
-    IssueJobAndWait(node_group, job_type, job_args, &rets);
-    *job_rets = rets[0];
-  }
-
-  /**
    * \brief preprocessing the data
    *
    * if load_epoch is set, check data cache first. otherwise, pass data once and
@@ -89,7 +77,7 @@ class LBFGSLearner : public Learner {
                   const SArray<int>& w_len,
                   SArray<real_t>* grad);
 
-  void LinearSearch(real_t alpha, std::vector<real_t>* status);
+  void LineSearch(real_t alpha, std::vector<real_t>* status);
 
 
   SArray<int> GetPos(const SArray<int>& offset, const SArray<int>& colmap);

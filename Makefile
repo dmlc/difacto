@@ -24,10 +24,10 @@ data/localizer.o reader/batch_reader.o )
 
 DMLC_DEPS = dmlc-core/libdmlc.a
 
-all: build/difacto
+all: build/difacto test
 
 clean:
-	rm -rf build
+	rm -rf build/*
 	make -C dmlc-core clean
 	make -C ps-lite clean
 

@@ -60,7 +60,7 @@ class LBFGSUpdater : public Updater {
     weight_initializer_ = initer;
   }
 
-  size_t InitWeights() {
+  void InitWeight(std::vector<real_t>* rets) {
     if (param_.tail_feature_filter > 0) {
       SArray<feaid_t> filtered_ids;
       SArray<real_t> filtered_cnts;
@@ -98,21 +98,50 @@ class LBFGSUpdater : public Updater {
       }
     }
 
-    return weights_.size();
+    rets->resize(2);
+    (*rets)[0] = Evaluate();
+    (*rets)[1] = weights_.size();
   }
 
-  void PrepareCalcDirection(real_t alpha, std::vector<real_t>* aux) {
-    if (y_.empty()) return;
-    auto& p = s_.back();
-    lbfgs::Add(alpha - 1.0, p, &p);
-    lbfgs::Add(1.0, p, &weights_);
+  /**
+   * \brief return r(w)
+   */
+  real_t Evaluate() {
+    real_t objv = 0;
+    if (weight_lens_.empty()) {
+      for (real_t w : weights_)  objv += .5 * param_.l2 * w * w;
+    } else {
+      int n = 0;
+      for (int l : weight_lens_) {
+        for (int j = 0; j < l; ++j) {
+          real_t w = weights_[n++];
+          objv += .5 * (j == 0 ? param_.l2 : param_.V_l2) * w * w;
+        }
+      }
+      CHECK_EQ(static_cast<size_t>(n), weights_.size());
+    }
+    return objv;
+  }
+
+  void PrepareCalcDirection(std::vector<real_t>* aux) {
+    // add regularizer
+    AddRegularizerGrad(&new_grads_);
+    // it's epoch 0, no need to update s, y
+    if (grads_.empty()) { grads_ = new_grads_; return; }
+    // add new_grad - old_grad to y
+    if (static_cast<int>(y_.size()) == param_.m) y_.erase(y_.begin());
+    y_.resize(y_.size()+1);
+    y_.back().CopyFrom(new_grads_);
+    lbfgs::Add(-1, grads_, &y_.back(), nthreads_);
+    grads_ = new_grads_;
+    // update s
+    lbfgs::Times(alpha_, &y_.back(), nthreads_);
+    alpha_ = 0;
     twoloop_.CalcIncreB(s_, y_, grads_, aux);
   }
 
   /**
    * \brief return <∇f(w), p>
-   *
-   *
    * @return
    */
   real_t CalcDirection(const std::vector<real_t>& aux) {
@@ -122,16 +151,27 @@ class LBFGSUpdater : public Updater {
       twoloop_.ApplyIncreB(aux);
       twoloop_.CalcDirection(s_, y_, grads_, &dir);
     } else {
-      dir.resize(grads_.size(), 0);
-      lbfgs::Add(-1, grads_, &dir);
+      dir.CopyFrom(grads_);
+      lbfgs::Times(-1, &dir, nthreads_);
     }
+    // LL << Norm2(grads_) << " " << Norm2(dir);
     for (auto& p : dir) p = p > 5 ? 5 : (p < -5 ? -5 : p);
-
     // push into s_
     if (static_cast<int>(s_.size()) == param_.m) s_.erase(s_.begin());
     s_.push_back(dir);
-
+    // return <p, g>
     return lbfgs::Inner(grads_, dir, nthreads_);
+  }
+
+
+  void LineSearch(real_t alpha, std::vector<real_t>* status) {
+    lbfgs::Add(alpha - alpha_, s_.back(), &weights_, nthreads_);
+    alpha_ = alpha;
+    SArray<real_t> grads(weights_.size(), 0);
+    AddRegularizerGrad(&grads);
+    status->resize(2);
+    (*status)[0] += Evaluate();
+    (*status)[1] += lbfgs::Inner(grads, s_.back(), nthreads_);
   }
 
   void Get(const SArray<feaid_t>& feaids,
@@ -162,38 +202,27 @@ class LBFGSUpdater : public Updater {
       feaids_ = feaids; feacnts_ = values;
     } else if (value_type == Store::kGradient) {
       CHECK_EQ(feaids_.size(), feaids.size());
-      // add l2 regularizer
-      auto new_grad = values;
-      AddRegularizer(lengths, weights_, &new_grad);
-      real_t v = 0; for (auto g : new_grad) v += g*g; LL << v;
-      // add y = new_grad - old_grad
-      if (grads_.size()) {
-        if (static_cast<int>(y_.size()) == param_.m) y_.erase(y_.begin());
-        SArray<real_t> new_y;
-        new_y.CopyFrom(new_grad);
-        lbfgs::Add(-1, grads_, &new_y);
-        y_.push_back(new_y);
-      }
-      grads_ = new_grad;
+      new_grads_ = values;
     } else {
       LOG(FATAL) << "...";
     }
   }
 
  private:
-  // g += l2 * w
-  void AddRegularizer(const SArray<int>& lens,
-                      const SArray<real_t>& weights,
-                      SArray<real_t>* grads) {
-    CHECK_EQ(grads->size(), weights.size());
-    int n = 0;
-    for (int l : lens) {
-      for (int j = 0; j < l; ++j) {
-        (*grads)[n] += (j == 0 ? param_.l2 : param_.V_l2) * weights[n];
-        ++n;
+  void AddRegularizerGrad(SArray<real_t>* grads) {
+    CHECK_EQ(grads->size(), weights_.size());
+    if (weight_lens_.empty()) {
+      lbfgs::Add(param_.l2, weights_, grads, nthreads_);
+    } else {
+      int n = 0;
+      for (int l : weight_lens_) {
+        for (int j = 0; j < l; ++j) {
+          (*grads)[n] += (j == 0 ? param_.l2 : param_.V_l2) * weights_[n];
+          ++n;
+        }
       }
+      CHECK_EQ(static_cast<size_t>(n), grads->size());
     }
-    CHECK_EQ(static_cast<size_t>(n), grads->size());
   }
 
   LBFGSUpdaterParam param_;
@@ -204,11 +233,13 @@ class LBFGSUpdater : public Updater {
 
   SArray<real_t> weights_;
   SArray<int> weight_lens_;
-  SArray<real_t> grads_;
+  SArray<real_t> grads_, new_grads_;
 
   WeightInitializer weight_initializer_ = nullptr;
   lbfgs::Twoloop twoloop_;
   int nthreads_ = DEFAULT_NTHREADS;
+
+  real_t alpha_ = 0;
 };
 }  // namespace difacto
 #endif  // DIFACTO_LBFGS_LBFGS_UPDATER_H_

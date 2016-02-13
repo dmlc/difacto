@@ -4,6 +4,7 @@
 #ifndef DIFACTO_BASE_H_
 #define DIFACTO_BASE_H_
 #include <stdlib.h>
+#include <string.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -70,12 +71,17 @@ inline feaid_t EncodeFeaGrpID(feaid_t x, int gid, int nbits) {
 inline feaid_t DecodeFeaGrpID(feaid_t x, int nbits) {
   return x % (1 << nbits);
 }
-/**
- * \brief returns true if it is currently under distributed running
- */
-inline bool IsDistributed() {
-  return getenv("DMLC_ROLE") != nullptr;
-}
+
+/** \brief get the role of this node */
+inline char* GetRole() { return getenv("DMLC_ROLE"); }
+/** \brief returns true if it is currently under distributed running */
+inline bool IsDistributed() { return GetRole() != nullptr; }
+/** \brief Returns true if this node is a scheduler node. */
+inline bool IsScheduler() { return !IsDistributed() || !strcmp(GetRole(), "scheduler"); }
+/** \brief Returns true if this node is a worker node */
+inline bool IsWorker() { return !IsDistributed() || !strcmp(GetRole(), "worker"); }
+/** \brief Returns true if this node is a server node. */
+inline bool IsServer() { return !IsDistributed() || !strcmp(GetRole(), "server"); }
 /**
  * \brief for debug printing
  */
@@ -103,6 +109,14 @@ template <typename Vec>
 inline std::string DebugStr(const Vec& vec) {
   return DebugStr(vec.data(), vec.size());
 }
-
+/**
+ * \brief return ||v||_2^2, for debug use
+ */
+template <typename Vec>
+inline real_t Norm2(const Vec& vec) {
+  real_t n = 0;
+  for (real_t v : vec) n += v * v;
+  return n;
+}
 }  // namespace difacto
 #endif  // DIFACTO_BASE_H_

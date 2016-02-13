@@ -33,47 +33,47 @@ KWArgs LBFGSLearner::Init(const KWArgs& kwargs) {
 
 void LBFGSLearner::RunScheduler() {
   using lbfgs::Job;
-  // load data
-  LOG(INFO) << "loading data... ";
-  real_t data_size;
-  IssueJobAndWait(NodeID::kWorkerGroup, Job::kPrepareData, {}, &data_size);
-  LOG(INFO) << "loaded " << data_size << " examples";
+  LOG(INFO) << "scaning data... ";
+  std::vector<real_t> data;
+  IssueJobAndWait(NodeID::kWorkerGroup, Job::kPrepareData, {}, &data);
+  LOG(INFO) << "found " << data[0] << " examples";
 
-  LOG(INFO) << "initing model... ";
-  real_t model_size;
-  IssueJobAndWait(NodeID::kServerGroup, Job::kInitServer, {}, &model_size);
-  LOG(INFO) << "inited model with " << model_size << " parameters";
+  LOG(INFO) << "initing... ";
+  std::vector<real_t> server;
+  IssueJobAndWait(NodeID::kServerGroup, Job::kInitServer, {}, &server);
+  LOG(INFO) << "inited model with " << server[1] << " parameters";
 
-  real_t objv;
-  IssueJobAndWait(NodeID::kWorkerGroup, Job::kInitWorker, {}, &objv);
+  std::vector<real_t> worker;
+  IssueJobAndWait(NodeID::kWorkerGroup, Job::kInitWorker, {}, &worker);
+  real_t objv = server[0] + worker[0];
 
   // iterate over data
   real_t alpha = 0;
-  int epoch = param_.load_epoch >= 0 ? param_.load_epoch : 0;
-  for (; epoch < param_.max_num_epochs; ++epoch) {
-    // calc direction
+  int k = param_.load_epoch >= 0 ? param_.load_epoch : 0;
+  for (; k < param_.max_num_epochs; ++k) {
     IssueJobAndWait(NodeID::kWorkerGroup, Job::kPushGradient);
-    std::vector<real_t> aux;
-    IssueJobAndWait(NodeID::kServerGroup, Job::kPrepareCalcDirection, {alpha}, &aux);
-    real_t gp;  // <∇f(w), p>
-    IssueJobAndWait(NodeID::kServerGroup, Job::kCalcDirection, aux, &gp);
 
-    // line search
+    std::vector<real_t> B;
+    IssueJobAndWait(NodeID::kServerGroup, Job::kPrepareCalcDirection, {alpha}, &B);
+
+    std::vector<real_t> p_gf;  // = <p, ∂f(w)>
+    IssueJobAndWait(NodeID::kServerGroup, Job::kCalcDirection, B, &p_gf);
+
     alpha = param_.alpha;
-    LOG(INFO) << "epoch " << epoch << ": objv " << objv << ", <g,p> " << gp;
+    LOG(INFO) << "epoch " << k << ": objv " << objv << ", <p,g> " << p_gf[0];
 
-    std::vector<real_t> status;  // = {f(w+αp), <∇f(w+αp), p>}
-    for (int i = 0; i < 10; ++i) {
+    std::vector<real_t> status;  // = {f(w+αp), <p, ∂f(w+αp)>}
+    for (int i = 0; i < param_.max_num_linesearchs; ++i) {
       status.clear();
-      IssueJobAndWait(NodeID::kWorkerGroup, Job::kLinearSearch, {alpha}, &status);
+      IssueJobAndWait(NodeID::kWorkerGroup + NodeID::kServerGroup,
+                      Job::kLineSearch, {alpha}, &status);
       // check wolf condition
       LOG(INFO) << " - linesearch: alpha " << alpha
-                << ", new_objv " << status[0] << ", <g_new,p> " << status[1];
-      if ((status[0] <= objv + param_.c1 * alpha * gp) &&
-          (status[1] >= param_.c2 * gp)) {
+                << ", new_objv " << status[0] << ", <p,g_new> " << status[1];
+      if ((status[0] <= objv + param_.c1 * alpha * p_gf[0]) &&
+          (status[1] >= param_.c2 * p_gf[0])) {
         break;
       }
-      // LOG(INFO) << "wolf condition is no satisfied, decrease alpha by " << param_.rho;
       alpha *= param_.rho;
     }
     objv = status[0];
@@ -84,7 +84,7 @@ void LBFGSLearner::RunScheduler() {
 
     lbfgs::Progress prog;
     prog.objv = objv;
-    for (const auto& cb : epoch_end_callback_) cb(epoch, prog);
+    for (const auto& cb : epoch_end_callback_) cb(k, prog);
     // check stop critea
     // TODO(mli)
   }
@@ -98,7 +98,7 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
   if (type == Job::kPrepareData) {
     job_rets.push_back(PrepareData());
   } else if (type == Job::kInitServer) {
-    job_rets.push_back(GetUpdater()->InitWeights());
+    GetUpdater()->InitWeight(&job_rets);
   } else if (type == Job::kInitWorker) {
     job_rets.push_back(InitWorker());
   } else if (type == Job::kPushGradient) {
@@ -107,11 +107,12 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
         feaids_, Store::kGradient, grads_, model_lens_);
     model_store_->Wait(t);
   } else if (type == Job::kPrepareCalcDirection) {
-    GetUpdater()->PrepareCalcDirection(job_args.value[0], &job_rets);
+    GetUpdater()->PrepareCalcDirection(&job_rets);
   } else if (type == Job::kCalcDirection) {
     job_rets.push_back(GetUpdater()->CalcDirection(job_args.value));
-  } else if (type == Job::kLinearSearch) {
-    LinearSearch(job_args.value[0], &job_rets);
+  } else if (type == Job::kLineSearch) {
+    if (IsWorker()) LineSearch(job_args.value[0], &job_rets);
+    if (IsServer()) GetUpdater()->LineSearch(job_args.value[0], &job_rets);
   }
   dmlc::Stream* ss = new dmlc::MemoryStringStream(rets);
   ss->Write(job_rets);
@@ -181,7 +182,7 @@ real_t LBFGSLearner::InitWorker() {
   return CalcGrad(weights_, model_lens_, &grads_);
 }
 
-void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
+void LBFGSLearner::LineSearch(real_t alpha, std::vector<real_t>* status) {
   // w += αp
   if (directions_.empty()) {
     SArray<int> dir_lens;
@@ -192,10 +193,12 @@ void LBFGSLearner::LinearSearch(real_t alpha, std::vector<real_t>* status) {
   } else {
     lbfgs::Add(alpha - alpha_, directions_, &weights_);
   }
+  LL << Norm2(weights_);
   alpha_ = alpha;
   status->resize(2);
-  (*status)[0] = CalcGrad(weights_, model_lens_, &grads_);
-  (*status)[1] = lbfgs::Inner(grads_, directions_, nthreads_);
+  (*status)[0] += CalcGrad(weights_, model_lens_, &grads_);
+  LL << Norm2(grads_);
+  (*status)[1] += lbfgs::Inner(grads_, directions_, nthreads_);
 }
 
 real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w_val,
@@ -215,7 +218,7 @@ real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w_val,
     loss_->Predict(data, {SArray<char>(w_val), SArray<char>(pos)}, &pred_[i]);
     loss_->CalcGrad(
         data, {SArray<char>(pred_[i]), SArray<char>(pos), SArray<char>(w_val)}, grad);
-    objv += loss_->CalcObjv(data.label, pred_[i]);
+    objv += loss_->Evaluate(data.label, pred_[i]);
   }
   return objv;
 }

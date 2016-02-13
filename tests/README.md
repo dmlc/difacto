@@ -30,7 +30,15 @@ dataset in libsvm format
   Use `./difacto_tests --gtest_list_tests` to list all tests and
   `./difacto_tests --gtest_filter=PATTERN` to run some particular tests
 
+## coverage
 
+  ```bash
+  make clean; make -j8 test ADD_CFLAGS=-converage; cd build; ./difacto_tests; codecov
+  ```
+
+```bash
+make clean; make -j8 NO_REVERSE_ID=1
+```
 ## matlab tests
 
   Some scripts used to generate the *ground truth*.

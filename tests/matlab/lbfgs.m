@@ -37,7 +37,7 @@ g = [gw(:); gV(:)];
 
 g'*g
 %%
-for k = 1 : 20
+for k = 1 : 1
 % two loop
   m = size(y, 2);
   p = - g;
@@ -63,9 +63,18 @@ for k = 1 : 20
     dw = p(1:length(w));
     dV = reshape(p((length(w)+1):end), [], V_dim);
     [new_o, gw, gV] = fm_loss(Y, X, w+alpha*dw, X2, V+alpha*dV);
+    xx = [w+alpha*dw V+alpha*dV]'; xx = xx(:);
+    yy = [gw gV]'; yy = yy(:);
+
+    gw(1:10)
+    gV(1,:)
     gw = gw + lw * w;
     gV = gV + lV * V;
+    w(1:10)
+    V(1,:)
     new_g = [gw(:); gV(:)];
+
+    [new_o xx'*xx   yy'*yy new_gp'*new_gp p'*p]
     new_gp = new_g' * p;
     fprintf('alpha %f, new_objv %f, new_gp %f\n', alpha, new_o, new_gp);
     if (new_o <= objv + c1 * alpha * gp) && (new_gp >= c2 * gp)
