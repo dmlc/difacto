@@ -25,7 +25,7 @@ class BinClassMetric {
    * @param n length
    * @param nthreads num threads
    */
-  BinClassMetric(const real_t* const label,
+  BinClassMetric(const dmlc::real_t* const label,
                  const real_t* const predict,
                  size_t n, int nthreads = DEFAULT_NTHREADS)
       : label_(label), predict_(predict), size_(n), nt_(nthreads) { }
@@ -34,7 +34,7 @@ class BinClassMetric {
 
   real_t AUC() {
     size_t n = size_;
-    struct Entry { real_t label; real_t predict; };
+    struct Entry { dmlc::real_t label; real_t predict; };
     std::vector<Entry> buff(n);
     for (size_t i = 0; i < n; ++i) {
       buff[i].label = label_[i];
@@ -91,7 +91,7 @@ class BinClassMetric {
   }
 
  private:
-  real_t const* label_;
+  dmlc::real_t const* label_;
   real_t const* predict_;
   size_t size_;
   int nt_;

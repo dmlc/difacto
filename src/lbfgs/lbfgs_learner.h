@@ -61,9 +61,8 @@ class LBFGSLearner : public Learner {
    * store them in an internal tile format, push feature IDs with their
    * appearance counts into the model store
    *
-   * @return number examples loaded
    */
-  size_t PrepareData();
+  void PrepareData(std::vector<real_t>* rets);
   /**
    * \brief init worker
    *
@@ -80,9 +79,8 @@ class LBFGSLearner : public Learner {
 
   void LineSearch(real_t alpha, std::vector<real_t>* status);
 
-
-  SArray<int> GetPos(const SArray<int>& offset, const SArray<int>& colmap);
-
+  void GetPos(const SArray<int>& len, const SArray<int>& colmap,
+              SArray<int>* w_pos, SArray<int>* V_pos);
   LBFGSLearnerParam param_;
   int nthreads_ = DEFAULT_NTHREADS;
   SArray<feaid_t> feaids_;

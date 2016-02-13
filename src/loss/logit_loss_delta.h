@@ -118,7 +118,7 @@ class LogitLossDelta : public Loss {
 
     // compute X .* X
     dmlc::RowBlock<unsigned> XX = data;
-    SArray<real_t> xx_value;
+    SArray<dmlc::real_t> xx_value;
     if (data.value) {
       xx_value.resize(data.offset[data.size]);
       for (size_t i = data.offset[0]; i < data.offset[data.size]; ++i) {

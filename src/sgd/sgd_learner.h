@@ -226,7 +226,7 @@ class SGDLearner : public Learner {
   }
 
  private:
-  void Evaluate(const SArray<real_t>& label, const SArray<real_t>& pred) {
+  void Evaluate(const SArray<dmlc::real_t>& label, const SArray<real_t>& pred) {
     sgd::Progress prog;
     // TODO(mli)
     std::string report; prog.SerializeToString(&report);

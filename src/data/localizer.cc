@@ -96,7 +96,7 @@ void Localizer::RemapIndex(
 
   if (blk.label) {
     o->label.resize(blk.size);
-    memcpy(o->label.data(), blk.label, blk.size*sizeof(real_t));
+    memcpy(o->label.data(), blk.label, blk.size*sizeof(*blk.label));
   }
   o->max_index = idx_dict.size() - 1;
 }

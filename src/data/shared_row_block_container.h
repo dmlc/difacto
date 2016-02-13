@@ -53,13 +53,13 @@ struct SharedRowBlockContainer {
     offset.reset(data->offset.data(), data->offset.size(),
                  [data](size_t* ptr) { data->offset.clear(); });
     label.reset(data->label.data(), data->label.size(),
-                [data](real_t* ptr) { data->label.clear(); });
+                [data](dmlc::real_t* ptr) { data->label.clear(); });
     weight.reset(data->weight.data(), data->weight.size(),
-                 [data](real_t* ptr) { data->weight.clear(); });
+                 [data](dmlc::real_t* ptr) { data->weight.clear(); });
     index.reset(data->index.data(), data->index.size(),
                 [data](IndexType* ptr) { data->index.clear(); });
     value.reset(data->value.data(), data->value.size(),
-                [data](real_t* ptr) { data->value.clear(); });
+                [data](dmlc::real_t* ptr) { data->value.clear(); });
   }
 
   /*! \brief convert to a row block */
@@ -90,13 +90,13 @@ struct SharedRowBlockContainer {
   /*! \brief array[size+1], row pointer to beginning of each rows */
   SArray<size_t> offset;
   /*! \brief array[size] label of each instance */
-  SArray<real_t> label;
+  SArray<dmlc::real_t> label;
   /*! \brief array[size] weight of each instance */
-  SArray<real_t> weight;
+  SArray<dmlc::real_t> weight;
   /*! \brief feature index */
   SArray<IndexType> index;
   /*! \brief feature value */
-  SArray<real_t> value;
+  SArray<dmlc::real_t> value;
 };
 
 }  // namespace difacto

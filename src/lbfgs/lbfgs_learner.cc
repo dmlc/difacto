@@ -36,7 +36,7 @@ void LBFGSLearner::RunScheduler() {
   LOG(INFO) << "scaning data... ";
   std::vector<real_t> data;
   IssueJobAndWait(NodeID::kWorkerGroup, Job::kPrepareData, {}, &data);
-  LOG(INFO) << "found " << data[0] << " examples";
+  LOG(INFO) << "found " << data[0] << " examples, splitted into " << data[1] << " chunks";
 
   LOG(INFO) << "initing... ";
   std::vector<real_t> server;
@@ -96,7 +96,7 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
   std::vector<real_t> job_rets;
   int type = job_args.type;
   if (type == Job::kPrepareData) {
-    job_rets.push_back(PrepareData());
+    PrepareData(&job_rets);
   } else if (type == Job::kInitServer) {
     GetUpdater()->InitWeight(&job_rets);
   } else if (type == Job::kInitWorker) {
@@ -119,11 +119,12 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
   delete ss;
 }
 
-size_t LBFGSLearner::PrepareData() {
+void LBFGSLearner::PrepareData(std::vector<real_t>* rets) {
   // read train data
+  size_t chunk_size = static_cast<size_t>(param_.data_chunk_size * 1024 * 1024);
   Reader train(param_.data_in, param_.data_format,
                model_store_->Rank(), model_store_->NumWorkers(),
-               param_.data_chunk_size);
+               chunk_size);
   size_t nrows = 0;
   tile_builder_ = new TileBuilder(tile_store_, nthreads_);
   SArray<real_t> feacnts;
@@ -134,6 +135,7 @@ size_t LBFGSLearner::PrepareData() {
     pred_.push_back(SArray<real_t>(rowblk.size));
     ++ntrain_blks_;
   }
+
   // push the feature ids and feature counts to the servers
   int t = model_store_->Push(
       feaids_, Store::kFeaCount, feacnts, SArray<int>());
@@ -142,7 +144,7 @@ size_t LBFGSLearner::PrepareData() {
   if (param_.data_val.size()) {
     Reader val(param_.data_val, param_.data_format,
                model_store_->Rank(), model_store_->NumWorkers(),
-               param_.data_chunk_size);
+               chunk_size);
     while (val.Next()) {
       auto rowblk = val.Value();
       nrows += rowblk.size;
@@ -154,7 +156,9 @@ size_t LBFGSLearner::PrepareData() {
 
   // wait the previous push finished
   model_store_->Wait(t);
-  return nrows;
+  rets->resize(2);
+  (*rets)[0] = nrows;
+  (*rets)[1] = ntrain_blks_ + nval_blks_;
 }
 
 real_t LBFGSLearner::InitWorker() {
@@ -205,36 +209,46 @@ real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w_val,
     tile_store_->Prefetch(i, 0);
   }
   grad->resize(w_val.size());
+  memset(grad->data(), 0, grad->size()*sizeof(real_t));
   real_t objv = 0;
+  real_t a = 0;
   for (int i = 0; i < ntrain_blks_; ++i) {
+    // prepare data
     Tile tile; tile_store_->Fetch(i, 0, &tile);
     auto data = tile.data.GetBlock();
-    auto pos = GetPos(w_len, tile.colmap);
+    SArray<int> w_pos, V_pos;
+    GetPos(w_len, tile.colmap, &w_pos, &V_pos);
     memset(pred_[i].data(), 0, pred_[i].size()*sizeof(real_t));
-    memset(grad->data(), 0, grad->size()*sizeof(real_t));
-    loss_->Predict(data, {SArray<char>(w_val), SArray<char>(pos)}, &pred_[i]);
-    loss_->CalcGrad(
-        data, {SArray<char>(pred_[i]), SArray<char>(pos), SArray<char>(w_val)}, grad);
+    std::vector<SArray<char>> param = {
+      SArray<char>(w_val), SArray<char>(w_pos), SArray<char>(V_pos)};
+
+    // calc
+    loss_->Predict(data, param, &pred_[i]);
+    param.push_back(SArray<char>(pred_[i]));
+    loss_->CalcGrad(data, param, grad);
     objv += loss_->Evaluate(data.label, pred_[i]);
+    a += Norm2(pred_[i]);
   }
   return objv;
 }
 
-SArray<int> LBFGSLearner::GetPos(const SArray<int>& len, const SArray<int>& colmap) {
-  if (len.empty()) return colmap;
-  SArray<int> pos; pos.CopyFrom(colmap);
+void LBFGSLearner::GetPos(const SArray<int>& len, const SArray<int>& colmap,
+                          SArray<int>* w_pos, SArray<int>* V_pos) {
+  size_t n = colmap.size();
+  V_pos->resize(n, -1);
+  if (len.empty()) { *w_pos = colmap; return; }
+  w_pos->resize(n, -1);
+
+  int* w = w_pos->data();
+  int* V = V_pos->data();
+  int const* e = len.data();
   int i = 0, p = 0;
-  for (size_t j = 0; j < pos.size(); ++j) {
-    if (pos[j] == -1) continue;
-    for (; i < pos[j]; ++i) p += len[i];
-    i = pos[j];
-    pos[j] = p;
+  for (size_t j = 0; j < n; ++j) {
+    if (colmap[j] == -1) continue;
+    for (; i < colmap[j]; ++i) { p += *e; ++e; }
+    w[j] = p;
+    V[j] = *e > 1 ? p+1 : -1;
   }
-  return pos;
 }
-
-
-// void LBFGSLearner::Evaluate(std::vector<real_t>* prog) {
-// }
 
 }  // namespace difacto

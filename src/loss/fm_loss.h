@@ -65,22 +65,33 @@ class FMLoss : public Loss {
    * @param data the data
    * @param param input parameters
    * - param[0], real_t vector, the weights
-   * - param[1], int vector, the weight positions
+   * - param[1], int vector, the w positions
+   * - param[2], int vector, the V positions
    * @param pred predict output, should be pre-allocated
    */
   void Predict(const dmlc::RowBlock<unsigned>& data,
                const std::vector<SArray<char>>& param,
                SArray<real_t>* pred) override {
+    CHECK_EQ(param.size(), 3);
+    Predict(data,
+            SArray<real_t>(param[0]),
+            SArray<int>(param[1]),
+            SArray<int>(param[2]),
+            pred);
+  }
+
+  void Predict(const dmlc::RowBlock<unsigned>& data,
+               const SArray<real_t>& weights,
+               const SArray<int>& w_pos,
+               const SArray<int>& V_pos,
+               SArray<real_t>* pred) {
     // pred = X * w
-    SArray<real_t> w(param[0]);
-    SArray<int> w_pos(param[1]);
+    SArray<real_t> w = weights;
     SpMV::Times(data, w, pred, nthreads_, w_pos, {});
 
     int V_dim = param_.V_dim;
     if (V_dim == 0) return;
-
-    SArray<real_t> V(param[0]);
-    SArray<int> V_pos = GetVPos(SArray<int>(param[1]), V.size());
+    SArray<real_t> V = weights;
 
     // XV_ = X*V
     XV_.clear();
@@ -92,7 +103,7 @@ class FMLoss : public Loss {
     if (XX.value) {
       XX_.clear();
       XX_.CopyFrom(XX.value+XX.offset[0], XX.offset[XX.size] - XX.offset[0]);
-      for (real_t& v : XX_) v *= v;
+      for (auto& v : XX_) v *= v;
       XX.value = XX_.data();
     }
 
@@ -129,16 +140,32 @@ class FMLoss : public Loss {
    *
    * @param data the data
    * @param param input parameters
-   * - param[0], real_t vector, the predict output
-   * - param[1], int vector, the gradient positions
-   * - param[2], real_t vector, the weights
+   * - param[0], real_t vector, the weights
+   * - param[1], int vector, the w positions
+   * - param[2], int vector, the V positions
+   * - param[3], real_t vector, the predict output
    * @param grad the results
    */
   void CalcGrad(const dmlc::RowBlock<unsigned>& data,
                 const std::vector<SArray<char>>& param,
                 SArray<real_t>* grad) override {
+    CHECK_EQ(param.size(), 4);
+    CalcGrad(data,
+             SArray<real_t>(param[0]),
+             SArray<int>(param[1]),
+             SArray<int>(param[2]),
+             SArray<real_t>(param[3]),
+             grad);
+  }
+
+  void CalcGrad(const dmlc::RowBlock<unsigned>& data,
+                const SArray<real_t>& weights,
+                const SArray<int>& w_pos,
+                const SArray<int>& V_pos,
+                const SArray<real_t>& pred,
+                SArray<real_t>* grad) {
     // p = ...
-    SArray<real_t> p; p.CopyFrom(SArray<real_t>(param[0]));
+    SArray<real_t> p; p.CopyFrom(pred);
     CHECK_EQ(p.size(), data.size);
 #pragma omp parallel for num_threads(nthreads_)
     for (size_t i = 0; i < p.size(); ++i) {
@@ -147,14 +174,12 @@ class FMLoss : public Loss {
     }
 
     // grad_w = ...
-    SArray<int> w_pos(param[1]);
     SpMV::TransTimes(data, p, grad, nthreads_, {}, w_pos);
 
     // grad_u = ...
     int V_dim = param_.V_dim;
     if (V_dim == 0) return;
-    SArray<real_t> V(param[2]);
-    SArray<int> V_pos = GetVPos(SArray<int>(param[1]), V.size());
+    SArray<real_t> V = weights;
 
     // XXp = (X.*X)'*p
     auto XX = data;
@@ -165,13 +190,13 @@ class FMLoss : public Loss {
     SArray<real_t> XXp(V_pos.size());
     SpMV::TransTimes(XX, p, &XXp, nthreads_);
 
-    // grad_u = - diag(XXp) * V,
+    // grad_u -= diag(XXp) * V,
 #pragma omp parallel for num_threads(nthreads_)
     for (size_t i = 0; i < V_pos.size(); ++i) {
       int p = V_pos[i];
       if (p < 0) continue;
       for (int j = 0; j < V_dim; ++j) {
-        (*grad)[p+j] = - V[p+j] * XXp[i];
+        (*grad)[p+j] -= V[p+j] * XXp[i];
       }
     }
 
@@ -187,20 +212,8 @@ class FMLoss : public Loss {
   }
 
  private:
-  SArray<int> GetVPos(const SArray<int>& pos, int value_size) {
-    SArray<int> V_pos;
-    V_pos.CopyFrom(SArray<int>(pos));
-    for (int& p : V_pos) p = p < 0 ? -1 : p + 1;
-    int& back = V_pos[V_pos.size()-1];
-    if (back >= 0) {
-      // one need to resize value properly, otherwise there is no way to check
-      // if or not the last entry contains the embedding term
-      CHECK_GE(back + param_.V_dim, value_size);
-      if (back + param_.V_dim > value_size) back = -1;
-    }
-    return V_pos;
-  }
-  SArray<real_t> XV_, XX_;
+  SArray<real_t> XV_;
+  SArray<dmlc::real_t> XX_;
   FMLossParam param_;
 };
 

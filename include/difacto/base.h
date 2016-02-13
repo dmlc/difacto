@@ -114,7 +114,7 @@ inline std::string DebugStr(const Vec& vec) {
  */
 template <typename Vec>
 inline real_t Norm2(const Vec& vec) {
-  real_t n = 0;
+  double n = 0;
   for (real_t v : vec) n += v * v;
   return n;
 }

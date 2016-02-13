@@ -25,7 +25,7 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
   /** \brief the maximal number of data passes, defaut is 20 */
   int max_num_epochs;
   /** \brief the size of data in MB read each time for processing, in default 256 MB */
-  int data_chunk_size;
+  real_t data_chunk_size;
 
   int load_epoch;
 
@@ -33,23 +33,23 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
   real_t c1;
   real_t c2;
   real_t rho;
-int max_num_linesearchs;
+  int max_num_linesearchs;
 
   DMLC_DECLARE_PARAMETER(LBFGSLearnerParam) {
     DMLC_DECLARE_FIELD(data_in);
     DMLC_DECLARE_FIELD(data_val).set_default("");
     DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
     DMLC_DECLARE_FIELD(data_cache).set_default("/tmp/difacto_lbfgs_");
-    DMLC_DECLARE_FIELD(data_chunk_size).set_default(1<<28);
+    DMLC_DECLARE_FIELD(data_chunk_size).set_default(256);
     DMLC_DECLARE_FIELD(model_out).set_default("");
     DMLC_DECLARE_FIELD(model_in).set_default("");
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
     DMLC_DECLARE_FIELD(alpha).set_default(1);
-    DMLC_DECLARE_FIELD(max_num_linesearchs).set_default(10);
+    DMLC_DECLARE_FIELD(max_num_linesearchs).set_default(5);
     DMLC_DECLARE_FIELD(c1).set_default(1e-4);
     DMLC_DECLARE_FIELD(c2).set_default(.9);
-    DMLC_DECLARE_FIELD(rho).set_default(.8);
+    DMLC_DECLARE_FIELD(rho).set_default(.5);
     DMLC_DECLARE_FIELD(load_epoch).set_default(0);
   }
 };
