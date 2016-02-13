@@ -30,14 +30,12 @@ w = zeros(p,1);
 s = [];
 y = [];
 
-[objv, gw, gV] = fm_loss(Y, X, w, X2, V);
-gw = gw + lw * w;
-gV = gV + lV * V;
+[objv, gw, gV] = fm_loss_l2(Y, X, w, X2, V, lw, lV);
 g = [gw(:); gV(:)];
 
 g'*g
 %%
-for k = 1 : 1
+for k = 1 : 23
 % two loop
   m = size(y, 2);
   p = - g;
@@ -59,22 +57,12 @@ for k = 1 : 1
   alpha = 1;
   gp = g'*p;
   fprintf('epoch %d, objv %f, gp %f\n', k, objv, gp);
+  dw = p(1:length(w));
+  dV = reshape(p((length(w)+1):end), [], V_dim);
   for j = 1 : 10
-    dw = p(1:length(w));
-    dV = reshape(p((length(w)+1):end), [], V_dim);
-    [new_o, gw, gV] = fm_loss(Y, X, w+alpha*dw, X2, V+alpha*dV);
-    xx = [w+alpha*dw V+alpha*dV]'; xx = xx(:);
-    yy = [gw gV]'; yy = yy(:);
-
-    gw(1:10)
-    gV(1,:)
-    gw = gw + lw * w;
-    gV = gV + lV * V;
-    w(1:10)
-    V(1,:)
+    [new_o, gw, gV] = fm_loss_l2(Y, X, w+alpha*dw, X2, V+alpha*dV, lw, lV);
     new_g = [gw(:); gV(:)];
 
-    [new_o xx'*xx   yy'*yy new_gp'*new_gp p'*p]
     new_gp = new_g' * p;
     fprintf('alpha %f, new_objv %f, new_gp %f\n', alpha, new_o, new_gp);
     if (new_o <= objv + c1 * alpha * gp) && (new_gp >= c2 * gp)
@@ -88,15 +76,11 @@ for k = 1 : 1
     y = y(:,2:m);
   end
 
-  dw = p(1:length(w));
-  dV = reshape(p((length(w)+1):end), [], V_dim);
   w = w + alpha * dw;
   V = V + alpha * dV;
   old_g = g;
 
-  [objv, gw, gV] = fm_loss(Y, X, w, X2, V);
-  gw = gw + lw * w;
-  gV = gV + lV * V;
+  [objv, gw, gV] = fm_loss_l2(Y, X, w, X2, V, lw, lV);
   g = [gw(:); gV(:)];
 
   s = [s, alpha*p];

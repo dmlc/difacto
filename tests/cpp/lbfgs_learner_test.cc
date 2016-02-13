@@ -83,6 +83,32 @@ TEST(LBFGSLearner, RemoveTailFeatures) {
 }
 
 TEST(LBFGSLearner, WithV) {
+  std::vector<real_t> objv = {
+    35.224265,
+    21.631514,
+    18.394319,
+    16.077692,
+    12.389012,
+    8.888516,
+    8.446880,
+    8.146090,
+    8.023501,
+    7.981967,
+    7.955119,
+    7.937092,
+    7.922456,
+    7.880596,
+    // 7.884750,
+    7.861660,
+    7.838057,
+    7.807892,
+    7.784401,
+    7.756756,
+    7.728613,
+    7.724718,
+    7.709527,
+    7.705667};
+
   LBFGSLearner learner;
   KWArgs args = {{"data_in", "../tests/data"},
                  {"m", "5"},
@@ -90,6 +116,7 @@ TEST(LBFGSLearner, WithV) {
                  {"l2", ".1"},
                  {"V_l2", ".01"},
                  {"V_threshold", "0"},
+                 {"rho", ".5"},
                  {"tail_feature_filter", "0"},
                  {"max_num_epochs", "19"}};
   auto remain = learner.Init(args);
@@ -108,9 +135,9 @@ TEST(LBFGSLearner, WithV) {
     }
   };
   learner.GetUpdater()->SetWeightInitializer(initializer);
-  // auto callback = [objv](int epoch, const lbfgs::Progress& prog) {
-  //   EXPECT_LT(fabs(objv[epoch] - prog.objv), 1e-5);
-  // };
-  // learner.AddEpochEndCallback(callback);
+  auto callback = [objv](int epoch, const lbfgs::Progress& prog) {
+    EXPECT_LT(fabs(objv[epoch] - prog.objv), 1e-4);
+  };
+  learner.AddEpochEndCallback(callback);
   learner.Run();
 }

@@ -50,6 +50,7 @@ int max_num_linesearchs;
     DMLC_DECLARE_FIELD(c1).set_default(1e-4);
     DMLC_DECLARE_FIELD(c2).set_default(.9);
     DMLC_DECLARE_FIELD(rho).set_default(.8);
+    DMLC_DECLARE_FIELD(load_epoch).set_default(0);
   }
 };
 

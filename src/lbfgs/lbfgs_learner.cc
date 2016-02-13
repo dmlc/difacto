@@ -189,15 +189,12 @@ void LBFGSLearner::LineSearch(real_t alpha, std::vector<real_t>* status) {
     int t = CHECK_NOTNULL(model_store_)->Pull(
         feaids_, Store::kWeight, &directions_, &model_lens_);
     model_store_->Wait(t);
-    lbfgs::Add(alpha, directions_, &weights_);
-  } else {
-    lbfgs::Add(alpha - alpha_, directions_, &weights_);
+    alpha_ = 0;
   }
-  LL << Norm2(weights_);
+  lbfgs::Add(alpha - alpha_, directions_, &weights_);
   alpha_ = alpha;
   status->resize(2);
   (*status)[0] += CalcGrad(weights_, model_lens_, &grads_);
-  LL << Norm2(grads_);
   (*status)[1] += lbfgs::Inner(grads_, directions_, nthreads_);
 }
 

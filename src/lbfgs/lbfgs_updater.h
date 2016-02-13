@@ -135,7 +135,7 @@ class LBFGSUpdater : public Updater {
     lbfgs::Add(-1, grads_, &y_.back(), nthreads_);
     grads_ = new_grads_;
     // update s
-    lbfgs::Times(alpha_, &y_.back(), nthreads_);
+    lbfgs::Times(alpha_, &s_.back(), nthreads_);
     alpha_ = 0;
     twoloop_.CalcIncreB(s_, y_, grads_, aux);
   }
@@ -154,7 +154,6 @@ class LBFGSUpdater : public Updater {
       dir.CopyFrom(grads_);
       lbfgs::Times(-1, &dir, nthreads_);
     }
-    // LL << Norm2(grads_) << " " << Norm2(dir);
     for (auto& p : dir) p = p > 5 ? 5 : (p < -5 ? -5 : p);
     // push into s_
     if (static_cast<int>(s_.size()) == param_.m) s_.erase(s_.begin());
