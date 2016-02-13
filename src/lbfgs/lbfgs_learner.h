@@ -36,6 +36,7 @@ class LBFGSLearner : public Learner {
     return CHECK_NOTNULL(std::static_pointer_cast<LBFGSUpdater>(
         CHECK_NOTNULL(model_store_)->updater()).get());
   }
+
  protected:
   void RunScheduler() override;
   void Process(const std::string& args, std::string* rets) override;

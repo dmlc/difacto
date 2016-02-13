@@ -88,10 +88,11 @@ class LBFGSUpdater : public Updater {
     } else {
       if (param_.V_dim) {
         n = 0;
+        unsigned seed = 0;
         real_t scale = param_.weight_init_range * 2;
         for (size_t i = 0; i < feaids_.size(); ++i) {
           for (int j = 1; j < weight_lens_[i]; ++j) {
-            weights_[n+j] = (rand() / static_cast<real_t>(RAND_MAX) - .5) * scale;
+            weights_[n+j] = (rand_r(&seed) / static_cast<real_t>(RAND_MAX) - .5) * scale;
           }
           n += weight_lens_[i];
         }
