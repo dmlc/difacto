@@ -4,90 +4,104 @@
 #include "./lbfgs_learner.h"
 #include "./lbfgs_utils.h"
 #include "difacto/node_id.h"
+#include "loss/bin_class_metric.h"
 #include "reader/reader.h"
 namespace difacto {
 
 DMLC_REGISTER_PARAMETER(LBFGSLearnerParam);
 DMLC_REGISTER_PARAMETER(LBFGSUpdaterParam);
 
-KWArgs LBFGSLearner::Init(const KWArgs& kwargs) {
-  auto remain = Learner::Init(kwargs);
-  // init param
-  remain = param_.InitAllowUnknown(kwargs);
-  // init updater
-  auto updater = new LBFGSUpdater();
-  remain = updater->Init(remain);
-  remain.push_back(std::make_pair("V_dim", std::to_string(updater->param().V_dim)));
-  // init model store
-  model_store_ = Store::Create();
-  model_store_->SetUpdater(std::shared_ptr<Updater>(updater));
-  remain = model_store_->Init(remain);
-  // init data stores
-  tile_store_ = new TileStore();
-  remain = tile_store_->Init(remain);
-  // init loss
-  loss_ = Loss::Create(param_.loss, nthreads_);
-  remain = loss_->Init(remain);
-  return remain;
-}
-
 void LBFGSLearner::RunScheduler() {
+  // init
   using lbfgs::Job;
-  LOG(INFO) << "scaning data... ";
+  LOG(INFO) << "Staring training using L-BFGS";
+  LOG(INFO) << "Scaning data... ";
   std::vector<real_t> data;
   IssueJobAndWait(NodeID::kWorkerGroup, Job::kPrepareData, {}, &data);
-  LOG(INFO) << "found " << data[0] << " examples, splitted into " << data[1] << " chunks";
-
-  LOG(INFO) << "initing... ";
+  real_t ntrain = data[0], nval = data[3];
+  LOG(INFO) << " - found " << ntrain << " training examples, splitted into "
+            << data[1] << " chunks";
+  if (nval > 0) {
+    LOG(INFO) << " - found " << nval << " validation examples, splitted into "
+              << data[4] << " chunks";
+  }
   std::vector<real_t> server;
   IssueJobAndWait(NodeID::kServerGroup, Job::kInitServer, {}, &server);
-  LOG(INFO) << "inited model with " << server[1] << " parameters";
-
+  LOG(INFO) << "Inited model with " << server[1] << " parameters";
   std::vector<real_t> worker;
   IssueJobAndWait(NodeID::kWorkerGroup, Job::kInitWorker, {}, &worker);
   real_t objv = server[0] + worker[0];
 
   // iterate over data
-  real_t alpha = 0;
+  real_t alpha = 0, val_auc = 0, new_objv = 0;
   int k = param_.load_epoch >= 0 ? param_.load_epoch : 0;
   for (; k < param_.max_num_epochs; ++k) {
+    LOG(INFO) << "Epoch " << k << ":";
+    // calc direction
     IssueJobAndWait(NodeID::kWorkerGroup, Job::kPushGradient);
-
     std::vector<real_t> B;
     IssueJobAndWait(NodeID::kServerGroup, Job::kPrepareCalcDirection, {alpha}, &B);
-
     std::vector<real_t> p_gf;  // = <p, ∂f(w)>
     IssueJobAndWait(NodeID::kServerGroup, Job::kCalcDirection, B, &p_gf);
-
-    alpha = param_.alpha;
-    LOG(INFO) << "epoch " << k << ": objv " << objv << ", <p,g> " << p_gf[0];
-
+    // start linesearch
+    LOG(INFO) << " - start linesearch with objv = " << objv <<
+        ", <p,g> = " << p_gf[0];
+    alpha = k == 0 ? (ntrain / data[2]) : param_.alpha;
     std::vector<real_t> status;  // = {f(w+αp), <p, ∂f(w+αp)>}
     for (int i = 0; i < param_.max_num_linesearchs; ++i) {
       status.clear();
       IssueJobAndWait(NodeID::kWorkerGroup + NodeID::kServerGroup,
                       Job::kLineSearch, {alpha}, &status);
       // check wolf condition
-      LOG(INFO) << " - linesearch: alpha " << alpha
-                << ", new_objv " << status[0] << ", <p,g_new> " << status[1];
-      if ((status[0] <= objv + param_.c1 * alpha * p_gf[0]) &&
+      new_objv = status[0];
+      LOG(INFO) << " - alpha = " << alpha
+                << ", objv = " << status[0] << ", <p,g> = " << status[1];
+      if ((new_objv <= objv + param_.c1 * alpha * p_gf[0]) &&
           (status[1] >= param_.c2 * p_gf[0])) {
-        break;
+        LOG(INFO) << " - wolfe condition is satisifed";
+        break;  // satisified
+      }
+      if (i+1 == param_.max_num_linesearchs) {
+        LOG(INFO) << " - reach the maximal number of linesearch steps [" << i+1 << "]";
       }
       alpha *= param_.rho;
     }
-    objv = status[0];
-
-    // evaluate
-    // std::vector<real_t> eval;
-    // IssueJobAndWait(NodeID::kWorkerGroup, Job::kEvaluate, {}, &eval);
-
-    lbfgs::Progress prog;
-    prog.objv = objv;
+    // evaluate AUC, ...
+    std::vector<real_t> eval;
+    IssueJobAndWait(NodeID::kWorkerGroup + NodeID::kServerGroup,
+                    Job::kEvaluate, {}, &eval);
+    lbfgs::Progress prog; prog.ParseFromVector(eval);
+    prog.objv = new_objv;
+    prog.auc /= ntrain;
+    LOG(INFO) << " - training auc = " << prog.auc;
+    if (nval > 0) {
+      prog.val_auc /= nval;
+      LOG(INFO) << " - validation auc = " << prog.val_auc;
+    }
     for (const auto& cb : epoch_end_callback_) cb(k, prog);
+
     // check stop critea
-    // TODO(mli)
+    real_t eps = fabs(new_objv - objv) / objv;
+    if (eps < param_.stop_rel_objv) {
+      LOG(INFO) << "Change of objective [" << eps << "] < stop_rel_objv ["
+                << param_.stop_rel_objv << "]";
+      break;
+    }
+    if (nval > 0) {
+      eps = prog.val_auc - val_auc;
+      if (eps < param_.stop_val_auc) {
+        LOG(INFO) << "Change of validation auc [" << eps << "] < stop_val_auc ["
+                  << param_.stop_val_auc << "]";
+        break;
+      }
+    }
+    if (k+1 == param_.max_num_epochs) {
+      LOG(INFO) << "Reach maximal number of epochs";
+    }
+    objv = new_objv;
+    val_auc = prog.val_auc;
   }
+  LOG(INFO) << "Training is done";
 }
 
 void LBFGSLearner::Process(const std::string& args, std::string* rets) {
@@ -113,6 +127,13 @@ void LBFGSLearner::Process(const std::string& args, std::string* rets) {
   } else if (type == Job::kLineSearch) {
     if (IsWorker()) LineSearch(job_args.value[0], &job_rets);
     if (IsServer()) GetUpdater()->LineSearch(job_args.value[0], &job_rets);
+  } else if (type == Job::kEvaluate) {
+    lbfgs::Progress prog;
+    if (IsWorker()) Evaluate(&prog);
+    if (IsServer()) GetUpdater()->Evaluate(&prog);
+    prog.SerializeToVector(&job_rets);
+  } else {
+    LOG(FATAL) << "unknown job type " << type;
   }
   dmlc::Stream* ss = new dmlc::MemoryStringStream(rets);
   ss->Write(job_rets);
@@ -125,16 +146,21 @@ void LBFGSLearner::PrepareData(std::vector<real_t>* rets) {
   Reader train(param_.data_in, param_.data_format,
                model_store_->Rank(), model_store_->NumWorkers(),
                chunk_size);
-  size_t nrows = 0;
+  size_t nrows = 0, nnz = 0;
   tile_builder_ = new TileBuilder(tile_store_, nthreads_);
   SArray<real_t> feacnts;
   while (train.Next()) {
     auto rowblk = train.Value();
     nrows += rowblk.size;
+    nnz += rowblk.offset[rowblk.size];
     tile_builder_->Add(rowblk, &feaids_, &feacnts);
     pred_.push_back(SArray<real_t>(rowblk.size));
     ++ntrain_blks_;
   }
+  rets->resize(6);
+  (*rets)[0] = nrows;
+  (*rets)[1] = ntrain_blks_;
+  (*rets)[2] = nnz;
 
   // push the feature ids and feature counts to the servers
   int t = model_store_->Push(
@@ -142,23 +168,24 @@ void LBFGSLearner::PrepareData(std::vector<real_t>* rets) {
 
   // read validation data if any
   if (param_.data_val.size()) {
+    nrows = 0; nnz = 0;
     Reader val(param_.data_val, param_.data_format,
                model_store_->Rank(), model_store_->NumWorkers(),
                chunk_size);
     while (val.Next()) {
       auto rowblk = val.Value();
       nrows += rowblk.size;
+      nnz += rowblk.offset[rowblk.size];
       tile_builder_->Add(rowblk);
       pred_.push_back(SArray<real_t>(rowblk.size));
       ++nval_blks_;
     }
+    (*rets)[3] = nrows;
+    (*rets)[4] = nval_blks_;
+    (*rets)[5] = nnz;
   }
-
   // wait the previous push finished
   model_store_->Wait(t);
-  rets->resize(2);
-  (*rets)[0] = nrows;
-  (*rets)[1] = ntrain_blks_ + nval_blks_;
 }
 
 real_t LBFGSLearner::InitWorker() {
@@ -211,7 +238,7 @@ real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w_val,
   grad->resize(w_val.size());
   memset(grad->data(), 0, grad->size()*sizeof(real_t));
   real_t objv = 0;
-  real_t a = 0;
+  prog_.auc = 0;
   for (int i = 0; i < ntrain_blks_; ++i) {
     // prepare data
     Tile tile; tile_store_->Fetch(i, 0, &tile);
@@ -227,9 +254,30 @@ real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w_val,
     param.push_back(SArray<char>(pred_[i]));
     loss_->CalcGrad(data, param, grad);
     objv += loss_->Evaluate(data.label, pred_[i]);
-    a += Norm2(pred_[i]);
+
+    BinClassMetric metric(data.label, pred_[i].data(), pred_[i].size(), nthreads_);
+    prog_.auc += metric.AUC();
   }
   return objv;
+}
+
+void LBFGSLearner::Evaluate(lbfgs::Progress* prog) {
+  *prog = prog_;
+  prog->val_auc = 0;
+  // validation data
+  for (int i = ntrain_blks_; i < ntrain_blks_ + nval_blks_; ++i) {
+    // prepare data
+    Tile tile; tile_store_->Fetch(i, 0, &tile);
+    auto data = tile.data.GetBlock();
+    SArray<int> w_pos, V_pos;
+    GetPos(model_lens_, tile.colmap, &w_pos, &V_pos);
+    memset(pred_[i].data(), 0, pred_[i].size()*sizeof(real_t));
+    std::vector<SArray<char>> param = {
+      SArray<char>(weights_), SArray<char>(w_pos), SArray<char>(V_pos)};
+    loss_->Predict(data, param, &pred_[i]);
+    BinClassMetric metric(data.label, pred_[i].data(), pred_[i].size(), nthreads_);
+    prog->val_auc += metric.AUC();
+  }
 }
 
 void LBFGSLearner::GetPos(const SArray<int>& len, const SArray<int>& colmap,

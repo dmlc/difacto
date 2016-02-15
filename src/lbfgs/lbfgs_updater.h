@@ -104,24 +104,9 @@ class LBFGSUpdater : public Updater {
     (*rets)[1] = weights_.size();
   }
 
-  /**
-   * \brief return r(w)
-   */
-  real_t Evaluate() {
-    real_t objv = 0;
-    if (weight_lens_.empty()) {
-      for (real_t w : weights_)  objv += .5 * param_.l2 * w * w;
-    } else {
-      int n = 0;
-      for (int l : weight_lens_) {
-        for (int j = 0; j < l; ++j) {
-          real_t w = weights_[n++];
-          objv += .5 * (j == 0 ? param_.l2 : param_.V_l2) * w * w;
-        }
-      }
-      CHECK_EQ(static_cast<size_t>(n), weights_.size());
-    }
-    return objv;
+  void Evaluate(lbfgs::Progress* prog) {
+    prog->nnz_w = 0;
+    for (auto w : weights_) if (w != 0) ++prog->nnz_w;
   }
 
   void PrepareCalcDirection(std::vector<real_t>* aux) {
@@ -223,6 +208,26 @@ class LBFGSUpdater : public Updater {
       }
       CHECK_EQ(static_cast<size_t>(n), grads->size());
     }
+  }
+
+  /**
+   * \brief return r(w)
+   */
+  real_t Evaluate() {
+    real_t objv = 0;
+    if (weight_lens_.empty()) {
+      for (real_t w : weights_)  objv += .5 * param_.l2 * w * w;
+    } else {
+      int n = 0;
+      for (int l : weight_lens_) {
+        for (int j = 0; j < l; ++j) {
+          real_t w = weights_[n++];
+          objv += .5 * (j == 0 ? param_.l2 : param_.V_l2) * w * w;
+        }
+      }
+      CHECK_EQ(static_cast<size_t>(n), weights_.size());
+    }
+    return objv;
   }
 
   LBFGSUpdaterParam param_;

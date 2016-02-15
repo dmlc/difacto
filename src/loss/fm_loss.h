@@ -129,6 +129,9 @@ class FMLoss : public Loss {
       for (int j = 0; j < V_dim; ++j) s += t[j] * t[j] - tt[j];
       (*pred)[i] += .5 * s;
     }
+
+    // projection
+    for (auto& p : *pred) p = p > 20 ? 20 : (p < -20 ? -20 : p);
   }
 
   /*!

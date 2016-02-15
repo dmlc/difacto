@@ -42,7 +42,10 @@ struct Job {
 };
 
 struct Progress {
-  real_t objv;
+  real_t objv;  // objective value on training data
+  real_t auc;   // auc on tarining data
+  real_t val_auc;  // auc on evaluation data
+  real_t nnz_w; // number of nonzero entries in the model
 
   void SerializeToVector(std::vector<real_t>* vec) const {
     vec->resize(sizeof(Progress)/sizeof(real_t));

@@ -27,6 +27,11 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
   /** \brief the size of data in MB read each time for processing, in default 256 MB */
   real_t data_chunk_size;
 
+  /** \brief stop if (objv_new - objv_old) / obj_old < threshold */
+  real_t stop_rel_objv;
+
+  /** \brief stop if val_auc_new - val_auc_old < threshold */
+  real_t stop_val_auc;
   int load_epoch;
 
   real_t alpha;
@@ -51,6 +56,8 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
     DMLC_DECLARE_FIELD(c2).set_default(.9);
     DMLC_DECLARE_FIELD(rho).set_default(.5);
     DMLC_DECLARE_FIELD(load_epoch).set_default(0);
+    DMLC_DECLARE_FIELD(stop_rel_objv).set_default(1e-5);
+    DMLC_DECLARE_FIELD(stop_val_auc).set_default(1e-3);
   }
 };
 
