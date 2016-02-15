@@ -25,26 +25,7 @@ class LBFGSLearner : public Learner {
     delete tile_store_;
     delete loss_;
   }
-  KWArgs Init(const KWArgs& kwargs) override {
-    auto remain = Learner::Init(kwargs);
-    // init param
-    remain = param_.InitAllowUnknown(kwargs);
-    // init updater
-    auto updater = new LBFGSUpdater();
-    remain = updater->Init(remain);
-    remain.push_back(std::make_pair("V_dim", std::to_string(updater->param().V_dim)));
-    // init model store
-    model_store_ = Store::Create();
-    model_store_->SetUpdater(std::shared_ptr<Updater>(updater));
-    remain = model_store_->Init(remain);
-    // init data stores
-    tile_store_ = new TileStore();
-    remain = tile_store_->Init(remain);
-    // init loss
-    loss_ = Loss::Create(param_.loss, nthreads_);
-    remain = loss_->Init(remain);
-    return remain;
-  }
+  KWArgs Init(const KWArgs& kwargs) override;
 
   void AddEpochEndCallback(
       const std::function<void(int epoch, const lbfgs::Progress& prog)>& callback) {

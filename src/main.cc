@@ -24,9 +24,9 @@ struct DifactoParam : public dmlc::Parameter<DifactoParam> {
 
 void WarnUnknownKWArgs(const DifactoParam& param, const KWArgs& remain) {
   if (remain.empty()) return;
-  LOG(WARNING) << "unrecognized keyword argument for task " << param.task;
+  LOG(WARNING) << "Unrecognized keyword argument for task = " << param.task;
   for (auto kw : remain) {
-    LOG(WARNING) << "  " << kw.first << " = " << kw.second;
+    LOG(WARNING) << " - " << kw.first << " = " << kw.second;
   }
 }
 

@@ -24,7 +24,7 @@ class Reader {
          int chunk_size_hint) {
     char const* c_uri = uri.c_str();
     dmlc::InputSplit* input = dmlc::InputSplit::Create(
-        c_uri, part_index, num_parts, format == "cb" ? "recordio" : "text");
+        c_uri, part_index, num_parts, format == "rec" ? "recordio" : "text");
     input->HintChunkSize(chunk_size_hint);
 
     if (format == "libsvm") {

@@ -11,6 +11,7 @@
 #include <vector>
 #include <string>
 #include "data/row_block.h"
+#include "difacto/base.h"
 namespace difacto {
 
 /**
@@ -114,7 +115,7 @@ class CompressedRowBlock {
     dst->resize(len);
     int dst_size = len * sizeof(T);
     CHECK_EQ(dst_size, LZ4_decompress_safe(
-        cdata_ + cur_len_, static_cast<char*>(dst->data()), cp_size, dst_size));
+        cdata_ + cur_len_, reinterpret_cast<char*>(dst->data()), cp_size, dst_size));
     cur_len_ += cp_size;
 #else
     LOG(FATAL) << "compile with USE_LZ4=1";

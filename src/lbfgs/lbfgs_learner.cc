@@ -14,7 +14,7 @@ DMLC_REGISTER_PARAMETER(LBFGSUpdaterParam);
 void LBFGSLearner::RunScheduler() {
   // init
   using lbfgs::Job;
-  LOG(INFO) << "Staring training using L-BFGS";
+  LOG(INFO) << "Staring training using L-BFGS with " << nthreads_ << " threads";
   LOG(INFO) << "Scaning data... ";
   std::vector<real_t> data;
   IssueJobAndWait(NodeID::kWorkerGroup, Job::kPrepareData, {}, &data);
@@ -73,10 +73,10 @@ void LBFGSLearner::RunScheduler() {
     lbfgs::Progress prog; prog.ParseFromVector(eval);
     prog.objv = new_objv;
     prog.auc /= ntrain;
-    LOG(INFO) << " - training auc = " << prog.auc;
+    LOG(INFO) << " - training AUC = " << prog.auc;
     if (nval > 0) {
       prog.val_auc /= nval;
-      LOG(INFO) << " - validation auc = " << prog.val_auc;
+      LOG(INFO) << " - validation AUC = " << prog.val_auc;
     }
     for (const auto& cb : epoch_end_callback_) cb(k, prog);
 
@@ -90,7 +90,7 @@ void LBFGSLearner::RunScheduler() {
     if (nval > 0) {
       eps = prog.val_auc - val_auc;
       if (eps < param_.stop_val_auc) {
-        LOG(INFO) << "Change of validation auc [" << eps << "] < stop_val_auc ["
+        LOG(INFO) << "Change of validation AUC [" << eps << "] < stop_val_auc ["
                   << param_.stop_val_auc << "]";
         break;
       }
@@ -297,6 +297,28 @@ void LBFGSLearner::GetPos(const SArray<int>& len, const SArray<int>& colmap,
     w[j] = p;
     V[j] = *e > 1 ? p+1 : -1;
   }
+}
+
+KWArgs LBFGSLearner::Init(const KWArgs& kwargs) {
+  auto remain = Learner::Init(kwargs);
+  // init param
+  remain = param_.InitAllowUnknown(kwargs);
+  nthreads_ = param_.num_threads <= 0 ? std::thread::hardware_concurrency() : param_.num_threads;
+  // init updater
+  auto updater = new LBFGSUpdater();
+  remain = updater->Init(remain);
+  remain.push_back(std::make_pair("V_dim", std::to_string(updater->param().V_dim)));
+  // init model store
+  model_store_ = Store::Create();
+  model_store_->SetUpdater(std::shared_ptr<Updater>(updater));
+  remain = model_store_->Init(remain);
+  // init data stores
+  tile_store_ = new TileStore();
+  remain = tile_store_->Init(remain);
+  // init loss
+  loss_ = Loss::Create(param_.loss, nthreads_);
+  remain = loss_->Init(remain);
+  return remain;
 }
 
 }  // namespace difacto

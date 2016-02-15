@@ -18,6 +18,8 @@ struct ConverterParam : public dmlc::Parameter<ConverterParam> {
   std::string data_out;
   /** \brief the output data format: libsvm or rec */
   std::string data_out_format;
+  /** \brief input chunk size in MB */
+  real_t chunk_size;
   /**
    * \brief split the output into multiple parts
    * each part <= part_size MB
@@ -30,6 +32,7 @@ struct ConverterParam : public dmlc::Parameter<ConverterParam> {
     DMLC_DECLARE_FIELD(data_out);
     DMLC_DECLARE_FIELD(data_out_format);
     DMLC_DECLARE_FIELD(part_size).set_default(-1);
+    DMLC_DECLARE_FIELD(chunk_size).set_default(512);
   };
 };
 /**
@@ -45,7 +48,8 @@ class Converter {
   void Run() {
     using namespace dmlc;
     using namespace dmlc::data;
-    Reader in(param_.data_in, param_.data_format, 0, 1, 8);
+    int chunk_size = param_.chunk_size * 1024 * 1024;
+    Reader in(param_.data_in, param_.data_format, 0, 1, chunk_size);
 
     LOG(INFO) << "reading data from " << param_.data_in
               << " in " << param_.data_format << " format";
@@ -58,6 +62,7 @@ class Converter {
     RecordIOWriter* rec_writer = nullptr;
     ostream* libsvm_writer = nullptr;
 
+    size_t nrows = 0;
     while (in.Next()) {
       auto out_format = param_.data_out_format;
       if (nwrite == limit || nwrite / 1000000 >= part_size) {
@@ -83,7 +88,6 @@ class Converter {
           LOG(FATAL) << "unknow output format: " << out_format;
         }
       }
-
       if (out_format == "libsvm") {
         auto blk = in.Value();
         for (size_t i = 0; i < blk.size; ++i) {
@@ -96,18 +100,24 @@ class Converter {
           *libsvm_writer << "\n";
         }
         nwrite = libsvm_writer->bytes_written();
-      } else if (out_format == "crb") {
+      } else if (out_format == "rec") {
         std::string str;
         CompressedRowBlock cblk;
         cblk.Compress(in.Value(), &str);
         rec_writer->WriteRecord(str);
         nwrite += str.size();
+      } else {
+        LOG(FATAL) << "unknow output format: " << out_format;
       }
+
+      nrows += in.Value().size;
+      LOG(INFO) << "written " << nrows << " examples in " << nwrite << " bytes";
+
     }
     delete libsvm_writer;
     delete rec_writer;
     delete out;
-    LOG(INFO) << "done. written " << nwrite << "bytes";
+    LOG(INFO) << "done. written " << nwrite << " bytes";
   }
 
  private:
