@@ -234,56 +234,90 @@ void LBFGSLearner::LineSearch(real_t alpha, std::vector<real_t>* status) {
 real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w_val,
                               const SArray<int>& w_len,
                               SArray<real_t>* grad) {
+  // create thread pool
   for (int i = 0; i < ntrain_blks_; ++i) {
     tile_store_->Prefetch(i, 0);
   }
-  grad->resize(w_val.size());
-  memset(grad->data(), 0, grad->size()*sizeof(real_t));
-  real_t objv = 0;
-  prog_.auc = 0;
+  int pool_size = nthreads_ / blk_nthreads_;
+  ThreadPool pool(pool_size, pool_size);
+  std::vector<SArray<real_t>> grads(pool_size);
+  size_t n = w_val.size();
+  grad->resize(n); memset(grad->data(), 0, sizeof(real_t)*n);
+  grads[0] = *grad;
+  for (int p = 1; p < pool_size; ++p) grads[p].resize(n);
+  std::vector<real_t> objv(pool_size), auc(pool_size);
+
+  // two-level parallel
   for (int i = 0; i < ntrain_blks_; ++i) {
-    // prepare data
-    Tile tile; tile_store_->Fetch(i, 0, &tile);
-    auto data = tile.data.GetBlock();
-    SArray<int> w_pos, V_pos;
-    GetPos(w_len, tile.colmap, &w_pos, &V_pos);
-    memset(pred_[i].data(), 0, pred_[i].size()*sizeof(real_t));
-    std::vector<SArray<char>> param = {
-      SArray<char>(w_val), SArray<char>(w_pos), SArray<char>(V_pos)};
+    pool.Add([this, i, &w_len, &w_val, &grads, &objv, &auc](int tid) {
+        // prepare data
+        Tile tile; tile_store_->Fetch(i, 0, &tile);
+        auto data = tile.data.GetBlock();
+        SArray<int> w_pos, V_pos;
+        GetPos(w_len, tile.colmap, &w_pos, &V_pos);
+        memset(pred_[i].data(), 0, pred_[i].size()*sizeof(real_t));
+        std::vector<SArray<char>> param = {
+          SArray<char>(w_val), SArray<char>(w_pos), SArray<char>(V_pos)};
 
-    // calc
-    loss_->Predict(data, param, &pred_[i]);
-    param.push_back(SArray<char>(pred_[i]));
-    loss_->CalcGrad(data, param, grad);
-    objv += loss_->Evaluate(data.label, pred_[i]);
-
-    BinClassMetric metric(data.label, pred_[i].data(), pred_[i].size(), nthreads_);
-    prog_.auc += metric.AUC();
+        // calc
+        auto loss = loss_[tid];
+        loss->Predict(data, param, &pred_[i]);
+        param.push_back(SArray<char>(pred_[i]));
+        loss->CalcGrad(data, param, &(grads[tid]));
+        objv[tid] += loss->Evaluate(data.label, pred_[i]);
+        BinClassMetric metric(data.label, pred_[i].data(), pred_[i].size(), blk_nthreads_);
+        auc[tid] += metric.AUC();
+      });
   }
-  return objv;
+  pool.Wait();
+
+  // merge results
+  for (int i = 1; i < pool_size; ++i) {
+    objv[0] += objv[i];
+    auc[0] += auc[i];
+    for (size_t j = 0; j < n; ++j) {
+      grads[0][j] += grads[i][j];
+    }
+  }
+  prog_.auc = auc[0];
+  *grad = grads[0];
+  return objv[0];
 }
 
 void LBFGSLearner::Evaluate(lbfgs::Progress* prog) {
-  *prog = prog_;
-  prog->val_auc = 0;
+  int pool_size = nthreads_ / blk_nthreads_;
+  ThreadPool pool(pool_size, pool_size);
+  std::vector<real_t> val_auc(pool_size);
   // validation data
   for (int i = ntrain_blks_; i < ntrain_blks_ + nval_blks_; ++i) {
-    // prepare data
-    Tile tile; tile_store_->Fetch(i, 0, &tile);
-    auto data = tile.data.GetBlock();
-    SArray<int> w_pos, V_pos;
-    GetPos(model_lens_, tile.colmap, &w_pos, &V_pos);
-    memset(pred_[i].data(), 0, pred_[i].size()*sizeof(real_t));
-    std::vector<SArray<char>> param = {
-      SArray<char>(weights_), SArray<char>(w_pos), SArray<char>(V_pos)};
-    loss_->Predict(data, param, &pred_[i]);
-    BinClassMetric metric(data.label, pred_[i].data(), pred_[i].size(), nthreads_);
-    prog->val_auc += metric.AUC();
+    pool.Add([this, i, &val_auc](int tid) {
+        // prepare data
+        Tile tile; tile_store_->Fetch(i, 0, &tile);
+        auto data = tile.data.GetBlock();
+        SArray<int> w_pos, V_pos;
+        GetPos(model_lens_, tile.colmap, &w_pos, &V_pos);
+        memset(pred_[i].data(), 0, pred_[i].size()*sizeof(real_t));
+        std::vector<SArray<char>> param = {
+          SArray<char>(weights_), SArray<char>(w_pos), SArray<char>(V_pos)};
+
+        // calc
+        loss_[tid]->Predict(data, param, &pred_[i]);
+        BinClassMetric metric(data.label, pred_[i].data(), pred_[i].size(), blk_nthreads_);
+        val_auc[tid] += metric.AUC();
+      });
   }
+  pool.Wait();
+
+  // merge results
+  *prog = prog_;
+  for (int i = 1; i < pool_size; ++i) {
+    val_auc[0] += val_auc[i];
+  }
+  prog->val_auc = val_auc[0];
 }
 
 void LBFGSLearner::GetPos(const SArray<int>& len, const SArray<int>& colmap,
-                          SArray<int>* w_pos, SArray<int>* V_pos) {
+                          SArray<int>* w_pos, SArray<int>* V_pos) const {
   size_t n = colmap.size();
   V_pos->resize(n, -1);
   if (len.empty()) { *w_pos = colmap; return; }
@@ -305,7 +339,9 @@ KWArgs LBFGSLearner::Init(const KWArgs& kwargs) {
   auto remain = Learner::Init(kwargs);
   // init param
   remain = param_.InitAllowUnknown(kwargs);
-  nthreads_ = param_.num_threads <= 0 ? std::thread::hardware_concurrency() : param_.num_threads;
+  nthreads_ = param_.num_threads <= 0 ?
+              std::thread::hardware_concurrency() : param_.num_threads;
+  blk_nthreads_ = std::min(nthreads_ > 20 ? 4 : 2, nthreads_);
   // init updater
   auto updater = new LBFGSUpdater();
   remain = updater->Init(remain);
@@ -318,9 +354,12 @@ KWArgs LBFGSLearner::Init(const KWArgs& kwargs) {
   tile_store_ = new TileStore();
   remain = tile_store_->Init(remain);
   // init loss
-  loss_ = Loss::Create(param_.loss, nthreads_);
-  remain = loss_->Init(remain);
-  return remain;
+  KWArgs last;
+  for (int i = 0; i < nthreads_ / blk_nthreads_; ++i) {
+    loss_.push_back(Loss::Create(param_.loss, blk_nthreads_));
+    last = loss_.back()->Init(remain);
+  }
+  return last;
 }
 
 }  // namespace difacto

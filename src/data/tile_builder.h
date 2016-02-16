@@ -46,7 +46,7 @@ class TileBuilder {
       Add(id, rowblk, feaids, feacnts);
     } else {
       auto container = new SharedRowBlockContainer<feaid_t>(rowblk);
-      pool_->Add([this, id, container, feaids, feacnts]() {
+      pool_->Add([this, id, container, feaids, feacnts](int tid) {
           Add(id, container->GetBlock(), feaids, feacnts);
           delete container;
         });
@@ -154,15 +154,11 @@ class TileBuilder {
       delete compacted;
       SharedRowBlockContainer<unsigned> data(&transposed);
       data.label.CopyFrom(rowblk.label, rowblk.size);
-      mu_.lock();  // TODO(mli) make store_ threadsafe if it's a bottleneck
       store_->Store(id, data);
-      mu_.unlock();
       delete transposed;
     } else {
       SharedRowBlockContainer<unsigned> data(&compacted);
-      mu_.lock();
       store_->Store(id, data);
-      mu_.unlock();
       delete compacted;
     }
 

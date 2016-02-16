@@ -5,6 +5,7 @@
 #define DIFACTO_DATA_TILE_STORE_H_
 #include <string>
 #include <vector>
+#include <mutex>
 #include "dmlc/data.h"
 #include "difacto/sarray.h"
 #include "./shared_row_block_container.h"
@@ -37,6 +38,9 @@ struct Tile {
 
 class TileBuilder;
 
+/**
+ * \brief thread safe
+ */
 class TileStore {
  public:
   TileStore() { }
@@ -54,6 +58,7 @@ class TileStore {
    */
   void Store(int rowblk_id,
              const SharedRowBlockContainer<unsigned>& data) {
+    std::lock_guard<std::mutex> lk(mu_);
     auto key = std::to_string(rowblk_id) + "_";
     data_->Store(key+"label", data.label);
     data_->Store(key+"offset", data.offset);
@@ -75,6 +80,7 @@ class TileStore {
    * @param colblk_id
    */
   void Prefetch(int rowblk_id, int colblk_id) {
+    std::lock_guard<std::mutex> lk(mu_);
     auto key = std::to_string(rowblk_id) + "_";
     auto rg = meta_[rowblk_id][colblk_id];
     data_->Prefetch(key+"label");
@@ -92,6 +98,7 @@ class TileStore {
    * @param tile
    */
   void Fetch(int rowblk_id, int colblk_id, Tile* tile) {
+    std::lock_guard<std::mutex> lk(mu_);
     auto& data = CHECK_NOTNULL(tile)->data;
     auto key = std::to_string(rowblk_id) + "_";
     auto rg = meta_[rowblk_id][colblk_id];
@@ -149,6 +156,7 @@ class TileStore {
   }
 
  private:
+  std::mutex mu_;
   DataStore* data_ = nullptr;
   /** \brief meta data for a rowblk */
   struct Meta { Range colmap; Range offset; Range index; };
