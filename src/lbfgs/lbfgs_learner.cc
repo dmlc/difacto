@@ -46,7 +46,8 @@ void LBFGSLearner::RunScheduler() {
     // start linesearch
     LOG(INFO) << " - start linesearch with objv = " << objv <<
         ", <p,g> = " << p_gf[0];
-    alpha = k == 0 ? (ntrain / data[2]) : param_.alpha;
+    alpha = k != 0 ? param_.alpha : (
+        param_.init_alpha > 0 ? param_.init_alpha : ntrain / data[2]);
     std::vector<real_t> status;  // = {f(w+αp), <p, ∂f(w+αp)>}
     for (int i = 0; i < param_.max_num_linesearchs; ++i) {
       status.clear();

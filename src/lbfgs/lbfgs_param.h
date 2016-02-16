@@ -34,6 +34,9 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
   real_t stop_val_auc;
   int load_epoch;
 
+  /** \brief starting alpha for epoch 0, in default determined by system */
+  real_t init_alpha;
+  /** \brief starting alpha for each epoch (except 0), in default is 1 */
   real_t alpha;
   real_t c1;
   real_t c2;
@@ -53,6 +56,7 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
     DMLC_DECLARE_FIELD(loss).set_default("fm");
     DMLC_DECLARE_FIELD(max_num_epochs).set_default(20);
     DMLC_DECLARE_FIELD(alpha).set_default(1);
+    DMLC_DECLARE_FIELD(init_alpha).set_default(0);
     DMLC_DECLARE_FIELD(max_num_linesearchs).set_default(5);
     DMLC_DECLARE_FIELD(c1).set_default(1e-4);
     DMLC_DECLARE_FIELD(c2).set_default(.9);
