@@ -59,7 +59,7 @@ class ThreadPool {
    */
   void Wait() {
     std::unique_lock<std::mutex> lk(mu_);
-    fin_cond_.wait(lk, [this]{ return tasks_.empty(); });
+    fin_cond_.wait(lk, [this]{ return num_running_==0 && tasks_.empty(); });
   }
 
  private:
@@ -71,12 +71,15 @@ class ThreadPool {
       // run a job
       auto task = std::move(tasks_.front());
       tasks_.pop_front();
+      ++num_running_;
       lk.unlock();
       CHECK(task); task();
+      --num_running_;
       fin_cond_.notify_all();
       lk.lock();
     }
   }
+  std::atomic<int> num_running_{0};
   std::atomic<bool> done_{false};
   size_t capacity_;
   std::mutex mu_;

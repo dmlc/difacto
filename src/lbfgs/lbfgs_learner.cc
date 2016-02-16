@@ -25,7 +25,6 @@ void LBFGSLearner::RunScheduler() {
     LOG(INFO) << " - found " << nval << " validation examples, splitted into "
               << data[4] << " chunks";
   }
-  return;
   std::vector<real_t> server;
   IssueJobAndWait(NodeID::kServerGroup, Job::kInitServer, {}, &server);
   LOG(INFO) << "Inited model with " << server[1] << " parameters";

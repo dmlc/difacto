@@ -139,7 +139,6 @@ class TileBuilder {
   void Add(int id, const dmlc::RowBlock<feaid_t>& rowblk,
            SArray<feaid_t>* feaids,
            SArray<real_t>* feacnts) {
-    LL << id;
     // map feature id into continous intergers
     std::shared_ptr<std::vector<feaid_t>> ids(new std::vector<feaid_t>());
     std::shared_ptr<std::vector<real_t>> cnts(new std::vector<real_t>());
@@ -178,8 +177,6 @@ class TileBuilder {
     CHECK_EQ(feaids->size(), feacnts->size());
     CHECK_EQ(sids.size(), scnts.size());
     KVUnion(sids, scnts, feaids, feacnts);
-
-    LL << "done " << id;
   }
   std::vector<SArray<feaid_t>> blk_feaids_;
   TileStore* store_;
