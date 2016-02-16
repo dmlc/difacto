@@ -4,10 +4,12 @@
 #ifndef DIFACTO_DATA_TILE_BUILDER_H_
 #define DIFACTO_DATA_TILE_BUILDER_H_
 #include <vector>
+#include <mutex>
 #include "common/kv_union.h"
 #include "common/spmt.h"
 #include "data/localizer.h"
 #include "./tile_store.h"
+#include "common/thread_pool.h"
 namespace difacto {
 /**
  * \brief helper class to build TileStore
@@ -16,9 +18,17 @@ class TileBuilder {
  public:
   TileBuilder(TileStore* store, int nthreads, bool allow_multi_columns = false) {
     store_ = store;
-    nthreads_ = nthreads;
     multicol_ = allow_multi_columns;
+    int blk_nthreads = 2;
+    if (nthreads > blk_nthreads) {
+      nthreads_ = blk_nthreads;
+      int pool_size = nthreads / blk_nthreads;
+      pool_ = new ThreadPool(pool_size, pool_size);
+    } else {
+      nthreads_ = nthreads;
+    }
   }
+  ~TileBuilder() { delete pool_; }
 
   /**
    * \brief add a raw rowblk to the store
@@ -28,41 +38,22 @@ class TileBuilder {
   void Add(const dmlc::RowBlock<feaid_t>& rowblk,
            SArray<feaid_t>* feaids = nullptr,
            SArray<real_t>* feacnts = nullptr) {
-    // map feature id into continous intergers
-    std::shared_ptr<std::vector<feaid_t>> ids(new std::vector<feaid_t>());
-    std::shared_ptr<std::vector<real_t>> cnts(new std::vector<real_t>());
-    auto compacted = new dmlc::data::RowBlockContainer<unsigned>();
-    Localizer lc(-1, nthreads_);
-    lc.Compact(rowblk, compacted, ids.get(), feacnts ? cnts.get() : nullptr);
-
-    // store data into tile store
+    mu_.lock();
     int id = blk_feaids_.size();
-    if (multicol_) {
-      // transpose to easy slice a column block
-      auto transposed = new dmlc::data::RowBlockContainer<unsigned>();
-      SpMT::Transpose(compacted->GetBlock(), transposed, ids->size(), nthreads_);
-      delete compacted;
-      SharedRowBlockContainer<unsigned> data(&transposed);
-      data.label.CopyFrom(rowblk.label, rowblk.size);
-      store_->Store(id, data);
-      delete transposed;
+    blk_feaids_.resize(id+1);
+    mu_.unlock();
+    if (pool_ == nullptr) {
+      Add(id, rowblk, feaids, feacnts);
     } else {
-      SharedRowBlockContainer<unsigned> data(&compacted);
-      store_->Store(id, data);
-      delete compacted;
+      auto container = new SharedRowBlockContainer<feaid_t>(rowblk);
+      pool_->Add([this, id, container, feaids, feacnts]() {
+          Add(id, container->GetBlock(), feaids, feacnts);
+          delete container;
+        });
     }
-
-    // store ids, which are used to build colmap
-    SArray<feaid_t> sids(ids);
-    blk_feaids_.push_back(sids);
-
-    if (!feaids) return;
-    CHECK_NOTNULL(feacnts);
-    SArray<real_t> scnts(cnts);
-    CHECK_EQ(feaids->size(), feacnts->size());
-    CHECK_EQ(sids.size(), scnts.size());
-    KVUnion(sids, scnts, feaids, feacnts);
   }
+
+  void Wait() { if (pool_) pool_->Wait(); }
 
   /**
    * \brief build colmap
@@ -142,11 +133,60 @@ class TileBuilder {
       positions->at(i) = Range(lb - begin, ub - begin);
     }
   }
+  /**
+   * \brief threadsafe version
+   */
+  void Add(int id, const dmlc::RowBlock<feaid_t>& rowblk,
+           SArray<feaid_t>* feaids,
+           SArray<real_t>* feacnts) {
+    LL << id;
+    // map feature id into continous intergers
+    std::shared_ptr<std::vector<feaid_t>> ids(new std::vector<feaid_t>());
+    std::shared_ptr<std::vector<real_t>> cnts(new std::vector<real_t>());
+    auto compacted = new dmlc::data::RowBlockContainer<unsigned>();
+    Localizer lc(-1, nthreads_);
+    lc.Compact(rowblk, compacted, ids.get(), feacnts ? cnts.get() : nullptr);
 
+    // store data into tile store
+    if (multicol_) {
+      // transpose to easy slice a column block
+      auto transposed = new dmlc::data::RowBlockContainer<unsigned>();
+      SpMT::Transpose(compacted->GetBlock(), transposed, ids->size(), nthreads_);
+      delete compacted;
+      SharedRowBlockContainer<unsigned> data(&transposed);
+      data.label.CopyFrom(rowblk.label, rowblk.size);
+      mu_.lock();  // TODO(mli) make store_ threadsafe if it's a bottleneck
+      store_->Store(id, data);
+      mu_.unlock();
+      delete transposed;
+    } else {
+      SharedRowBlockContainer<unsigned> data(&compacted);
+      mu_.lock();
+      store_->Store(id, data);
+      mu_.unlock();
+      delete compacted;
+    }
+
+    // store ids, which are used to build colmap
+    std::lock_guard<std::mutex> lk(mu_);
+    SArray<feaid_t> sids(ids);
+    blk_feaids_[id] = sids;
+
+    if (!feaids) return;
+    CHECK_NOTNULL(feacnts);
+    SArray<real_t> scnts(cnts);
+    CHECK_EQ(feaids->size(), feacnts->size());
+    CHECK_EQ(sids.size(), scnts.size());
+    KVUnion(sids, scnts, feaids, feacnts);
+
+    LL << "done " << id;
+  }
   std::vector<SArray<feaid_t>> blk_feaids_;
   TileStore* store_;
   int nthreads_;
   bool multicol_;
+  ThreadPool* pool_ = nullptr;
+  std::mutex mu_;
 };
 
 }  // namespace difacto

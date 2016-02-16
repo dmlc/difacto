@@ -25,6 +25,7 @@ void LBFGSLearner::RunScheduler() {
     LOG(INFO) << " - found " << nval << " validation examples, splitted into "
               << data[4] << " chunks";
   }
+  return;
   std::vector<real_t> server;
   IssueJobAndWait(NodeID::kServerGroup, Job::kInitServer, {}, &server);
   LOG(INFO) << "Inited model with " << server[1] << " parameters";
@@ -162,6 +163,7 @@ void LBFGSLearner::PrepareData(std::vector<real_t>* rets) {
   (*rets)[1] = ntrain_blks_;
   (*rets)[2] = nnz;
 
+  tile_builder_->Wait();
   // push the feature ids and feature counts to the servers
   int t = model_store_->Push(
       feaids_, Store::kFeaCount, feacnts, SArray<int>());
@@ -184,6 +186,7 @@ void LBFGSLearner::PrepareData(std::vector<real_t>* rets) {
     (*rets)[4] = nval_blks_;
     (*rets)[5] = nnz;
   }
+  tile_builder_->Wait();
   // wait the previous push finished
   model_store_->Wait(t);
 }

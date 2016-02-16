@@ -5,6 +5,7 @@
 #include "dmlc/omp.h"
 #include "dmlc/logging.h"
 #include "common/parallel_sort.h"
+#include "difacto/sarray.h"
 namespace difacto {
 
 void Localizer::CountUniqIndex(

@@ -22,6 +22,7 @@ struct SharedRowBlockContainer {
    * \param blk the rowblock
    */
   explicit SharedRowBlockContainer(const dmlc::RowBlock<IndexType>& blk) {
+    CHECK_EQ(blk.offset[0], 0);
     offset.CopyFrom(blk.offset, blk.size+1);
     if (blk.label != nullptr) {
       label.CopyFrom(blk.label, blk.size);
