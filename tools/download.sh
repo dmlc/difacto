@@ -1,27 +1,20 @@
 #!/bin/bash
-if [ $# -ne 2 ]; then
-    echo "usage: $0 dataset_name local_dir"
+if [ $# -ne 1 ]; then
+    echo "usage: $0 dataset_name"
     echo "  dataset_name can be rcv1, criteo, ctra, ..."
-    echo "sample: $0 ctra data/"
+    echo "sample: $0 ctra"
     exit 0
 fi
 
-dir=$2
-mkdir -p $dir
-cd $dir
+mkdir -p data && cd data
 
 # download from http://data.dmlc.ml/difacto/datasets/
 dmlc_download() {
     url=http://data.dmlc.ml/difacto/datasets/
     file=$1
+    dir=`dirname $file`
     if [ ! -e $file ]; then
-        if [ ! -e ${file}.gz ]; then
-            wget ${url}/${file}.gz
-            wget ${url}/${file}.gz.md5
-            md5sum -c ${file}.gz.md5
-            rm ${file}.gz.md5
-        fi
-        gunzip ${file}.gz
+        wget ${url}/${file} -P ${dir}
     fi
 }
 
@@ -37,8 +30,11 @@ libsvm_download() {
     fi
 }
 if [ $1 == "ctra" ]; then
-    dmlc_download ctra_train
-    dmlc_download ctra_test
+    dmlc_download ctra/ctra_train.rec
+    dmlc_download ctra/ctra_val.rec
+elif [ $1 == "criteo" ]; then
+    dmlc_download criteo_kaggle/criteo_train.rec
+    dmlc_download criteo_kaggle/criteo_val.rec
 elif [ $1 == "gisette" ]; then
     libsvm_download gisette_scale
     libsvm_download gisette_scale.t
