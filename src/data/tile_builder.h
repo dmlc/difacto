@@ -19,7 +19,7 @@ class TileBuilder {
   TileBuilder(TileStore* store, int nthreads, bool allow_multi_columns = false) {
     store_ = store;
     multicol_ = allow_multi_columns;
-    int blk_nthreads = 2;
+    int blk_nthreads = nthreads > 20 ? 4 : 2;
     if (nthreads > blk_nthreads) {
       nthreads_ = blk_nthreads;
       int pool_size = nthreads / blk_nthreads;

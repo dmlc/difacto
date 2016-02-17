@@ -82,21 +82,23 @@ void LBFGSLearner::RunScheduler() {
     for (const auto& cb : epoch_end_callback_) cb(k, prog);
 
     // check stop critea
-    real_t eps = fabs(new_objv - objv) / objv;
-    if (eps < param_.stop_rel_objv) {
-      LOG(INFO) << "Change of objective [" << eps << "] < stop_rel_objv ["
-                << param_.stop_rel_objv << "]";
-      break;
-    }
-    if (nval > 0) {
-      eps = prog.val_auc - val_auc;
-      if (eps < param_.stop_val_auc) {
-        LOG(INFO) << "Change of validation AUC [" << eps << "] < stop_val_auc ["
-                  << param_.stop_val_auc << "]";
+    if (k > param_.min_num_epochs) {
+      real_t eps = fabs(new_objv - objv) / objv;
+      if (eps < param_.stop_rel_objv) {
+        LOG(INFO) << "Change of objective [" << eps << "] < stop_rel_objv ["
+                  << param_.stop_rel_objv << "]";
         break;
       }
+      if (nval > 0) {
+        eps = prog.val_auc - val_auc;
+        if (eps < param_.stop_val_auc) {
+          LOG(INFO) << "Change of validation AUC [" << eps << "] < stop_val_auc ["
+                    << param_.stop_val_auc << "]";
+          break;
+        }
+      }
     }
-    if (k+1 == param_.max_num_epochs) {
+    if (k+1 >= param_.max_num_epochs) {
       LOG(INFO) << "Reach maximal number of epochs";
     }
     objv = new_objv;
