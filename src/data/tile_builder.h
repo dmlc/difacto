@@ -19,7 +19,7 @@ class TileBuilder {
   TileBuilder(TileStore* store, int nthreads, bool allow_multi_columns = false) {
     store_ = store;
     multicol_ = allow_multi_columns;
-    int blk_nthreads = 2;
+    int blk_nthreads = nthreads > 20 ? 4 : 2;
     if (nthreads > blk_nthreads) {
       nthreads_ = blk_nthreads;
       int pool_size = nthreads / blk_nthreads;
@@ -46,7 +46,7 @@ class TileBuilder {
       Add(id, rowblk, feaids, feacnts);
     } else {
       auto container = new SharedRowBlockContainer<feaid_t>(rowblk);
-      pool_->Add([this, id, container, feaids, feacnts]() {
+      pool_->Add([this, id, container, feaids, feacnts](int tid) {
           Add(id, container->GetBlock(), feaids, feacnts);
           delete container;
         });
@@ -139,7 +139,6 @@ class TileBuilder {
   void Add(int id, const dmlc::RowBlock<feaid_t>& rowblk,
            SArray<feaid_t>* feaids,
            SArray<real_t>* feacnts) {
-    LL << id;
     // map feature id into continous intergers
     std::shared_ptr<std::vector<feaid_t>> ids(new std::vector<feaid_t>());
     std::shared_ptr<std::vector<real_t>> cnts(new std::vector<real_t>());
@@ -155,15 +154,11 @@ class TileBuilder {
       delete compacted;
       SharedRowBlockContainer<unsigned> data(&transposed);
       data.label.CopyFrom(rowblk.label, rowblk.size);
-      mu_.lock();  // TODO(mli) make store_ threadsafe if it's a bottleneck
       store_->Store(id, data);
-      mu_.unlock();
       delete transposed;
     } else {
       SharedRowBlockContainer<unsigned> data(&compacted);
-      mu_.lock();
       store_->Store(id, data);
-      mu_.unlock();
       delete compacted;
     }
 
@@ -178,8 +173,6 @@ class TileBuilder {
     CHECK_EQ(feaids->size(), feacnts->size());
     CHECK_EQ(sids.size(), scnts.size());
     KVUnion(sids, scnts, feaids, feacnts);
-
-    LL << "done " << id;
   }
   std::vector<SArray<feaid_t>> blk_feaids_;
   TileStore* store_;

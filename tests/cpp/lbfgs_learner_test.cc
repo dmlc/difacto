@@ -33,6 +33,7 @@ TEST(LBFGSLearner, Basic) {
                  {"m", "5"},
                  {"V_dim", "0"},
                  {"l2", "0"},
+                 {"init_alpha", "1"},
                  {"tail_feature_filter", "0"},
                  {"max_num_epochs", "19"}};
   auto remain = learner.Init(args);
@@ -70,6 +71,7 @@ TEST(LBFGSLearner, RemoveTailFeatures) {
   KWArgs args = {{"data_in", "../tests/data"},
                  {"m", "5"},
                  {"V_dim", "0"},
+                 {"init_alpha", "1"},
                  {"l2", "0"},
                  {"tail_feature_filter", "2"},
                  {"max_num_epochs", "19"}};
@@ -114,6 +116,7 @@ TEST(LBFGSLearner, WithV) {
                  {"m", "5"},
                  {"V_dim", "5"},
                  {"l2", ".1"},
+                 {"init_alpha", "1"},
                  {"V_l2", ".01"},
                  {"V_threshold", "0"},
                  {"rho", ".5"},

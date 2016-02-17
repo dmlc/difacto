@@ -25,7 +25,9 @@ class ThreadPool {
     CHECK_LT(num_workers, 100);
     capacity_ = max_capacity;
     for (int i = 0; i < num_workers; ++i) {
-      workers_.push_back(std::thread(&ThreadPool::RunWorker, this));
+      workers_.push_back(std::thread([this, i](){
+            RunWorker(i);
+          }));
     }
   }
 
@@ -47,7 +49,7 @@ class ThreadPool {
    * max_capacity. otherwise wait until the pool is available
    * @param job
    */
-  void Add(const std::function<void()>& job) {
+  void Add(const std::function<void(int tid)>& job) {
     std::unique_lock<std::mutex> lk(mu_);
     fin_cond_.wait(lk, [this]{ return tasks_.size() < capacity_; });
     tasks_.push_back(job);
@@ -59,11 +61,11 @@ class ThreadPool {
    */
   void Wait() {
     std::unique_lock<std::mutex> lk(mu_);
-    fin_cond_.wait(lk, [this]{ return tasks_.empty(); });
+    fin_cond_.wait(lk, [this]{ return num_running_==0 && tasks_.empty(); });
   }
 
  private:
-  void RunWorker() {
+  void RunWorker(int tid) {
     std::unique_lock<std::mutex> lk(mu_);
     while (true) {
       add_cond_.wait(lk, [this]{ return done_ || !tasks_.empty(); });
@@ -71,18 +73,21 @@ class ThreadPool {
       // run a job
       auto task = std::move(tasks_.front());
       tasks_.pop_front();
+      ++num_running_;
       lk.unlock();
-      CHECK(task); task();
+      CHECK(task); task(tid);
+      --num_running_;
       fin_cond_.notify_all();
       lk.lock();
     }
   }
+  std::atomic<int> num_running_{0};
   std::atomic<bool> done_{false};
   size_t capacity_;
   std::mutex mu_;
   std::condition_variable fin_cond_, add_cond_;
   std::vector<std::thread> workers_;
-  std::list<std::function<void()>> tasks_;
+  std::list<std::function<void(int tid)>> tasks_;
 
 };
 }  // namespace difacto

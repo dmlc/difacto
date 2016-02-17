@@ -23,7 +23,7 @@ class LBFGSLearner : public Learner {
   virtual ~LBFGSLearner() {
     delete model_store_;
     delete tile_store_;
-    delete loss_;
+    for (auto l : loss_) delete l;
   }
   KWArgs Init(const KWArgs& kwargs) override;
 
@@ -82,11 +82,11 @@ class LBFGSLearner : public Learner {
   void Evaluate(lbfgs::Progress* prog);
 
   void GetPos(const SArray<int>& len, const SArray<int>& colmap,
-              SArray<int>* w_pos, SArray<int>* V_pos);
+              SArray<int>* w_pos, SArray<int>* V_pos) const;
 
 
   LBFGSLearnerParam param_;
-  int nthreads_ = DEFAULT_NTHREADS;
+  int nthreads_, blk_nthreads_;
   SArray<feaid_t> feaids_;
   SArray<real_t> weights_, grads_, directions_;
   SArray<int> model_lens_;
@@ -102,7 +102,7 @@ class LBFGSLearner : public Learner {
   Store* model_store_ = nullptr;
 
   /** \brief the loss function */
-  Loss* loss_ = nullptr;
+  std::vector<Loss*> loss_;
   std::vector<SArray<real_t>> pred_;
 
   real_t alpha_;
