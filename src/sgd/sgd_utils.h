@@ -17,6 +17,7 @@ struct Job {
   static const int kSaveModel = 2;
   static const int kTraining = 3;
   static const int kValidation = 4;
+  static const int kEvaluation = 5;
   int type;
   /** \brief number of partitions of this file */
   int num_parts;
@@ -36,10 +37,10 @@ struct Job {
 };
 
 struct Progress {
-  real_t objv = 0;  // objective value on training data
+  real_t loss = 0;  //
+  real_t penalty = 0;  //
   real_t auc = 0;   // auc
   real_t nnz_w = 0; // |w|_0
-  real_t w_size = 0;  // size of w
   real_t nrows = 0;   // number of examples
 
   std::string TextString() {
@@ -49,13 +50,17 @@ struct Progress {
   void SerializeToString(std::string* str) const {
     *str = std::string(reinterpret_cast<char const*>(this), sizeof(Progress));
   }
-  void ParseFromString(const std::string& str) {
-    if (str.empty()) return;
-    CHECK_EQ(str.size(), sizeof(Progress));
-    memcpy(this, str.data(), sizeof(Progress));
+
+  void ParseFrom(char const* data, size_t size) {
+    if (size == 0) return;
+    CHECK_EQ(size, sizeof(Progress));
+    memcpy(this, data, sizeof(Progress));
   }
 
   void Merge(const std::string& str) {
+    Progress other;
+    other.ParseFrom(str.data(), str.size());
+    Merge(other);
   }
 
   void Merge(const Progress& other) {

@@ -16,7 +16,6 @@
 #include "difacto/node_id.h"
 #include "loss/bin_class_metric.h"
 #include "./sgd_updater.h"
-
 namespace difacto {
 
 /** \brief struct to hold info for a batch job */
@@ -30,17 +29,16 @@ void SGDLearner::RunScheduler() {
   int k = 0;
   for (; k < param_.max_num_epochs; ++k) {
     sgd::Progress train_prog;
-    LOG(INFO) << "Epoch " << k << ": Training";
+    LOG(INFO) << "Start epoch " << k;
     RunEpoch(k, sgd::Job::kTraining, &train_prog);
-    LOG(INFO) << "Done. " << train_prog.TextString();
+    LOG(INFO) << "Training: " << train_prog.TextString();
 
     sgd::Progress val_prog;
     if (param_.data_val.size()) {
-      LOG(INFO) << "Epoch " << k << ": Validation";
       RunEpoch(k, sgd::Job::kValidation, &val_prog);
-      LOG(INFO) << "Done. " << val_prog.TextString();
+      LOG(INFO) << "Validation: " << val_prog.TextString();
     }
-
+    for (const auto& cb : epoch_end_callback_) cb(k, train_prog, val_prog);
     // TODO stop criteria
   }
 }
@@ -70,6 +68,21 @@ void SGDLearner::RunEpoch(int epoch, int job_type, sgd::Progress* prog) {
   while (tracker_->NumRemains()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
+
+  // if (job_type == sgd::Job::kTraining) {
+  //   int n = store_->NumServers();
+  //   std::vector<std::pair<int, std::string>> jobs(n);
+  //   for (int i = 0; i < n; ++i) {
+  //     jobs[i].first = NodeID::Encode(NodeID::kWorkerGroup, i);
+  //     sgd::Job job;
+  //     job.type = sgd::Job::kEvaluation;
+  //     job.SerializeToString(&jobs[i].second);
+  //   }
+  //   tracker_->Issue(jobs);
+  //   while (tracker_->NumRemains()) {
+  //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  //   }
+  // }
 }
 
 void SGDLearner::GetPos(const SArray<int>& len,
@@ -98,19 +111,22 @@ void SGDLearner::IterateData(const sgd::Job& job, sgd::Progress* progress) {
         auto values = new SArray<real_t>();
         auto lengths = new SArray<int>();
         auto pull_callback = [this, batch, values, lengths, progress, on_complete]() {
-          // eval the objective,
+          // eval loss
           auto data = batch.data.GetBlock();
+          progress->nrows += data.size;
           SArray<real_t> pred(data.size);
           SArray<int> w_pos, V_pos;
           GetPos(*lengths, &w_pos, &V_pos);
           std::vector<SArray<char>> inputs = {
             SArray<char>(*values), SArray<char>(w_pos), SArray<char>(V_pos)};
           CHECK_NOTNULL(loss_)->Predict(data, inputs, &pred);
-          progress->objv += loss_->Evaluate(batch.data.label.data(), pred);
-          progress->nrows += pred.size();
+          progress->loss += loss_->Evaluate(batch.data.label.data(), pred);
+          // eval penalty
+          progress->penalty += EvaluatePenalty(*values, w_pos, V_pos);
+
+          // auc, ...
           BinClassMetric metric(batch.data.label.data(), pred.data(),
                                 pred.size(), blk_nthreads_);
-          LL << metric.AUC();
           progress->auc += metric.AUC();
 
           // calculate the gradients
@@ -205,5 +221,30 @@ KWArgs SGDLearner::Init(const KWArgs& kwargs) {
 }
 
 
+real_t SGDLearner::EvaluatePenalty(const SArray<real_t>& weights,
+                                   const SArray<int>& w_pos,
+                                   const SArray<int>& V_pos) {
+  real_t objv = 0;
+  auto param = GetUpdater()->param();
+  if (w_pos.size()) {
+    for (int p : w_pos) {
+      if (p == -1) continue;
+      real_t w = weights[p];
+      objv += param.l1 * fabs(w) + .5 * param.l2 * w * w;
+    }
+    for (int p : V_pos) {
+      if (p == -1) continue;
+      for (int i = 0; i < param.V_dim; ++i) {
+        real_t V = weights[p+i];
+        objv += .5 * param.V_l2 * V * V;
+      }
+    }
+  } else {
+    for (auto w : weights) {
+      objv += param.l1 * fabs(w) + .5 * param.l2 * w * w;
+    }
+  }
+  return objv;
+}
 
 }  // namespace difacto
