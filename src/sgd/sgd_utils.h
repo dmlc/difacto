@@ -18,53 +18,52 @@ struct Job {
   static const int kTraining = 3;
   static const int kValidation = 4;
   int type;
-  /** \brief filename  */
-  std::string filename;
   /** \brief number of partitions of this file */
   int num_parts;
   /** \brief the part will be processed, -1 means all */
   int part_idx;
   /** \brief the current epoch */
   int epoch;
-
   Job() { }
-  /** \brief construct from a string */
-  explicit Job(const std::string& str) {
-    ParseFromString(str);
-  }
   void SerializeToString(std::string* str) const {
+    *str = std::string(reinterpret_cast<char const*>(this), sizeof(Job));
   }
 
   void ParseFromString(const std::string& str) {
+    CHECK_EQ(str.size(), sizeof(Job));
+    memcpy(this, str.data(), sizeof(Job));
   }
 };
 
 struct Progress {
-  static std::string TextHead() {
-    return " #ex new     |w|_0    |V|_0 logloss_w logloss accuracy AUC";
-  }
+  real_t objv = 0;  // objective value on training data
+  real_t auc = 0;   // auc
+  real_t nnz_w = 0; // |w|_0
+  real_t w_size = 0;  // size of w
+  real_t nrows = 0;   // number of examples
+
   std::string TextString() {
-    return "";
+    return std::to_string(auc);
   }
+
   void SerializeToString(std::string* str) const {
-    dmlc::Stream* ss = new dmlc::MemoryStringStream(str);
-    ss->Write(progress);
-    delete ss;
+    *str = std::string(reinterpret_cast<char const*>(this), sizeof(Progress));
   }
   void ParseFromString(const std::string& str) {
-    auto pstr = str;
-    dmlc::Stream* ss = new dmlc::MemoryStringStream(&pstr);
-    ss->Read(&progress);
-    delete ss;
+    if (str.empty()) return;
+    CHECK_EQ(str.size(), sizeof(Progress));
+    memcpy(this, str.data(), sizeof(Progress));
   }
 
   void Merge(const std::string& str) {
-
-  }
-  void Merge(int node_id, const Progress& other) {
   }
 
-  std::vector<real_t> progress;
+  void Merge(const Progress& other) {
+    size_t n = sizeof(Progress) / sizeof(real_t);
+    auto a = reinterpret_cast<real_t*>(this);
+    auto b = reinterpret_cast<real_t const*>(&other);
+    for (size_t i = 0; i < n; ++i) a[i] += b[i];
+  }
 };
 
 }  // namespace sgd

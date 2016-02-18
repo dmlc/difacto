@@ -61,16 +61,8 @@ class SGDLearner : public Learner {
    */
   void IterateData(const sgd::Job& job, sgd::Progress* prog);
 
- private:
-
-  void Evaluate(const SArray<dmlc::real_t>& label,
-                const SArray<real_t>& pred,
-                sgd::Progress* prog) {
-    // TODO
-  }
-
-void GetPos(const SArray<int>& len,
-            SArray<int>* w_pos, SArray<int>* V_pos);
+  void GetPos(const SArray<int>& len,
+              SArray<int>* w_pos, SArray<int>* V_pos);
   /** \brief the model store*/
   Store* store_;
   /** \brief the loss*/

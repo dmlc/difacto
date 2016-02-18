@@ -14,6 +14,7 @@
 #include "data/localizer.h"
 #include "dmlc/timer.h"
 #include "difacto/node_id.h"
+#include "loss/bin_class_metric.h"
 
 namespace difacto {
 
@@ -102,12 +103,15 @@ void SGDLearner::IterateData(const sgd::Job& job, sgd::Progress* progress) {
           GetPos(*lengths, &w_pos, &V_pos);
           std::vector<SArray<char>> inputs = {
             SArray<char>(*values), SArray<char>(w_pos), SArray<char>(V_pos)};
-
           CHECK_NOTNULL(loss_)->Predict(batch.data.GetBlock(), inputs, &pred);
-          Evaluate(batch.data.label, pred, progress);
+          progress->objv += loss_->Evaluate(batch.data.label.data(), pred);
+          progress->nrows += pred.size();
+          BinClassMetric metric(batch.data.label.data(), pred.data(),
+                                pred.size(), blk_nthreads_);
+          progress->auc += metric.AUC();
 
+          // calculate the gradients
           if (batch.type == sgd::Job::kTraining) {
-            // calculate the gradients
             SArray<real_t> grads(values->size());
             inputs.push_back(SArray<char>(pred));
             loss_->CalcGrad(batch.data.GetBlock(), inputs, &grads);
