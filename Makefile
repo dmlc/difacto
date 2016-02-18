@@ -35,7 +35,8 @@ endif
 # LDFLAGS += $(addprefix $(DEPS_PATH)/lib/, libprotobuf.a libzmq.a)
 
 OBJS = $(addprefix build/, loss/loss.o \
-updater.o sgd/sgd_updater.o \
+updater.o \
+sgd/sgd_updater.o sgd/sgd_learner.o \
 learner.o \
 bcd/bcd_learner.o \
 lbfgs/lbfgs_learner.o \

@@ -58,8 +58,12 @@ struct Progress {
     delete ss;
   }
 
+  void Merge(const std::string& str) {
+
+  }
   void Merge(int node_id, const Progress& other) {
   }
+
   std::vector<real_t> progress;
 };
 

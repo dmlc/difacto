@@ -14,7 +14,7 @@ namespace difacto {
  * \brief a reader reads a batch with a given number of examples
  * each time.
  */
-class BatchReader {
+class BatchReader : public Reader {
  public:
   /**
    * \brief create a batch iterator
@@ -36,7 +36,7 @@ class BatchReader {
             unsigned shuffle_buf_size = 0,
             float neg_sampling = 1.0);
 
-  ~BatchReader() {
+  virtual ~BatchReader() {
     delete reader_;
     delete buf_reader_;
   }
@@ -44,13 +44,13 @@ class BatchReader {
   /**
    * \brief read the next batch
    */
-  bool Next();
+  virtual bool Next() override;
 
   /**
    * \brief get the current batch
    *
    */
-  const dmlc::RowBlock<feaid_t>& Value() const {
+  virtual const dmlc::RowBlock<feaid_t>& Value() const override {
     return out_blk_;
   }
 

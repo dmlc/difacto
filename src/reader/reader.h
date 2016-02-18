@@ -17,6 +17,7 @@ namespace difacto {
  */
 class Reader {
  public:
+  Reader() { parser_ = nullptr; }
   Reader(const std::string& uri,
          const std::string& format,
          int part_index,
@@ -43,11 +44,11 @@ class Reader {
     parser_ = new dmlc::data::ThreadedParser<feaid_t>(parser_);
   }
 
-  ~Reader() { delete parser_; }
+  virtual ~Reader() { delete parser_; }
 
-  bool Next() { return parser_->Next(); }
+  virtual bool Next() { return parser_->Next(); }
 
-  const dmlc::RowBlock<feaid_t>& Value() const { return parser_->Value(); }
+  virtual const dmlc::RowBlock<feaid_t>& Value() const { return parser_->Value(); }
 
  private:
   dmlc::data::ParserImpl<feaid_t>* parser_;

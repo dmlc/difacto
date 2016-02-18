@@ -5,56 +5,12 @@
  */
 #ifndef DIFACTO_SGD_SGD_UPDATER_H_
 #define DIFACTO_SGD_SGD_UPDATER_H_
-#include <string>
 #include <vector>
 #include <limits>
 #include "difacto/updater.h"
-#include "dmlc/parameter.h"
+#include "./sgd_param.h"
 #include "dmlc/io.h"
 namespace difacto {
-
-struct SGDUpdaterParam : public dmlc::Parameter<SGDUpdaterParam> {
-  /** \brief the l1 regularizer for :math:`w`: :math:`\lambda_1 |w|_1` */
-  float l1;
-  /** \brief the l2 regularizer for :math:`w`: :math:`\lambda_2 \|w\|_2^2` */
-  float l2;
-  /** \brief the l2 regularizer for :math:`V`: :math:`\lambda_2 \|V_i\|_2^2` */
-  float V_l2;
-
-  /** \brief the learning rate :math:`\eta` (or :math:`\alpha`) for :math:`w` */
-  float lr;
-  /** \brief learning rate :math:`\beta` */
-  float lr_beta;
-  /** \brief learning rate :math:`\eta` for :math:`V`. */
-  float V_lr;
-  /** \brief leanring rate :math:`\beta` for :math:`V`. */
-  float V_lr_beta;
-  /**
-   * \brief the scale to initialize V.
-   * namely V is initialized by uniform random number in
-   *   [-V_init_scale, +V_init_scale]
-   */
-  float V_init_scale;
-  /** \brief the embedding dimension */
-  int V_dim;
-  /** \brief the minimal feature count for allocating V */
-  int V_threshold;
-  /** \brief random seed */
-  unsigned int seed;
-  DMLC_DECLARE_PARAMETER(SGDUpdaterParam) {
-    DMLC_DECLARE_FIELD(l1).set_range(0, 1e10).set_default(1);
-    DMLC_DECLARE_FIELD(l2).set_range(0, 1e10).set_default(0);
-    DMLC_DECLARE_FIELD(V_l2).set_range(0, 1e10).set_default(.01);
-    DMLC_DECLARE_FIELD(lr).set_range(0, 10).set_default(.01);
-    DMLC_DECLARE_FIELD(lr_beta).set_range(0, 1e10).set_default(1);
-    DMLC_DECLARE_FIELD(V_lr).set_range(0, 1e10).set_default(.01);
-    DMLC_DECLARE_FIELD(V_lr_beta).set_range(0, 10).set_default(1);
-    DMLC_DECLARE_FIELD(V_init_scale).set_range(0, 10).set_default(.01);
-    DMLC_DECLARE_FIELD(V_threshold).set_default(10);
-    DMLC_DECLARE_FIELD(V_dim);
-    DMLC_DECLARE_FIELD(seed).set_default(0);
-  }
-};
 
 /**
  * \brief the weight entry for one feature
