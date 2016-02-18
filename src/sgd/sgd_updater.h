@@ -19,7 +19,6 @@ struct SGDEntry {
  public:
   SGDEntry() { fea_cnt = 0; w = 0; sqrt_g = 0; z = 0; V = nullptr; }
   ~SGDEntry() { delete [] V; }
-
   /** \brief the number of appearence of this feature in the data so far */
   real_t fea_cnt;
   /** \brief w and its aux data */
@@ -37,7 +36,6 @@ class SGDModel {
   ~SGDModel() { }
   /**
    * \brief init model
-   *
    * @param V_dim the dimension of V
    * @param start_id the minimal feature id
    * @param end_id the maximal feature id
@@ -88,10 +86,8 @@ class SGDModel {
 class SGDUpdater : public Updater {
  public:
   SGDUpdater() : new_w_(0), new_V_(0), has_aux_(true) {
-    // ppmonitor_ = ProgressMonitor::Create();
   }
   virtual ~SGDUpdater() {
-    // delete ppmonitor_;
   }
 
   KWArgs Init(const KWArgs& kwargs) override;
@@ -108,14 +104,15 @@ class SGDUpdater : public Updater {
   void Get(const SArray<feaid_t>& fea_ids,
            int value_type,
            SArray<real_t>* weights,
-           SArray<int>* offsets) override;
+           SArray<int>* val_lens) override;
 
 
   void Update(const SArray<feaid_t>& fea_ids,
               int value_type,
               const SArray<real_t>& values,
-              const SArray<int>& offsets) override;
+              const SArray<int>& val_lens) override;
 
+  const SGDUpdaterParam& param() const { return param_; }
  private:
   /** \brief update w by FTRL */
   void UpdateW(real_t gw, SGDEntry* e);

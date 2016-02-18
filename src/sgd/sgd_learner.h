@@ -40,7 +40,6 @@ class SGDLearner : public Learner {
  private:
   void RunEpoch(int epoch, int job_type, sgd::Progress* prog);
 
-
   /**
    * \brief iterate on a part of a data
    *

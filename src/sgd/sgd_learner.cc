@@ -15,6 +15,7 @@
 #include "dmlc/timer.h"
 #include "difacto/node_id.h"
 #include "loss/bin_class_metric.h"
+#include "./sgd_updater.h"
 
 namespace difacto {
 
@@ -53,7 +54,7 @@ void SGDLearner::RunEpoch(int epoch, int job_type, sgd::Progress* prog) {
 
   // issue jobs
   int n = store_->NumWorkers() * param_.num_jobs_per_epoch;
-  std::vector<std::pair<int, std::string>> jobs;
+  std::vector<std::pair<int, std::string>> jobs(n);
   for (int i = 0; i < n; ++i) {
     jobs[i].first = NodeID::kWorkerGroup;
     sgd::Job job;
@@ -66,7 +67,7 @@ void SGDLearner::RunEpoch(int epoch, int job_type, sgd::Progress* prog) {
   tracker_->Issue(jobs);
 
   // wait
-  while (!tracker_->NumRemains()) {
+  while (tracker_->NumRemains()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 }
@@ -98,23 +99,25 @@ void SGDLearner::IterateData(const sgd::Job& job, sgd::Progress* progress) {
         auto lengths = new SArray<int>();
         auto pull_callback = [this, batch, values, lengths, progress, on_complete]() {
           // eval the objective,
-          SArray<real_t> pred;
+          auto data = batch.data.GetBlock();
+          SArray<real_t> pred(data.size);
           SArray<int> w_pos, V_pos;
           GetPos(*lengths, &w_pos, &V_pos);
           std::vector<SArray<char>> inputs = {
             SArray<char>(*values), SArray<char>(w_pos), SArray<char>(V_pos)};
-          CHECK_NOTNULL(loss_)->Predict(batch.data.GetBlock(), inputs, &pred);
+          CHECK_NOTNULL(loss_)->Predict(data, inputs, &pred);
           progress->objv += loss_->Evaluate(batch.data.label.data(), pred);
           progress->nrows += pred.size();
           BinClassMetric metric(batch.data.label.data(), pred.data(),
                                 pred.size(), blk_nthreads_);
+          LL << metric.AUC();
           progress->auc += metric.AUC();
 
           // calculate the gradients
           if (batch.type == sgd::Job::kTraining) {
             SArray<real_t> grads(values->size());
             inputs.push_back(SArray<char>(pred));
-            loss_->CalcGrad(batch.data.GetBlock(), inputs, &grads);
+            loss_->CalcGrad(data, inputs, &grads);
 
             // push the gradient, this task is done only if the push is complete
             store_->Push(batch.feaids,
@@ -135,12 +138,19 @@ void SGDLearner::IterateData(const sgd::Job& job, sgd::Progress* progress) {
 
   Reader* reader = nullptr;
   if (job.type == sgd::Job::kTraining) {
-    reader = new BatchReader(param_.data_in, param_.data_format,
-                             job.part_idx, job.num_parts,
-                             param_.batch_size, param_.shuffle, param_.neg_sampling);
+    reader = new BatchReader(param_.data_in,
+                             param_.data_format,
+                             job.part_idx,
+                             job.num_parts,
+                             param_.batch_size,
+                             param_.batch_size * param_.shuffle,
+                             param_.neg_sampling);
   } else {
-    reader = new Reader(param_.data_in, param_.data_format,
-                        job.part_idx, job.num_parts, 256*1024*1024);
+    reader = new Reader(param_.data_in,
+                        param_.data_format,
+                        job.part_idx,
+                        job.num_parts,
+                        256*1024*1024);
   }
   while (reader->Next()) {
     // map feature id into continous index
@@ -179,8 +189,13 @@ KWArgs SGDLearner::Init(const KWArgs& kwargs) {
   auto remain = Learner::Init(kwargs);
   // init param
   remain = param_.InitAllowUnknown(remain);
+  // init updater
+  auto updater = new SGDUpdater();
+  remain = updater->Init(remain);
+  remain.push_back(std::make_pair("V_dim", std::to_string(updater->param().V_dim)));
   // init store
   store_ = Store::Create();
+  store_->SetUpdater(std::shared_ptr<Updater>(updater));
   remain = store_->Init(remain);
   // init loss
   loss_ = Loss::Create(param_.loss, blk_nthreads_);

@@ -55,7 +55,7 @@ class Loss {
    * @return the objective value
    */
   virtual real_t Evaluate(dmlc::real_t const* label,
-                          const SArray<real_t>& pred) {
+                          const SArray<real_t>& pred) const {
     real_t objv = 0;
 #pragma omp parallel for reduction(+:objv) num_threads(nthreads_)
     for (size_t i = 0; i < pred.size(); ++i) {
