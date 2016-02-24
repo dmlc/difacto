@@ -44,13 +44,13 @@ class BatchReader : public Reader {
   /**
    * \brief read the next batch
    */
-  virtual bool Next() override;
+  bool Next() override;
 
   /**
    * \brief get the current batch
    *
    */
-  virtual const dmlc::RowBlock<feaid_t>& Value() const override {
+  const dmlc::RowBlock<feaid_t>& Value() const override {
     return out_blk_;
   }
 

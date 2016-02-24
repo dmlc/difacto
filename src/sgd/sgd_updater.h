@@ -62,6 +62,7 @@ class SGDUpdater : public Updater {
   void Evaluate(sgd::Progress* prog) const;
 
   const SGDUpdaterParam& param() const { return param_; }
+
  private:
   /** \brief update w by FTRL */
   void UpdateW(real_t gw, SGDEntry* e);

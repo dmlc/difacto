@@ -4,6 +4,7 @@
 #ifndef DIFACTO_SGD_SGD_LEARNER_H_
 #define DIFACTO_SGD_SGD_LEARNER_H_
 #include <string>
+#include <vector>
 #include "difacto/learner.h"
 #include "./sgd_utils.h"
 #include "./sgd_updater.h"

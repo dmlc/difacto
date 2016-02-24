@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #include "./sgd_learner.h"
 #include <stdlib.h>
 #include <chrono>
@@ -39,7 +42,7 @@ void SGDLearner::RunScheduler() {
       LOG(INFO) << "Validation: " << val_prog.TextString();
     }
     for (const auto& cb : epoch_end_callback_) cb(k, train_prog, val_prog);
-    // TODO stop criteria
+    // TODO(mli) stop criteria
   }
 }
 

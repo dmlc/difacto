@@ -1,8 +1,8 @@
 /**
  *  Copyright (c) 2015 by Contributors
  */
-#ifndef DIFACTO_SGD_SGD_JOB_H_
-#define DIFACTO_SGD_SGD_JOB_H_
+#ifndef DIFACTO_SGD_SGD_UTILS_H_
+#define DIFACTO_SGD_SGD_UTILS_H_
 #include <string>
 #include <vector>
 #include "dmlc/memory_io.h"
@@ -40,7 +40,7 @@ struct Progress {
   real_t loss = 0;  //
   real_t penalty = 0;  //
   real_t auc = 0;   // auc
-  real_t nnz_w = 0; // |w|_0
+  real_t nnz_w = 0;  // |w|_0
   real_t nrows = 0;   // number of examples
 
   std::string TextString() {
@@ -73,4 +73,4 @@ struct Progress {
 
 }  // namespace sgd
 }  // namespace difacto
-#endif  // DIFACTO_SGD_SGD_JOB_H_
+#endif  // DIFACTO_SGD_SGD_UTILS_H_

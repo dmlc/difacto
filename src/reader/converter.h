@@ -112,7 +112,6 @@ class Converter {
 
       nrows += in.Value().size;
       LOG(INFO) << "written " << nrows << " examples in " << nwrite << " bytes";
-
     }
     delete libsvm_writer;
     delete rec_writer;

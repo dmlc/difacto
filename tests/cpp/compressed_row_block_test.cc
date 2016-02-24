@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #include <gtest/gtest.h>
 #include "data/compressed_row_block.h"
 #include "reader/batch_reader.h"

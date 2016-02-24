@@ -1,3 +1,6 @@
+/**
+ *  Copyright (c) 2015 by Contributors
+ */
 #ifndef DIFACTO_COMMON_THREAD_POOL_H_
 #define DIFACTO_COMMON_THREAD_POOL_H_
 #include <list>
@@ -19,7 +22,7 @@ class ThreadPool {
    * @param num_workers number of threads
    * @param max_capacity the maximal jobs can be added to the pool
    */
-  ThreadPool(int num_workers, int max_capacity = 1000000) {
+  explicit ThreadPool(int num_workers, int max_capacity = 1000000) {
     CHECK_GT(max_capacity, 0);
     CHECK_GT(num_workers, 0);
     CHECK_LT(num_workers, 100);
@@ -61,7 +64,7 @@ class ThreadPool {
    */
   void Wait() {
     std::unique_lock<std::mutex> lk(mu_);
-    fin_cond_.wait(lk, [this]{ return num_running_==0 && tasks_.empty(); });
+    fin_cond_.wait(lk, [this]{ return num_running_ == 0 && tasks_.empty(); });
   }
 
  private:
@@ -88,7 +91,6 @@ class ThreadPool {
   std::condition_variable fin_cond_, add_cond_;
   std::vector<std::thread> workers_;
   std::list<std::function<void(int tid)>> tasks_;
-
 };
 }  // namespace difacto
 #endif  // DIFACTO_COMMON_THREAD_POOL_H_
