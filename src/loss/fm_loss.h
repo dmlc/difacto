@@ -21,24 +21,8 @@ struct FMLossParam : public dmlc::Parameter<FMLossParam> {
    * \brief the embedding dimension
    */
   int V_dim;
-  // /**
-  //  * \brief the probability to set gradient of :math:`V` to 0. In default is 0
-  //  */
-  // float V_dropout;
-  // /**
-  //  * \brief project the gradient of :math:`V` into :math:`[-c c]`. No projection
-  //  * in default
-  //  */
-  // float V_grad_clipping;
-  // /**
-  //  * \brief normalize the gradient of :math:`V`. No normalizationin in default
-  //  */
-  // float V_grad_normalization;
   DMLC_DECLARE_PARAMETER(FMLossParam) {
     DMLC_DECLARE_FIELD(V_dim).set_range(0, 10000);
-    // DMLC_DECLARE_FIELD(V_dropout).set_range(0, 1).set_default(0);
-    // DMLC_DECLARE_FIELD(V_grad_clipping).set_range(0, 1000.0).set_default(0);
-    // DMLC_DECLARE_FIELD(V_grad_normalization).set_range(0, 1000.0).set_default(0);
   }
 };
 /**
