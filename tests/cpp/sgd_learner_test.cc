@@ -42,7 +42,7 @@ TEST(SGDLearner, Basic) {
 
   auto callback = [objv](
       int epoch, const sgd::Progress& train, const sgd::Progress& val) {
-    EXPECT_LT(fabs(objv[epoch] - train.loss), 1e-5);
+    EXPECT_LT(fabs(objv[epoch] - train.loss), 5e-5);
   };
   learner.AddEpochEndCallback(callback);
   learner.Run();
