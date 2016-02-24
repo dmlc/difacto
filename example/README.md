@@ -5,5 +5,5 @@ This fold contains example configurations, which can be passed by
 
 ```bash
 tools/download.sh criteo
-build/difacto argfile=criteo_lbfgs.conf
+build/difacto argfile=example/criteo_lbfgs.conf
 ```
