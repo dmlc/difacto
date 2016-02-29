@@ -34,12 +34,12 @@ void SGDLearner::RunScheduler() {
     sgd::Progress train_prog;
     LOG(INFO) << "Start epoch " << k;
     RunEpoch(k, sgd::Job::kTraining, &train_prog);
-    LOG(INFO) << "Training: " << train_prog.TextString();
+    LOG(INFO) << " - Training: " << train_prog.TextString();
 
     sgd::Progress val_prog;
     if (param_.data_val.size()) {
       RunEpoch(k, sgd::Job::kValidation, &val_prog);
-      LOG(INFO) << "Validation: " << val_prog.TextString();
+      LOG(INFO) << " - Validation: " << val_prog.TextString();
     }
     for (const auto& cb : epoch_end_callback_) cb(k, train_prog, val_prog);
     // TODO(mli) stop criteria
@@ -165,7 +165,7 @@ void SGDLearner::IterateData(const sgd::Job& job, sgd::Progress* progress) {
                              param_.batch_size * param_.shuffle,
                              param_.neg_sampling);
   } else {
-    reader = new Reader(param_.data_in,
+    reader = new Reader(param_.data_val,
                         param_.data_format,
                         job.part_idx,
                         job.num_parts,

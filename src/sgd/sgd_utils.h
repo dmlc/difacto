@@ -5,6 +5,7 @@
 #define DIFACTO_SGD_SGD_UTILS_H_
 #include <string>
 #include <vector>
+#include <sstream>
 #include "dmlc/memory_io.h"
 namespace difacto {
 namespace sgd {
@@ -44,7 +45,9 @@ struct Progress {
   real_t nrows = 0;   // number of examples
 
   std::string TextString() {
-    return std::to_string(auc);
+    std::stringstream ss;
+    ss << "loss = " << loss << ", AUC = " << auc / nrows;
+    return ss.str();
   }
 
   void SerializeToString(std::string* str) const {
