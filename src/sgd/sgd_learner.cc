@@ -29,6 +29,7 @@ struct BatchJob {
 };
 
 void SGDLearner::RunScheduler() {
+  real_t pre_loss = 0, pre_val_auc = 0;
   int k = 0;
   for (; k < param_.max_num_epochs; ++k) {
     sgd::Progress train_prog;
@@ -42,7 +43,27 @@ void SGDLearner::RunScheduler() {
       LOG(INFO) << " - Validation: " << val_prog.TextString();
     }
     for (const auto& cb : epoch_end_callback_) cb(k, train_prog, val_prog);
-    // TODO(mli) stop criteria
+
+    // stop criteria
+    real_t eps = fabs(train_prog.loss - pre_loss) / pre_loss;
+    if (eps < param_.stop_rel_objv) {
+      LOG(INFO) << "Change of loss [" << eps << "] < stop_rel_objv ["
+                << param_.stop_rel_objv << "]";
+      break;
+    }
+    if (val_prog.auc > 0) {
+      eps = (val_prog.auc - pre_val_auc) / val_prog.nrows;
+      if (eps < param_.stop_val_auc) {
+        LOG(INFO) << "Change of validation AUC [" << eps << "] < stop_val_auc ["
+                  << param_.stop_val_auc << "]";
+        break;
+      }
+    }
+    if (k+1 >= param_.max_num_epochs) {
+      LOG(INFO) << "Reach maximal number of epochs";
+    }
+    pre_loss = train_prog.loss;
+    pre_val_auc = val_prog.auc;
   }
 }
 
@@ -72,11 +93,12 @@ void SGDLearner::RunEpoch(int epoch, int job_type, sgd::Progress* prog) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
+  // get penalty from servers
   // if (job_type == sgd::Job::kTraining) {
   //   int n = store_->NumServers();
   //   std::vector<std::pair<int, std::string>> jobs(n);
   //   for (int i = 0; i < n; ++i) {
-  //     jobs[i].first = NodeID::Encode(NodeID::kWorkerGroup, i);
+  //     jobs[i].first = NodeID::Encode(NodeID::kServerGroup, i);
   //     sgd::Job job;
   //     job.type = sgd::Job::kEvaluation;
   //     job.SerializeToString(&jobs[i].second);
@@ -99,7 +121,7 @@ void SGDLearner::GetPos(const SArray<int>& len,
   for (size_t i = 0; i < n; ++i) {
     int l = len[i];
     w[i] = l == 0 ? -1 : p;
-    V[i] = l > 1 ? -1 : p+1;
+    V[i] = l > 1 ? p+1 : -1;
     p += l;
   }
 }

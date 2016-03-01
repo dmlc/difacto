@@ -14,6 +14,7 @@ void SGDUpdater::Evaluate(sgd::Progress* prog) const {
   real_t objv = 0;
   size_t nnz = 0;
   int dim = param_.V_dim;
+  mu_.lock();
   for (const auto& it : model_) {
     const auto& e = it.second;
     if (e.w) ++nnz;
@@ -23,6 +24,7 @@ void SGDUpdater::Evaluate(sgd::Progress* prog) const {
       for (int i = 0; i < dim; ++i) objv += .5 * param_.l2 * e.V[i] * e.V[i];
     }
   }
+  mu_.unlock();
   prog->penalty = objv;
   prog->nnz_w = nnz;
 }
@@ -38,7 +40,9 @@ void SGDUpdater::Get(const SArray<feaid_t>& fea_ids,
   lens->resize(V_dim == 0 ? 0 : size);
   int p = 0;
   for (size_t i = 0; i < size; ++i) {
+    mu_.lock();
     auto& e = model_[fea_ids[i]];
+    mu_.unlock();
     (*weights)[p++] = e.w;
     if (e.V) {
       memcpy(weights->data()+p, e.V, V_dim*sizeof(real_t));
@@ -58,7 +62,9 @@ void SGDUpdater::Update(const SArray<feaid_t>& fea_ids,
   if (value_type == Store::kFeaCount) {
     CHECK_EQ(fea_ids.size(), values.size());
     for (size_t i = 0; i < fea_ids.size(); ++i) {
+      mu_.lock();
       auto& e = model_[fea_ids[i]];
+      mu_.unlock();
       e.fea_cnt += values[i];
       if (param_.V_dim > 0 && e.V == nullptr
           && e.w != 0 && e.fea_cnt > param_.V_threshold) {
@@ -77,10 +83,13 @@ void SGDUpdater::Update(const SArray<feaid_t>& fea_ids,
     int p = 0;
     real_t* v = values.data();
     for (size_t i = 0; i < size; ++i) {
+      mu_.lock();
       auto& e = model_[fea_ids[i]];
+      mu_.unlock();
       UpdateW(v[p++], &e);
       if (!w_only && lens[i] > 1) {
         CHECK_EQ(lens[i], param_.V_dim+1);
+        CHECK(e.V != nullptr) << fea_ids[i];
         UpdateV(v+p, &e);
         p += param_.V_dim;
       }

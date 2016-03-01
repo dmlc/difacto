@@ -42,7 +42,10 @@ struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
 
   /** \brief show the training progress for every n second */
   int report_interval;
-
+  /** \brief stop if (objv_new - objv_old) / obj_old < threshold */
+  real_t stop_rel_objv;
+  /** \brief stop if val_auc_new - val_auc_old < threshold */
+  real_t stop_val_auc;
   DMLC_DECLARE_PARAMETER(SGDLearnerParam) {
     DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
     DMLC_DECLARE_FIELD(data_in);
@@ -55,6 +58,8 @@ struct SGDLearnerParam : public dmlc::Parameter<SGDLearnerParam> {
     DMLC_DECLARE_FIELD(batch_size);
     DMLC_DECLARE_FIELD(shuffle).set_default(10);
     DMLC_DECLARE_FIELD(neg_sampling).set_default(1);
+    DMLC_DECLARE_FIELD(stop_rel_objv).set_default(1e-5);
+    DMLC_DECLARE_FIELD(stop_val_auc).set_default(1e-5);
   }
 };
 

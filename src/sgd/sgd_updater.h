@@ -6,6 +6,7 @@
 #ifndef DIFACTO_SGD_SGD_UPDATER_H_
 #define DIFACTO_SGD_SGD_UPDATER_H_
 #include <vector>
+#include <mutex>
 #include <limits>
 #include "difacto/updater.h"
 #include "./sgd_param.h"
@@ -75,6 +76,7 @@ class SGDUpdater : public Updater {
 
   SGDUpdaterParam param_;
   std::unordered_map<feaid_t, SGDEntry> model_;
+  mutable std::mutex mu_;
   bool has_aux_ = true;
 };
 
