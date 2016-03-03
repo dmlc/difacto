@@ -42,6 +42,8 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
   real_t c1;
   real_t c2;
   real_t rho;
+
+  real_t gamma;
   int max_num_linesearchs;
 
   int num_threads;
@@ -61,6 +63,7 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
     DMLC_DECLARE_FIELD(init_alpha).set_default(0);
     DMLC_DECLARE_FIELD(max_num_linesearchs).set_default(5);
     DMLC_DECLARE_FIELD(c1).set_default(1e-4);
+    DMLC_DECLARE_FIELD(gamma).set_default(1);
     DMLC_DECLARE_FIELD(c2).set_default(.9);
     DMLC_DECLARE_FIELD(rho).set_default(.5);
     DMLC_DECLARE_FIELD(load_epoch).set_default(0);
