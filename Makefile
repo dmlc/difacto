@@ -6,7 +6,7 @@ USE_CITY=0
 USE_LZ4=1
 NO_REVERSE_ID=0
 
-all: build/difacto test
+all: build/difacto 
 
 INCPATH = -I./src -I./include -I./dmlc-core/include -I./ps-lite/include -I./dmlc-core/src -I$(DEPS_PATH)/include
 PROTOC = ${DEPS_PATH}/bin/protoc
