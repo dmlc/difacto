@@ -31,7 +31,6 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
 
   /** \brief stop if (objv_new - objv_old) / obj_old < threshold */
   real_t stop_rel_objv;
-
   /** \brief stop if val_auc_new - val_auc_old < threshold */
   real_t stop_val_auc;
   int load_epoch;
@@ -43,6 +42,8 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
   real_t c1;
   real_t c2;
   real_t rho;
+
+  real_t gamma;
   int max_num_linesearchs;
 
   int num_threads;
@@ -62,14 +63,43 @@ struct LBFGSLearnerParam : public dmlc::Parameter<LBFGSLearnerParam> {
     DMLC_DECLARE_FIELD(init_alpha).set_default(0);
     DMLC_DECLARE_FIELD(max_num_linesearchs).set_default(5);
     DMLC_DECLARE_FIELD(c1).set_default(1e-4);
+    DMLC_DECLARE_FIELD(gamma).set_default(1);
     DMLC_DECLARE_FIELD(c2).set_default(.9);
     DMLC_DECLARE_FIELD(rho).set_default(.5);
     DMLC_DECLARE_FIELD(load_epoch).set_default(0);
     DMLC_DECLARE_FIELD(stop_rel_objv).set_default(1e-5);
-    DMLC_DECLARE_FIELD(stop_val_auc).set_default(1e-4);
+    DMLC_DECLARE_FIELD(stop_val_auc).set_default(1e-5);
     DMLC_DECLARE_FIELD(num_threads).set_default(0);
   }
 };
+
+struct LBFGSUpdaterParam : public dmlc::Parameter<LBFGSUpdaterParam> {
+  /** \brief the embedding dimension */
+  int V_dim;
+  /** \brief features with occurence < threshold have no embedding */
+  int V_threshold = 2;
+  /** \brief initialize V into [-x, +x] */
+  float V_init_scale;
+  int tail_feature_filter;
+  // /** \brief the l1 regularizer for :math:`w`: :math:`\lambda_1 |w|_1` */
+  // float l1;
+  /** \brief the l2 regularizer for :math:`w`: :math:`\lambda_2 \|w\|_2^2` */
+  float l2;
+  /** \brief the l2 regularizer for :math:`V`: :math:`\lambda_2 \|V_i\|_2^2` */
+  float V_l2;
+  int m;
+  DMLC_DECLARE_PARAMETER(LBFGSUpdaterParam) {
+    DMLC_DECLARE_FIELD(tail_feature_filter).set_default(4);
+    // DMLC_DECLARE_FIELD(l1).set_default(1);
+    DMLC_DECLARE_FIELD(l2).set_default(.1);
+    DMLC_DECLARE_FIELD(V_l2).set_default(.01);
+    DMLC_DECLARE_FIELD(V_dim);
+    DMLC_DECLARE_FIELD(V_threshold).set_default(0);
+    DMLC_DECLARE_FIELD(m).set_default(10);
+    DMLC_DECLARE_FIELD(V_init_scale).set_default(.01);
+  }
+};
+
 
 }  // namespace difacto
 #endif  // DIFACTO_LBFGS_LBFGS_PARAM_H_

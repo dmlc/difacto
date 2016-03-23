@@ -8,37 +8,6 @@
 #include "difacto/updater.h"
 namespace difacto {
 
-struct LBFGSUpdaterParam : public dmlc::Parameter<LBFGSUpdaterParam> {
-  /** \brief the embedding dimension */
-  int V_dim;
-
-  /** \brief features with occurence < threshold have no embedding */
-  int V_threshold = 2;
-
-  /** \brief initialize V into [-x, +x] */
-  float V_init_scale;
-
-  int tail_feature_filter;
-  // /** \brief the l1 regularizer for :math:`w`: :math:`\lambda_1 |w|_1` */
-  // float l1;
-  /** \brief the l2 regularizer for :math:`w`: :math:`\lambda_2 \|w\|_2^2` */
-  float l2;
-  /** \brief the l2 regularizer for :math:`V`: :math:`\lambda_2 \|V_i\|_2^2` */
-  float V_l2;
-
-  int m;
-  DMLC_DECLARE_PARAMETER(LBFGSUpdaterParam) {
-    DMLC_DECLARE_FIELD(tail_feature_filter).set_default(4);
-    // DMLC_DECLARE_FIELD(l1).set_default(1);
-    DMLC_DECLARE_FIELD(l2).set_default(.1);
-    DMLC_DECLARE_FIELD(V_l2).set_default(.01);
-    DMLC_DECLARE_FIELD(V_dim);
-    DMLC_DECLARE_FIELD(V_threshold).set_default(0);
-    DMLC_DECLARE_FIELD(m).set_default(10);
-    DMLC_DECLARE_FIELD(V_init_scale).set_default(.01);
-  }
-};
-
 class LBFGSUpdater : public Updater {
  public:
   LBFGSUpdater() { }

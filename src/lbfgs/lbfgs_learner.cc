@@ -284,6 +284,9 @@ real_t LBFGSLearner::CalcGrad(const SArray<real_t>& w_val,
   }
   prog_.auc = auc[0];
   *grad = grads[0];
+  if (param_.gamma != 1) {
+    for (real_t& g : *grad) g = (g > 0 ? 1 : -1) * pow(fabs(g), param_.gamma);
+  }
   return objv[0];
 }
 
